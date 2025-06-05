@@ -61,16 +61,48 @@ df %>%
 ## ---- Fill in identifying columns and bind to most recent point-level master database ----
 
 # Import current master database
-master_df_list<-list.files(paste(data_dir,"Master Datasheets", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
 df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
 
 #Add rows and save 
 master_df <- rbind(df_current, df)
-write.csv(master_df, paste0(data_dir, "/Master Datasheets/Master_Datasheet_",  Sys.Date(), ".csv"))
+write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/Master_Datasheet_",  Sys.Date(), ".csv"))
 
 ## ---- Import/clean management data from jotform ----
-man_df_list<-list.files(paste(data_dir,"Raw Data","Management Data", sep="/"), pattern = "\\.csv$", full.names = TRUE)
+
+# Import latest jotform submission
+man_df_list <- list.files(paste(data_dir,"Raw Data","Management Data", sep="/"), pattern = "\\.csv$", full.names = TRUE)
 man <- read.csv(man_df_list[which.max(as.Date(gsub("\\D","", man_df_list), format = "%Y%m%d"))])
-col_names <- read.csv("Jotform Column Names.csv")
-colnames(man) <- col_names$new_name
-head(man)
+
+# Import column names map 
+field_col_names <- read.csv("jotform_column_names.csv")
+field_names<- field_col_names$new_name
+
+# Import latest field-level database
+field_df_list <- list.files(paste(data_dir,"Master Datasheets","FieldLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+field_df_current <- read.csv(field_df_list[which.max(as.Date(gsub("\\D","", field_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+
+# Rename columns in jotform df and remove NA columns
+non_na_cols <- !sapply(man, function(col) all(is.na(col)))
+man_clean <- man[, non_na_cols]
+field_names <- field_names[non_na_cols]
+colnames(man_clean) <- field_names
+
+# Remove columns marked "remove"
+man_clean <- man_clean[,!grepl("remove",colnames(man_clean))]
+
+# Create project_name based on farm name, practice year, and conservation practice
+prac_abbr <- read.csv("practice_abbreviations.csv") #Check abbreviations with Avalon
+practice_label<-prac_abbr[prac_abbr$Practice==man_clean[1,]$cons_practice,]$Abbreviation
+man_clean$project_name <- paste(toupper(str_sub(man_clean$farm_name,1,4)),str_sub(man_clean$practice_year,3,4),
+                                toupper(practice_label),sep=".")
+man_clean <- man_clean[,!names(man_clean)=="farm_name"]
+
+# Bind jotform submission to master field-level database and save
+missing_cols <- setdiff(colnames(field_df_current), colnames(man_clean))
+man_clean[missing_cols] <- NA
+man_clean <- man_clean[colnames(field_df_current)] # Reorder columns to match master df
+field_df <- rbind(field_df_current, man_clean) # Append to original df
+write.csv(field_df, paste0(data_dir, "/Master Datasheets/FieldLevel/FieldLevel_Master_Datasheet_",  Sys.Date(), ".csv"))
+
+

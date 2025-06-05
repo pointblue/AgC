@@ -24,7 +24,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
   lab_raw<-read.csv(df_name)
 
   # Rename columns
-  col_map <- read.csv("Lab Column Names.csv")
+  col_map <- read.csv("lab_column_names.csv")
   if(lab == "Cquester"){
     rename_vec <- setNames(as.character(col_map$Cquester), col_map$Column.Name)
     rename_vec <- rename_vec[rename_vec %in% colnames(lab_raw)]
