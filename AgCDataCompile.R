@@ -61,16 +61,16 @@ df %>%
 ## ---- Fill in identifying columns and bind to most recent point-level master database ----
 
 # Import current master database
-master_df_list<-list.files(paste(data_dir,"Raw Data","Lab Data", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+master_df_list<-list.files(paste(data_dir,"Master Datasheets", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
 df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
 
 #Add rows and save 
 master_df <- rbind(df_current, df)
-write.csv(master_df, paste0(data_dir, "/MasterDatasheets/ACTION_Master_Datasheet_",  Sys.Date(), ".csv"))
+write.csv(master_df, paste0(data_dir, "/Master Datasheets/Master_Datasheet_",  Sys.Date(), ".csv"))
 
 ## ---- Import/clean management data from jotform ----
-
-man <- read.csv("Jotform_example.csv")
-col_names <- read.csv("jotform_column_names.csv")
+man_df_list<-list.files(paste(data_dir,"Raw Data","Management Data", sep="/"), pattern = "\\.csv$", full.names = TRUE)
+man <- read.csv(man_df_list[which.max(as.Date(gsub("\\D","", man_df_list), format = "%Y%m%d"))])
+col_names <- read.csv("Jotform Column Names.csv")
 colnames(man) <- col_names$new_name
 head(man)
