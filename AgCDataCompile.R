@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250414
+# Date updated: 20250604
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -13,11 +13,16 @@ source('functions.R')
 # Authorize google drive access
 gs4_auth() #this line will initiate a prompt in your console and take you to your browser to approve access to your Google Drive
 
+# Define data directory
+data_dir<-("Z:/Soils Team/AgC Data/")
+
 ## ---- Import/clean lab and tap field data ----
 
 # Lab soils data
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
-lab_clean <- clean_lab_df(lab = "Cquester") #Options: "Cquester", "Ward"
+lab_clean <- clean_lab_df(data_path = data_dir, 
+                          lab = "Cquester", #Options: "Cquester", "Ward"
+                          file_name = NA)  #optional- can specify if you know the file name and/or are not working with the most recent lab data
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
@@ -53,7 +58,19 @@ df %>%
 df %>%
   filter(sand + silt + clay < 99 | sand + silt + clay > 101)
 
-## ---- Fill in identifying columns and bind to most recent master database ----
+## ---- Fill in identifying columns and bind to most recent point-level master database ----
 
 # Import current master database
-df_current <- data_import("MasterDatasheets")
+master_df_list<-list.files(paste(data_dir,"Raw Data","Lab Data", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+
+#Add rows and save 
+master_df <- rbind(df_current, df)
+write.csv(master_df, paste0(data_dir, "/MasterDatasheets/ACTION_Master_Datasheet_",  Sys.Date(), ".csv"))
+
+## ---- Import/clean management data from jotform ----
+
+man <- read.csv("Jotform_example.csv")
+col_names <- read.csv("jotform_column_names.csv")
+colnames(man) <- col_names$new_name
+head(man)

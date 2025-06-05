@@ -1,29 +1,28 @@
 # Title: functions.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250414
+# Date updated: 20250604
 # Purpose: Define Ag-C data cleaning functions used in AgCDataCompile.R to:
-#   1) data_import: Import most recent csv in folder 
-#   2) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester)
-#   3) clean_tap_df: Renames columns and removes extra columns in TAP df
-#   4) out_of_range: verify required columns and check for data outside expected ranges
-
-## ---- data_import function ----
-
-data_import <- function(folder){
-  data_path<-("G:/Shared drives/Ag-C (ACTION)/MonitoringSupport/ACTION_MonitoringData")
-  list_dfs<-list.files(paste(data_path, folder, sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in the CquesterData folder
-  df_name <- list_dfs[which.max(as.Date(gsub("\\D","", list_dfs), format = "%Y%m%d"))] #this indexing patterns makes sure we're using the most recent master datasheet
-  df<-read.csv(df_name)
-  return(df)
-}
+#   1) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester)
+#   2) clean_tap_df: Renames columns and removes extra columns in TAP df
+#   3) out_of_range: verify required columns and check for data outside expected ranges
 
 ## ---- clean_lab_df function ----
 
-clean_lab_df <- function(lab){
+clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data)
+                         lab, #as of now, can be "Cquester" or "Ward"
+                         file_name #optional- can specify if you know the file name and/or are not working with the most recent lab data
+                         ){
   # Import latest csv
-  lab_folder <- paste0(lab,"Data")
-  lab_raw <- data_import(lab_folder)
+  if(is.na(file_name)==TRUE){
+    list_dfs<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+    list_dfs<-list_dfs[grep(lab,list_dfs)]
+    df_name <- list_dfs[which.max(as.Date(gsub("\\D","", list_dfs), format = "%Y%m%d"))] #this indexing patterns makes sure we're using the most recent master datasheet
+  }else{
+    df_name<-paste(data_path,"Raw Data","Lab Data", file_name, sep="/")
+  }
+  lab_raw<-read.csv(df_name)
+
   # Rename columns
   col_map <- read.csv("Lab Column Names.csv")
   if(lab == "Cquester"){
