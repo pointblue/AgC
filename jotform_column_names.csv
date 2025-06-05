@@ -1,8 +1,8 @@
 ﻿rangec_cropc,practice,new_name,raw_name
 all,all,submission_date,Submission Date
-all,all,name,Land steward name
-all,all,email,Land steward email
-all,all,phone,Land steward phone
+all,all,name_remove,Land steward name
+all,all,email_remove,Land steward email
+all,all,phone_remove,Land steward phone
 all,all,farm_name,Farm or Ranch name
 all,all,practice_year,Conservation practice implementation year
 all,all,rangec_cropc,Is this a Range-C or Crop-C project?
@@ -11,7 +11,7 @@ cropc,all,hist_currentman_yrs,How many years ago did you acquire or begin managi
 rangec,luc,conv_plan_notes,"Please provide a description of the land use conversion, included historical and planned uses"
 cropc,all,hist_flood_yr,"Please enter the year of the last major flood within the study area, if applicable"
 rangec,wood,ripar_method,The riparian area will be restored by: (select all that apply)
-cropc,all,hist_ls_types,What type(s) of livestock have been present in the study area during the last 5 years?
+cropc,all,hist_ls_type,What type(s) of livestock have been present in the study area during the last 5 years?
 cropc,all,hist_ls_yn,Have livestock been present in the study area during the last 5 years?
 cropc,oa,oa_freq,Application frequency
 cropc,all,hist_fire_yr,"Please enter the year of the last major fire within the study area, if applicable"
