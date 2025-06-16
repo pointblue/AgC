@@ -14,7 +14,7 @@ source('functions.R')
 gs4_auth() #this line will initiate a prompt in your console and take you to your browser to approve access to your Google Drive
 
 # Define data directory
-data_dir<-("Z:/Soils Team/AgC Data/")
+data_dir<-("Z:/Soils Program/AgC Data/")
 
 ## ---- Import/clean lab and tap field data ----
 
