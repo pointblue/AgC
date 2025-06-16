@@ -9,7 +9,7 @@
 
 ## ---- clean_lab_df function ----
 
-clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data)
+clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC Data)
                          lab, #as of now, can be "Cquester" or "Ward"
                          file_name #optional- can specify if you know the file name and/or are not working with the most recent lab data
                          ){
