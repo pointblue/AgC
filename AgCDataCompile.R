@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250604
+# Date updated: 20250626
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -14,14 +14,14 @@ source('functions.R')
 gs4_auth() #this line will initiate a prompt in your console and take you to your browser to approve access to your Google Drive
 
 # Define data directory
-data_dir<-("Z:/Soils Program/AgC Data/")
+data_dir<-("Z:/Soils Team/AgC Data/")
 
 ## ---- Import/clean lab and tap field data ----
 
 # Lab soils data
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
-                          lab = "Cquester", #Options: "Cquester", "Ward"
+                          lab = "Ward", #Options: "Cquester", "Ward"
                           file_name = NA)  #optional- can specify if you know the file name and/or are not working with the most recent lab data
 
 # TAP field data

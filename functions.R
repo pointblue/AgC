@@ -27,38 +27,60 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
   col_map <- read.csv("lab_column_names.csv")
   if(lab == "Cquester"){
     rename_vec <- setNames(as.character(col_map$Cquester), col_map$Column.Name)
-    rename_vec <- rename_vec[rename_vec %in% colnames(lab_raw)]
+    rename_vec <- gsub("\\.", "", rename_vec)
     lab_clean <- lab_raw %>%
       slice(-1) %>%
-      rename(!!!rename_vec)
+      setNames(gsub("\\.", "", names(.))) %>%
+      rename(!!!rename_vec[rename_vec %in% colnames(.)])
   }
   if(lab == "Ward"){
-    rename_vec <- setNames(as.character(col_map$Ward), col_map$Column.Name)
-    rename_vec <- rename_vec[rename_vec %in% colnames(lab_raw)]
+    rename_vec <- setNames(as.character(col_map$Ward), col_map$Column.Name) #Define ward column map
     lab_clean <- lab_raw %>%
-      select(where(~ !all(is.na(.)))) %>%
-      select(match("Sample ID", names(lab_raw)):last_col()) %>%
-      rename(!!!rename_vec)
+      select(-c(Kind.Of.Sample:Field.ID,Date.Recd,Date.Rept,Past.Crop)) %>% #Remove extra id columns
+      select(where(~ !all(is.na(.)))) %>% # Remove columns with no data
+      rename(!!!rename_vec[rename_vec %in% colnames(.)]) %>% # Rename remaining columns
+      mutate(start_depth = round(start_depth*2.54,0), # Convert depths from in to cm 
+             end_depth = round(end_depth*2.54,0))
+    if("total_n" %in% colnames(lab_clean)){ # Convert ppm to percent
+      lab_clean <- lab_clean %>%
+        mutate(total_n = total_n/10000)
+    }
+    if("rocks_g" %in% colnames(lab_clean)){
+      lab_clean <- lab_clean %>%
+        mutate(rocks_g = ifelse(rocks_g == "< 0.01", 0, rocks_g))
+    }
+    if("coarse_g" %in% colnames(lab_clean)){
+      lab_clean <- lab_clean %>%
+        mutate(coarse_g = ifelse(coarse_g == "< 0.01", 0, coarse_g))
+    }
+  }
+  
+  #Define column names from cleaned df
+  clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
+  clean_col_names <- clean_col_names[!duplicated(clean_col_names)]
+  
+  # Check for no unexpected columns in lab raw data
+  if(length(clean_col_names) != ncol(lab_clean)) {
+    message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% names(rename_vec)]))
   }
   
   # Make sure columns are numeric, fill in NAs where blank
   lab_clean <- lab_clean %>%
+    select(c(clean_col_names)) %>%
     mutate(across(everything(), ~ ifelse(. %in% c("-","--",""," ","NA","na"), NA,.))) %>%
-    mutate(across(-c(sample_id), as.numeric))
+    mutate(across(-c(clean_col_names[clean_col_names %in% c("sample_id","texture_name")]),
+           as.numeric))
   
-  # Check for no unexpected columns in lab raw data
-  if(length(rename_vec) != ncol(lab_clean)) {
-    message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% names(rename_vec)]))
-  }
-  
-  # Define C analysis method based on lab
+  # Define lab and C analysis method
+  lab_clean$lab_name <- lab
   lab_clean$c_method <- ifelse(lab %in% c("Cquester","Ward"),"Dry Combustion",NA)
   
   #Add required columns that were not in raw lab data 
   cols_to_add <- col_map$Column.Name[!col_map$Column.Name %in% names(lab_clean)]
   lab_clean[,cols_to_add] <- NA
   lab_clean <- lab_clean %>%
-    select(col_map$Column.Name)
+    select(col_map$Column.Name) %>%
+    mutate(field_id = str_sub(sample_id,1,4)) #Define field_id based on sample_id code
   
   return(lab_clean)
 }
