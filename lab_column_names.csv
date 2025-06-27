@@ -1,10 +1,9 @@
 ﻿Column Name,Units,Cquester,Cquester Units,Ward,Ward Units
-field_id,NA,NA,NA,NA,NA
 sample_id,NA,Sample.ID,NA,Sample.ID,NA
 lat,NA,NA,NA,NA,NA
 long,NA,NA,NA,NA,NA
-start_depth,cm,NA,cm,B.Depth,in
-end_depth,cm,NA,cm,E.Depth,in
+b_depth,cm,NA,cm,B.Depth,in
+e_depth,cm,NA,cm,E.Depth,in
 lab_name,NA,NA,NA,NA,NA
 c_method,NA,NA,NA,NA,NA
 total_c,percent,Total.carbon,percent,Total.Carbon..,percent

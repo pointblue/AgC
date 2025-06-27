@@ -16,25 +16,38 @@ gs4_auth() #this line will initiate a prompt in your console and take you to you
 # Define data directory
 data_dir<-("Z:/Soils Team/AgC Data/")
 
+# Define path for Ag C data entry spreadsheet - you should have sharepoint synced to your onedrive so that it can be accessed on remote desktop
+agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Soils Program Active Research/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx"
+
 ## ---- Import/clean lab and tap field data ----
 
 # Lab soils data
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
                           lab = "Ward", #Options: "Cquester", "Ward"
-                          file_name = NA)  #optional- can specify if you know the file name and/or are not working with the most recent lab data
+                          file_name = "Ward_data_20250313.csv")  #optional- can specify if you know the file name and/or are not working with the most recent lab data
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
-tap_clean <- read_excel("TAP Data Entry.xlsx", sheet="DigitizePointData", #Need to get access to read in through google drive
-                     na = c("NA", "na", "-", "", " "), col_types = "text") %>%
+tap_clean <- read_excel(agc_data_entry, sheet="Soils", col_names=TRUE,
+                     na = c("NA", "na", "ND", "nd", "-", "--","", " ")) %>%
   clean_tap_df()
+
+## ---- Merge lab_clean and tap_clean dataframes ----
+df <- lab_clean %>%
+  left_join(tap_clean, by = c("sample_id","b_depth","e_depth")) %>%  # Merge lab and tap field data
+  mutate(
+    texture_name = coalesce(texture_name.x,texture_name.y),
+    ph = coalesce(ph.x, ph.y),
+    soil_moisture = coalesce(soil_moisture.x, soil_moisture.y),
+    dry_soil_g = coalesce(dry_soil_g.x, dry_soil_g.y)
+  ) %>%
+  select(-ends_with(c(".y",".x")))
 
 ## ---- Bulk density and biomass calculations ----
 
 # Bulk density
-df <- lab_clean %>%
-  left_join(tap_clean, by = "sample_id") %>%  # Merge lab and tap field data
+df <- df %>%
   mutate(bulk_density = if_else( 
     is.na(bulk_density),   
     dry_soil_g / vol_cm3, # If NA, calculate as Dry.Mass / Volume
@@ -47,7 +60,7 @@ df <- lab_clean %>%
 
 out_of_range(df, "bulk_density", 0.9, 1.8) #Bulk density between 0.9 and 1.8 g/cm3
 out_of_range(df, "total_c", 0.1, 20) #total c %
-out_of_range(df, "pH", 4, 9) #pH
+out_of_range(df, "ph", 4, 9) #pH
 
 #Org + inorg c = total c
 df %>%
@@ -59,6 +72,8 @@ df %>%
   filter(sand + silt + clay < 99 | sand + silt + clay > 101)
 
 ## ---- Fill in identifying columns and bind to most recent point-level master database ----
+
+# Select only columns needed for master database
 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder

@@ -39,8 +39,8 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
       select(-c(Kind.Of.Sample:Field.ID,Date.Recd,Date.Rept,Past.Crop)) %>% #Remove extra id columns
       select(where(~ !all(is.na(.)))) %>% # Remove columns with no data
       rename(!!!rename_vec[rename_vec %in% colnames(.)]) %>% # Rename remaining columns
-      mutate(start_depth = round(start_depth*2.54,0), # Convert depths from in to cm 
-             end_depth = round(end_depth*2.54,0))
+      mutate(b_depth = round(b_depth*2.54,0), # Convert depths from in to cm 
+             e_depth = round(e_depth*2.54,0))
     if("total_n" %in% colnames(lab_clean)){ # Convert ppm to percent
       lab_clean <- lab_clean %>%
         mutate(total_n = total_n/10000)
@@ -79,8 +79,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
   cols_to_add <- col_map$Column.Name[!col_map$Column.Name %in% names(lab_clean)]
   lab_clean[,cols_to_add] <- NA
   lab_clean <- lab_clean %>%
-    select(col_map$Column.Name) %>%
-    mutate(field_id = str_sub(sample_id,1,4)) #Define field_id based on sample_id code
+    select(col_map$Column.Name)
   
   return(lab_clean)
 }
@@ -91,46 +90,65 @@ clean_tap_df <- function(tap_df){
   
   #Remove extra columns, define column types
   tap_clean <- tap_df %>%
-    slice(-c(1,2)) %>% # remove example and unit rows
-    select(Sample.ID, Sampling.date:BD.Depth4,Field.notes) %>%
-    mutate(Sampling.date = format(as.Date(as.numeric(Sampling.date), origin = "1899-12-30"), "%Y-%m-%d")) %>%
-    mutate(across(everything(), ~ ifelse(. %in% c("-","--",""," ","NA","na"), NA,.))) %>%
-    filter(!is.null(Sample.ID))%>% #filter out empty rows
-    filter(!is.na(Sample.ID))%>% #filter out empty rows
-    mutate(across(c(BD.Vol1:BD.Depth4), as.numeric))
+    slice(-1) %>% # remove unit row
+    mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d"),
+           across(c(BdepthTarget_cm:Edepth_cm,pH_infield), as.numeric),
+           Bdepth_cm = round(Bdepth_cm,1),
+           Edepth_cm = round(Edepth_cm,1)
+           ) %>%
+    filter(!is.null(PointID))%>% #filter out empty rows
+    filter(!is.na(PointID))%>% #filter out empty rows
+    mutate(across(c(Volume1_mL:Depth4_cm), as.numeric))
   
   #Determine bulk density method  
   tap_clean <- tap_clean %>%
     mutate(bd_method = case_when( 
-      !is.na(BD.Vol1) | !is.na(BD.Vol2) | !is.na(BD.Vol3) | !is.na(BD.Vol4) ~ "Millet",
-      !is.na(BD.Depth1) | !is.na(BD.Depth2) | !is.na(BD.Depth3) | !is.na(BD.Depth4) ~ "Core Depth",
+      !is.na(Volume1_mL) | !is.na(Volume2_mL) | !is.na(Volume3_mL) | !is.na(Volume4_mL) ~ "Millet",
+      !is.na(Depth1_cm) | !is.na(Depth2_cm) | !is.na(Depth3_cm) | !is.na(Depth4_cm) ~ "Ruler",
         TRUE ~ NA_character_  
     ))
   
   #Calculate volume 
   tap_clean <- tap_clean %>%
-    mutate(Volume_cm3 = case_when( #calculate sample volumes based on all possible scenarios
-    !is.na(BD.Vol3) & !is.na(BD.Vol4) ~ (BD.Vol3 + BD.Vol4) / 2,  # Case 1: vol3 and vol4 have values (first two measurements were off)
-    !is.na(BD.Vol1) & !is.na(BD.Vol2) & is.na(BD.Vol3) & is.na(BD.Vol4) ~ (BD.Vol1 + BD.Vol2) / 2,  # Case 2: vol1 and vol2 are present, none for 3 and 4 (first two measurements were good)
-    is.na(BD.Vol1) & is.na(BD.Vol2) & is.na(BD.Vol3) & is.na(BD.Vol4) & 
-      ( !is.na(BD.Depth1) | !is.na(BD.Depth2) | !is.na(BD.Depth3) | !is.na(BD.Depth4) ) ~ rowMeans(select(., BD.Depth1, BD.Depth2, BD.Depth3, BD.Depth4), na.rm = TRUE) * pi * ((2*2.54) / 2)^2, #Case 3; No volume measurements are present -- depths must be used to calculate sample volume
+    mutate(vol_cm3 = case_when( #calculate sample volumes based on all possible scenarios
+    !is.na(Volume3_mL) & !is.na(Volume4_mL) ~ (Volume3_mL + Volume4_mL) / 2,  # Case 1: vol3 and vol4 have values (first two measurements were off)
+    !is.na(Volume1_mL) & !is.na(Volume2_mL) & is.na(Volume3_mL) & is.na(Volume4_mL) ~ (Volume1_mL + Volume2_mL) / 2,  # Case 2: vol1 and vol2 are present, none for 3 and 4 (first two measurements were good)
+    is.na(Volume1_mL) & is.na(Volume2_mL) & is.na(Volume3_mL) & is.na(Volume4_mL) & # Case 3; No volume measurements are present -- depths must be used to calculate sample volume
+      ( !is.na(Depth1_cm) | !is.na(Depth2_cm) | !is.na(Depth3_cm) | !is.na(Depth4_cm) ) ~
+      rowMeans(select(., Depth1_cm, Depth2_cm, Depth3_cm, Depth4_cm), na.rm = TRUE) * pi * ((2*2.54) / 2)^2, 
     TRUE ~ NA_real_  # no volumes or depths are present; bulk density is not included
   ))
   
   #Make sure that all rows that have NA for volume have no VOl or Depth data
-  na_rows <- tap_clean[is.na(tap_clean$Volume_cm3),] %>%
-    filter(if_all(c(BD.Vol1:BD.Depth4), ~ !is.na(.))) %>%
-    select(Sample.ID)
+  na_rows <- tap_clean[is.na(tap_clean$vol_cm3),] %>%
+    filter(if_all(c(Volume1_mL:Depth4_cm), ~ !is.na(.))) %>%
+    select(SampleID)
   if(nrow(na_rows) > 0) {
     message("Sample IDs with vol/depth input but no calculated volume:", paste(na_rows$Sample.ID))
   }
   
+  #Calculate soil moisture and dry soil mass
+  tap_clean <- tap_clean %>%
+    mutate(across(c(WetMass_g, RocksRemovedMass_g:MoistureSubsDryMass_g), as.numeric)) %>%
+    mutate(soil_moisture = (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100,
+           dry_soil_g = (WetMass_g - RocksRemovedMass_g - RootsRemovedMass_g)*((100-soil_moisture)/100))
+  
   #Select rows
   tap_clean <- tap_clean %>%
-    rename(sample_id = Sample.ID,
-           sample_date = Sampling.date,
-           vol_cm3 = Volume_cm3,
-           notes = Field.notes) %>%
+    rename(project_id = ProjectID,
+           sample_id = PointID,
+           protocol = Protocol,
+           timepoint = Timepoint,
+           sample_date = SamplingDate,
+           b_depth = BdepthTarget_cm,
+           e_depth = EdepthTarget_cm,
+           b_depth_meas = Bdepth_cm,
+           e_depth_meas = Edepth_cm,
+           position = Position,
+           texture_name = Texture_infield,
+           ph = pH_infield) %>%
+    select(c(project_id,sample_id,protocol, timepoint, sample_date, b_depth, e_depth, 
+             b_depth_meas,e_depth_meas,position, texture_name, ph, soil_moisture, dry_soil_g, vol_cm3)) %>%
     as.data.frame()
     
   return(tap_clean)
