@@ -1,0 +1,44 @@
+﻿column_name,units,levels_example,description
+project_id,NA,EXPR.24.CA,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
+protocol,NA,Range-C; Crop-C; NA,Indicate whether projects followed Point Blue's Range-C or Crop-C protocol
+sample_id,NA,EXPR.24.CA.T.01,"Unique sample ID for each sampling location with project_id, treatment (T) or control (C), and sample number"
+timepoint,NA,"T0, T1, …","Timepoint of sampling event, indicating baseline (T0), first sampling after practice implementation (T1), and following events (T2, T3, etc)"
+sample_date,NA,MM/DD/YYYY,Date of soil sampling event
+lat,CRS WGS 84,,Latitude of soil sampling point
+long,CRS WGS 84,,Longitude of soil sampling point
+target_depth,cm,0_30,Planned beginning and end depth of sample separated by _
+b_depth,cm,0.0,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
+e_depth,cm,32.4,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
+position,NA,alley; row; shoulder; NA,"Placement of the soil sample relative to perennial crop rows. Alley = between perennial rows, row = within planting rows, shoulder = slope between row and alley. Not applicable in annual crops and rangelands"
+lab_name,NA,Ward; Cquester; UCDavis; CSU,Name of lab service provider
+c_method,NA,Dry Combustion; LOI,Method used for soil C quantification
+total_c,percent,1.195,Total soil C concentration of sample
+total_n,percent,0.802,Total soil N concentration of sample
+org_c,percent,1.002,Soil organic C concentration of sample
+inorg_c,percent,0.193,Soil inorganic C concentration of sample
+pom,percent,42.51,Particulate organic matter as a percent of total organic matter in sample
+poc,percent,0.06,Concentration of particulate organic C in sample
+pon,percent,0.74,Concentration of particulate organic N in sample
+maom,percent,55.69,Mineral-associated organic matter as a percent of total organic matter in sample
+maoc,percent,0.15,Concentration of mineral-associated organic C in sample
+maon,percent,1.12,Concentration of mineral-associated organic N in sample
+texture_name,NA,Silt loam,Texture class observed either in-field or texture by feel in lab. One of 11 USDA texture classes
+sand,percent,35,Sand content of sample measured in lab
+silt,percent,30,Silt content of sample measured in lab
+clay,percent,35,Clay content of sample measured in lab
+ph,ph,7.3,"pH of sample, measured in-field or in lab"
+buffer_ph,ph,6.5,Buffer pH indicating soil's resistance to changes in pH
+bulk_density,g/cm3,1.49,"Bulk density of sample, calculated by dividing mass of dry soil (rocks and roots removed) by total volume of sampling core"
+rocks_g,g,4.64,Weight of rocks removed from bulk density sample
+k_ppm,ppm,387,Potassium concentration by NH4 acetate extraction 
+ca_ppm,ppm,3718,Calcium concentration by NH4 acetate extraction 
+mg_ppm,ppm,716,Magnesium concentration by NH4 acetate extraction 
+na_ppm,ppm,108,Sodium concentration by NH4 acetate extraction 
+soil_moisture,percent,10.7,Soil moisture measured in lab or during in-house bulk density processing
+sol_salts,mmho/cm,0.13,Soluble salts
+cec,meq/100g,29.2,Sum of cations calculated from cation NH4 acetate extraction and buffer pH
+cec_h_perc,percent,0,Hydrogen base saturation 
+cec_k_perc,percent,2,Potassium base saturation
+cec_ca_perc,percent,76,Calcium base saturation
+cec_mg_perc,percent,19,Magnesium base saturation
+cec_na_perc,percent,2,Sodium base saturation
