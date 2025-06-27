@@ -3,9 +3,10 @@ project_id,NA
 protocol,NA
 sample_id,NA
 timepoint,NA
-practice,NA
+sample_date,NA
 lat,NA
 long,NA
+target_depth,cm
 b_depth,cm
 e_depth,cm
 position,NA

@@ -42,7 +42,8 @@ df <- lab_clean %>%
     soil_moisture = coalesce(soil_moisture.x, soil_moisture.y),
     dry_soil_g = coalesce(dry_soil_g.x, dry_soil_g.y)
   ) %>%
-  select(-ends_with(c(".y",".x")))
+  select(-ends_with(c(".y",".x"))) %>%
+  mutate(across(c(total_n:cec_na_perc), as.numeric))
 
 ## ---- Bulk density and biomass calculations ----
 
@@ -51,19 +52,37 @@ df <- df %>%
   mutate(bulk_density = if_else( 
     is.na(bulk_density),   
     dry_soil_g / vol_cm3, # If NA, calculate as Dry.Mass / Volume
-    NA
+    bulk_density
   ))
 
 # Biomass calculations
 
+## ---- Fill in all identifying columns ----
+
+# Add coordinates
+
+# Store target depths and measured depths
+df <- df %>%
+  mutate(target_depth = paste(b_depth, e_depth, sep="_")) %>%
+  select(-c(b_depth,e_depth)) %>%
+  rename(b_depth = b_depth_meas,
+         e_depth = e_depth_meas)
+
 ## ---- QA/QC of full dataset ----
 
+# Make sure all samples have identifying info, total_c or org_c value, and bulk_density value
+df[is.na(df$project_id),]
+df[is.na(df$total_c) & is.na(df$org_c),]
+df[is.na(df$bulk_density),]
+
+# Check for values out of range
 out_of_range(df, "bulk_density", 0.9, 1.8) #Bulk density between 0.9 and 1.8 g/cm3
 out_of_range(df, "total_c", 0.1, 20) #total c %
 out_of_range(df, "ph", 4, 9) #pH
 
 #Org + inorg c = total c
 df %>%
+  filter(lab_name != "Ward") %>%
   mutate(inorg_c = replace_na(inorg_c, 0)) %>%
   filter(inorg_c + org_c != total_c)
 
@@ -71,9 +90,11 @@ df %>%
 df %>%
   filter(sand + silt + clay < 99 | sand + silt + clay > 101)
 
-## ---- Fill in identifying columns and bind to most recent point-level master database ----
+## ---- Bind to most recent point-level master database ----
 
 # Select only columns needed for master database
+final_cols <- read.csv("point_db_column_names.csv") #Metadata file for master point-level database
+df <- df[,final_cols$Column.Name]
 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
