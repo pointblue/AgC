@@ -1,13 +1,12 @@
 ﻿column_name,units,levels_example,description
 project_id,NA,EXPR.24.CA,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
-protocol,NA,Range-C; Crop-C; NA,Indicate whether projects followed Point Blue's Range-C or Crop-C protocol
 sample_id,NA,EXPR.24.CA.T.01,"Unique sample ID for each sampling location with project_id, treatment (T) or control (C), and sample number"
 timepoint,NA,"T0, T1, …","Timepoint of sampling event, indicating baseline (T0), first sampling after practice implementation (T1), and following events (T2, T3, etc)"
 sample_date,NA,MM/DD/YYYY,Date of soil sampling event
 lat,CRS WGS 84,,Latitude of soil sampling point
 long,CRS WGS 84,,Longitude of soil sampling point
 target_depth,cm,0_30,Planned beginning and end depth of sample separated by _
-b_depth,cm,0.0,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
+b_depth,cm,0,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
 e_depth,cm,32.4,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
 position,NA,alley; row; shoulder; NA,"Placement of the soil sample relative to perennial crop rows. Alley = between perennial rows, row = within planting rows, shoulder = slope between row and alley. Not applicable in annual crops and rangelands"
 lab_name,NA,Ward; Cquester; UCDavis; CSU,Name of lab service provider
@@ -28,6 +27,7 @@ silt,percent,30,Silt content of sample measured in lab
 clay,percent,35,Clay content of sample measured in lab
 ph,ph,7.3,"pH of sample, measured in-field or in lab"
 buffer_ph,ph,6.5,Buffer pH indicating soil's resistance to changes in pH
+bd_method,NA,Millet; ruler; NA; ND,Specify method for bulk density measurement
 bulk_density,g/cm3,1.49,"Bulk density of sample, calculated by dividing mass of dry soil (rocks and roots removed) by total volume of sampling core"
 rocks_g,g,4.64,Weight of rocks removed from bulk density sample
 k_ppm,ppm,387,Potassium concentration by NH4 acetate extraction 

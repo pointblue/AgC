@@ -1,0 +1,56 @@
+﻿column_name,description
+project_id,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
+protocol,Indicate whether projects followed Point Blue's Range-C or Crop-C protocol
+submission_id,Submission ID of management survey as defined by Jotform
+submission_date,Date that management questionnaire was completed
+cons_practice,List of conservation practices implemented within project
+practice_year,Conservation practice implementation year
+hist_currentlu_yrs,Number of years that field has been in cropland (for Crop-C projects) or rangeland (for Range-C)
+hist_currentman_yrs,Number of years that historical management has been implemented
+hist_flood_yr,The year of the last major flood within the study area
+hist_fire_yr,The year of the last major fire within the study area
+hist_irr_yn,Indicates whether irrigation has been applied in the last 5 years (yes/no)
+hist_pest_yn,Indicates whether pesticides have been applied in the last 5 years (yes/no)
+hist_herb_yn,Indicates whether herbicides have been applied in the last 5 years (yes/no)
+hist_crop_yrs,"For Range-C projects, reported years when the study area was under crop production"
+hist_ls_type,Type(s) of livestock present in the study area over the last 5 years
+hist_ls_utilization,Percent of forage utilized by grazing animals in the study area before conservation practice implementation
+hist_ls_season_start,Typical month for grazing season start under current management 
+hist_ls_season_end,Typical month for grazing season end under current management 
+hist_ls_paddocks,Number of paddocks in grazed area under current management
+hist_ls_resttime,Average rest time per paddock under current management
+hist_ls_ada,Average animal days per acre under current management
+hist_crop_details,List of crops planted within the study area over last 5 years
+hist_till_details,Tillage details for study area over last 5 years
+hist_notes,Notes for historical management input by producer or technical assistance provider
+cr_desc,Brief description of planned crop rotation
+cr_list,List of cash crops and cover crops in planned rotation
+ls_type,Type(s) of livestock planned to be present in the study area
+ls_utilization,Percent of forage planned to be utilized by grazing animals in the study area 
+ls_season_start,Planned month for grazing season start after practice adoption
+ls_season_end,Planned month for grazing season end after practice adoption
+ls_paddocks,Number of paddocks in grazed area after practice adoption
+ls_rest_time,Planned rest time per paddock after practice adoption
+ls_ada,Planned animal days per acre after practice adoption
+ls_notes,Notes for planned livestock management input by producer or technical assistance provider
+conv_plan_notes,"Brief description of plan for land use conversion, including historical and planned uses"
+mulch_ret_app,Indicates whether external mulch or crop residues will be incorporated into study area
+mulch_type,Indicates type of mulch or crop residue
+mulch_perc_ret,Percent of crop residue retained after practice implementation
+mulch_incorp,Indicates whether mulch will be incorporated into soil
+mulch_freq,Indicates how frequently mulch will be applied
+mulch_rate,Mulch application rate
+oa_type,Type of organic amendment to be applied to study area
+oa_freq,Indicates how frequently organic amendment will be applied
+oa_incorp,Indicates whether organic amendment will be incorporated into soil
+oa_c_conc,C concentration of organic amendment
+oa_n_conc,N concentration of organic amendment
+oa_rate,Organic amendment application rate
+cons_till_details,Planned tillage over next 5 years if adopting conservation tillage
+ripar_method,Indicates whether riparian area will be restored through removal of livestock and/or riparian plantings
+wood_species_list,Lists all woody species that will be planted in the study area
+wood_replant_notes,Indicates whether replanting occurred for woody species
+wood_pruning_notes,Brief description of planned pruning methods for woody plantings
+herb_type,Indicates conservation practice standard for all herbaceous biomass plantings
+herb_species_list,Lists all herbaceous species that will be planted in the study area
+herb_replant_notes,Indicates whether replanting occurred for herbaceous species
