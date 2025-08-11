@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250626
+# Date updated: 20250811
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -9,9 +9,6 @@ source('packages.R')
 
 # Load functions
 source('functions.R')
-
-# Authorize google drive access
-gs4_auth() #this line will initiate a prompt in your console and take you to your browser to approve access to your Google Drive
 
 # Define data directory
 data_dir<-("Z:/Soils Team/AgC Data/")
@@ -93,8 +90,8 @@ df %>%
 ## ---- Bind to most recent point-level master database ----
 
 # Select only columns needed for master database
-final_cols <- read.csv("point_db_column_names.csv") #Metadata file for master point-level database
-df <- df[,final_cols$Column.Name]
+final_cols <- read.csv("point_db_metadata.csv") #Metadata file for master point-level database
+df <- df[,colnames(df) %in% final_cols$column_name]
 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
