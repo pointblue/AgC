@@ -26,9 +26,7 @@ lab_clean <- clean_lab_df(data_path = data_dir,
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
-tap_clean <- read_excel(agc_data_entry, sheet="Soils", col_names=TRUE,
-                     na = c("NA", "na", "ND", "nd", "-", "--","", " ")) %>%
-  clean_tap_df()
+tap_clean <- clean_tap_df(agc_data_entry)
 
 ## ---- Merge lab_clean and tap_clean dataframes ----
 df <- lab_clean %>%
@@ -51,8 +49,6 @@ df <- df %>%
     dry_soil_g / vol_cm3, # If NA, calculate as Dry.Mass / Volume
     bulk_density
   ))
-
-# Biomass calculations
 
 ## ---- Fill in all identifying columns ----
 
@@ -91,7 +87,7 @@ df %>%
 
 # Select only columns needed for master database
 final_cols <- read.csv("point_db_metadata.csv") #Metadata file for master point-level database
-df <- df[,colnames(df) %in% final_cols$column_name]
+df <- df[,final_cols$column_name]
 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
@@ -138,4 +134,25 @@ man_clean <- man_clean[colnames(field_df_current)] # Reorder columns to match ma
 field_df <- rbind(field_df_current, man_clean) # Append to original df
 write.csv(field_df, paste0(data_dir, "/Master Datasheets/FieldLevel/FieldLevel_Master_Datasheet_",  Sys.Date(), ".csv"))
 
+## ---- Export to FarmOS using API ----
+library(httr)
+library(jsonlite)
 
+# Convert to JSON
+json_df <- toJSON(master_df, auto_unbox = TRUE)
+
+# Your farmOS API endpoint
+url <- "https://your-farmos-instance.com/api/log"
+
+# Authentication (replace 'your_token_here' with a real token)
+response <- POST(
+  url,
+  add_headers(
+    Authorization = "Bearer your_token_here",
+    `Content-Type` = "application/json"
+  ),
+  body = json_df
+)
+
+# Print response
+print(content(response, "parsed", simplifyVector = TRUE))

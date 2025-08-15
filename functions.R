@@ -86,10 +86,14 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
 
 ## ---- clean_tap_df function ----
 
-clean_tap_df <- function(tap_df){
-  
+clean_tap_df <- function(agc_data_entry_path){
+  #Read in soils and biomass data sheets
+  tap_soils<-read_excel(agc_data_entry_path, sheet="Soils", col_names=TRUE,
+             na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_bio<-read_excel(agc_data_entry_path, sheet="AbovegroundHerbaceousBiomass", col_names=TRUE,
+                       na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   #Remove extra columns, define column types
-  tap_clean <- tap_df %>%
+  soils_clean <- tap_soils %>%
     slice(-1) %>% # remove unit row
     mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d"),
            across(c(BdepthTarget_cm:Edepth_cm,pH_infield), as.numeric),
@@ -100,8 +104,16 @@ clean_tap_df <- function(tap_df){
     filter(!is.na(PointID))%>% #filter out empty rows
     mutate(across(c(Volume1_mL:Depth4_cm), as.numeric))
   
+  bio_clean <- tap_bio %>%
+    slice(-1) %>% # remove unit row
+    mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+    filter(!is.null(PointID))%>% #filter out empty rows
+    filter(!is.na(PointID))%>% #filter out empty rows
+    mutate(across(c(Area_cm2:DryMass_g), as.numeric)) %>%
+    select(PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
+  
   #Determine bulk density method  
-  tap_clean <- tap_clean %>%
+  tap_clean <- soils_clean %>%
     mutate(bd_method = case_when( 
       !is.na(Volume1_mL) | !is.na(Volume2_mL) | !is.na(Volume3_mL) | !is.na(Volume4_mL) ~ "Millet",
       !is.na(Depth1_cm) | !is.na(Depth2_cm) | !is.na(Depth3_cm) | !is.na(Depth4_cm) ~ "Ruler",
@@ -119,7 +131,7 @@ clean_tap_df <- function(tap_df){
     TRUE ~ NA_real_  # no volumes or depths are present; bulk density is not included
   ))
   
-  #Make sure that all rows that have NA for volume have no VOl or Depth data
+  #Make sure that all rows that have NA for volume have no Vol or Depth data
   na_rows <- tap_clean[is.na(tap_clean$vol_cm3),] %>%
     filter(if_all(c(Volume1_mL:Depth4_cm), ~ !is.na(.))) %>%
     select(SampleID)
@@ -132,6 +144,15 @@ clean_tap_df <- function(tap_df){
     mutate(across(c(WetMass_g, RocksRemovedMass_g:MoistureSubsDryMass_g), as.numeric)) %>%
     mutate(soil_moisture = (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100,
            dry_soil_g = (WetMass_g - RocksRemovedMass_g - RootsRemovedMass_g)*((100-soil_moisture)/100))
+  
+  #Calculate biomass
+  bio_clean <- bio_clean %>%
+    mutate(abv_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
+           ) %>%
+    select(PointID,Timepoint,abv_bio)
+  
+  #Bind to biomass sheet
+  tap_clean<-merge(tap_clean,bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
   
   #Select rows
   tap_clean <- tap_clean %>%
@@ -148,7 +169,7 @@ clean_tap_df <- function(tap_df){
            texture_name = Texture_infield,
            ph = pH_infield) %>%
     select(c(project_id,sample_id,protocol, timepoint, sample_date, b_depth, e_depth, 
-             b_depth_meas,e_depth_meas,position, texture_name, ph, soil_moisture, dry_soil_g, vol_cm3)) %>%
+             b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g, vol_cm3,abv_bio)) %>%
     as.data.frame()
     
   return(tap_clean)
