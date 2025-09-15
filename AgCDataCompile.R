@@ -99,6 +99,9 @@ write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/Master_Data
 
 ## ---- Import/clean management data from jotform ----
 
+# Import and format ACTION management questionnaire
+ACTION<-read.csv("C:/Users/leash/OneDrive - Point Blue/Documents/CropC/ACTION_Management_Questionnaire_Export_2025.08.csv")
+
 # Import latest jotform submission
 man_df_list <- list.files(paste(data_dir,"Raw Data","Management Data", sep="/"), pattern = "\\.csv$", full.names = TRUE)
 man <- read.csv(man_df_list[which.max(as.Date(gsub("\\D","", man_df_list), format = "%Y%m%d"))])

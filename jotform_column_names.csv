@@ -1,132 +1,132 @@
-﻿rangec_cropc,practice,new_name,raw_name
-all,all,submission_date,Submission Date
-all,all,name_remove,Land steward name
-all,all,email_remove,Land steward email
-all,all,phone_remove,Land steward phone
-all,all,farm_name,Farm or Ranch name
-all,all,practice_year,Conservation practice implementation year
-all,all,rangec_cropc,Is this a Range-C or Crop-C project?
-cropc,all,hist_currentlu_yrs,"To your knowledge, how many years has the property been managed as cropland?"
-cropc,all,hist_currentman_yrs,How many years ago did you acquire or begin managing this cropland?
-rangec,luc,conv_plan_notes,"Please provide a description of the land use conversion, included historical and planned uses"
-cropc,all,hist_flood_yr,"Please enter the year of the last major flood within the study area, if applicable"
-rangec,wood,ripar_method,The riparian area will be restored by: (select all that apply)
-cropc,all,hist_ls_type,What type(s) of livestock have been present in the study area during the last 5 years?
-cropc,all,hist_ls_yn,Have livestock been present in the study area during the last 5 years?
-cropc,oa,oa_freq,Application frequency
-cropc,all,hist_fire_yr,"Please enter the year of the last major fire within the study area, if applicable"
-cropc,all,hist_irr_yn,Has irrigation been applied in the study area in the last 5 years?
-cropc,all,hist_pest_yn,Have pesticides been applied in the study area in the last 5 years?
-cropc,all,hist_herb_yn,Have herbicides been applied in the study area in the last 5 years?
-cropc,all,till_hist_yr0_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> This year >> No. of tillage events"
-cropc,all,till_hist_yr0_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> This year >> Tillage type"
-cropc,all,till_hist_yr0_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> This year >> Avg. depth (inches)"
-cropc,all,till_hist_yr1_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 1 year ago >> No. of tillage events"
-cropc,all,till_hist_yr1_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 1 year ago >> Tillage type"
-cropc,all,till_hist_yr1_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 1 year ago >> Avg. depth (inches)"
-cropc,all,till_hist_yr2_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 2 years ago >> No. of tillage events"
-cropc,all,till_hist_yr2_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 2 years ago >> Tillage type"
-cropc,all,till_hist_yr2_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 2 years ago >> Avg. depth (inches)"
-cropc,all,till_hist_yr3_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 3 years ago >> No. of tillage events"
-cropc,all,till_hist_yr3_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 3 years ago >> Tillage type"
-cropc,all,till_hist_yr3_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 3 years ago >> Avg. depth (inches)"
-cropc,all,till_hist_yr4_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 4 years ago >> No. of tillage events"
-cropc,all,till_hist_yr4_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 4 years ago >> Tillage type"
-cropc,all,till_hist_yr4_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 4 years ago >> Avg. depth (inches)"
-cropc,all,till_hist_remove,Tillage types
-cropc,all,hist_crop_details,Please fill out the following cropping information for the last 5 years within the study area to the best of your ability. Each row represents a crop (or cover crop) in a given year. The more management information you're able to provide will increase interpretability of the monitoring data.
-cropc,all,cons_practice,Which conservation practice(s) is/are being implemented in the study area?
-rangec,all,hist_currentlu_yrs,"To your knowledge, how many years has the property been managed as rangeland?"
-rangec,all,hist_currentman_yrs,How many years ago did grazing begin under current management?
-cropc,all,hist_ls_utilization,"On average, what percent of forage is used by grazing animals in the study area? (Under current management, before practice implementation)"
-rangec,all,hist_flood_yr,"Please enter the year of the last major flood within the study area, if applicable"
-cropc,all,hist_ls_season_start,"Grazing season start (Under current management, before practice implementation)"
-rangec,all,hist_fire_yr,"Please enter the year of the last major fire within the study area, if applicable"
-cropc,all,hist_ls_season_end,"Grazing season end (Under current management, before practice implementation)"
-rangec,all,hist_crop_yn,Has the study area ever been under crop production?
-cropc,all,hist_ls_paddocks,"Number of paddocks in the grazed area (Under current management, before practice implementation)"
-rangec,all,hist_crop_yrs,Approximately when was the study area under crop production?
-cropc,all,hist_ls_resttime,"Average rest time per paddock within the grazing season (Under current management, before practice implementation)"
-cropc,all,hist_ls_utilization,"On average, what percent of forage is used by grazing animals in the study area? (Under current management, before practice implementation)"
-cropc,all,hist_ls_ada,Average animal days per acre (ADA). Leave blank if unsure.
-rangec,all,hist_ls_season_start,"Grazing season start (Under current management, before practice implementation)"
-rangec,all,hist_ls_season_end,"Grazing season end (Under current management, before practice implementation)"
-rangec,all,hist_ls_paddocks,"Number of paddocks in the grazed area (Under current management, before practice implementation)"
-rangec,all,hist_ls_resttime,"Average rest time per paddock within the grazing season (Under current management, before practice implementation)"
-cropc,all,hist_ls_notes,Provide any other relevant historical management details here
-rangec,all,cons_practice,Which conservation practice is being implemented through the Ag-C project?
-cropc,cr,cr_desc,Describe the cover cropping system or crop rotation you're switching to below. Make sure to include cover crops and fallow periods within the rotation if applicable.
-cropc,cr,cr_list,Please create a row for each cash crop or cover crop type in your planned crop rotation.
-cropc,lsinc,ls_utilization,Desired percent of forage ingested (vs. trampled and/or left behind):
-cropc,lsinc,ls_season_start,Grazing season start
-cropc,lsinc,ls_season_end,Grazing season end
-rangec,all,hist_ls_type,What type(s) of livestock have been present in the study area during the last 5 years?
-cropc,lsinc,ls_paddocks,Number of paddocks/subdivisions in the grazed area
-cropc,lsinc,ls_rest_time,Planned rest time per paddock within the grazing season
-cropc,lsinc,ls_ada,Planned animal days per acre (ADA). Leave blank if unsure.
-cropc,lsinc,ls_notes,Provide any other relevant management details here
-cropc,mulch,mulch_ret_app,Which type of mulching is being applied?
-cropc,mulch,mulch_perc_ret,Percent crop residue retained after harvest.
-rangec,all,hist_ls_ada,Average animal days per acre (ADA). Leave blank if unsure.
-cropc,mulch,mulch_type,Please indicate the type(s) of mulch or crop residue.
-cropc,mulch,mulch_incorp,Is the mulch mechanically incorporated after application?
-cropc,mulch,mulch_freq,Application frequency
-cropc,mulch,mulch_rate,Application rate
-cropc,oa,oa_type,Type of amendment
-cropc,oa,oa_incorp,Is the amendment mechanically incorporated after application?
-cropc,oa,oa_c_conc,Carbon content %
-cropc,oa,oa_n_conc,Nitrogen content %
-cropc,oa,oa_rate,Application rate
-cropc,lsinc,ls_type,What type(s) of livestock will be present in the study area?
-cropc,cons_till,cons_till_yr1_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 1 (practice adoption) >> No. of tillage events"
-cropc,cons_till,cons_till_yr1_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 1 (practice adoption) >> Tillage type"
-cropc,cons_till,cons_till_yr1_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 1 (practice adoption) >> Avg. depth (inches)"
-cropc,cons_till,cons_till_yr2_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 2 >> No. of tillage events"
-cropc,cons_till,cons_till_yr2_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 2 >> Tillage type"
-cropc,cons_till,cons_till_yr2_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 2 >> Avg. depth (inches)"
-cropc,cons_till,cons_till_yr3_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 3 >> No. of tillage events"
-cropc,cons_till,cons_till_yr3_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 3 >> Tillage type"
-cropc,cons_till,cons_till_yr3_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 3 >> Avg. depth (inches)"
-cropc,cons_till,cons_till_yr4_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 4 >> No. of tillage events"
-cropc,cons_till,cons_till_yr4_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 4 >> Tillage type"
-cropc,cons_till,cons_till_yr4_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 4 >> Avg. depth (inches)"
-cropc,cons_till,cons_till_yr5_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 5 >> No. of tillage events"
-cropc,cons_till,cons_till_yr5_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 5 >> Tillage type"
-cropc,cons_till,cons_till_yr5_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 5 >> Avg. depth (inches)"
-cropc,cons_till,cons_till_remove,Tillage types
-cropc,tsv,wood_replant_notes,"If replanting occurred, please explain when and to what extent."
-cropc,tsv,wood_pruning_notes,"Please describe pruning methods, if applicable"
-cropc,lgc,herb_type,Which type of living groundcover did you/will you implement? Numbers denote NRCS Conservation Practice Standards for reference.
-cropc,lgc,herb_replant_notes,"If replanting occurred, please explain when and to what extent."
-rangec,oa,oa_type,Type of material applied
-rangec,oa,oa_incorp,Is the amendment mechanically incorporated after application?
-rangec,oa,oa_rate,Application rate 
-rangec,oa,oa_c_conc,Carbon content %
-rangec,oa,oa_n_conc,Nitrogen content %
-rangec,rx,ls_utilization,"On average, what’s the target percent of forage to be used by grazing animals in the study area?"
-rangec,rx,ls_season_start,Grazing season start
-rangec,rx,ls_season_end,Grazing season end
-rangec,rx,ls_paddocks,Number of paddocks in the grazed area
-rangec,rx,ls_rest_time,Planned rest time per paddock within the grazing season
-rangec,rx,ls_notes,Provide any other relevant management details here
-cropc,tsv,wood_species_list,Please add a row and fill in relevant details for each species or mix planted
-rangec,oa,oa_freq,Application frequency
-cropc,lgc,herb_species_list,Please add a row and fill in relevant details for each species or mix planted
-rangec,wood,wood_species_list,Please add a row and fill in relevant details for each species or mix planted
-rangec,rx,ls_type,What type(s) of livestock will be present in the study area?
-rangec,rx,ls_ada,Planned animal days per acre (ADA). Leave blank if unsure.
-rangec,herb,herb_species_list,Please add a row and fill in relevant details for each species or mix planted
-rangec,wood,wood_replant_notes,"If replanting occurred, please explain when and to what extent."
-rangec,wood,wood_pruning_notes,"Please describe pruning methods, if applicable"
-rangec,herb,herb_replant_notes,"If replanting occurred, please explain when and to what extent."
-rangec,luc,hist_crop_details,Please fill out the following cropping information for the last 5 years within the study area to the best of your ability. Each row represents a crop (or cover crop) in a given year. The more management information you're able to provide will increase interpretability of the monitoring data.
-rangec,luc,ls_type,What type(s) of livestock will be present in the study area?
-rangec,luc,ls_utilization,"On average, what’s the target percent of forage to be used by grazing animals in the study area?"
-rangec,luc,ls_season_start,Grazing season start
-rangec,luc,ls_season_end,Grazing season end
-rangec,luc,ls_paddocks,Number of paddocks in the grazed area
-rangec,luc,ls_rest_time,Planned rest time per paddock within the grazing season
-rangec,luc,ls_notes,Planned animal days per acre (ADA). Leave blank if unsure.
-all,all,ip_remove,Submission IP
-all,all,submission_id,Submission ID
-all,all,date_remove,Last Update Date
+﻿rangec_cropc,practice,new_name,raw_name,action_raw_name
+all,all,submission_date,Submission Date,Submission.date
+all,all,name_remove,Land steward name,LS
+all,all,email_remove,Land steward email,LS.email
+all,all,phone_remove,Land steward phone,LS.phone
+all,all,farm_name,Farm or Ranch name,Farm.ranch.name
+all,all,practice_year,Conservation practice implementation year,implementation.yr
+all,all,rangec_cropc,Is this a Range-C or Crop-C project?,Range.or.crop
+cropc,all,hist_currentlu_yrs,"To your knowledge, how many years has the property been managed as cropland?",Chist.yrs.managed
+cropc,all,hist_currentman_yrs,How many years ago did you acquire or begin managing this cropland?,Chist.yrs.aquired
+rangec,luc,conv_plan_notes,"Please provide a description of the land use conversion, included historical and planned uses",NA
+cropc,all,hist_flood_yr,"Please enter the year of the last major flood within the study area, if applicable",Chist.flood
+rangec,wood,ripar_method,The riparian area will be restored by: (select all that apply),TE.method
+cropc,all,hist_ls_type,What type(s) of livestock have been present in the study area during the last 5 years?,Chist.livestock.table >> Livestock details >> Animal class
+cropc,all,hist_ls_yn,Have livestock been present in the study area during the last 5 years?,NA
+cropc,oa,oa_freq,Application frequency,NA
+cropc,all,hist_fire_yr,"Please enter the year of the last major fire within the study area, if applicable",Chist.fire
+cropc,all,hist_irr_yn,Has irrigation been applied in the study area in the last 5 years?,Chist.irrigation
+cropc,all,hist_pest_yn,Have pesticides been applied in the study area in the last 5 years?,Chist.pesticides
+cropc,all,hist_herb_yn,Have herbicides been applied in the study area in the last 5 years?,Chist.herbicides
+cropc,all,till_hist_yr0_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> This year >> No. of tillage events",Chist.till.table >> This year (e.g. 2024) >> No. of tillage events
+cropc,all,till_hist_yr0_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> This year >> Tillage type",Chist.till.table >> This year (e.g. 2024) >> Tillage type
+cropc,all,till_hist_yr0_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> This year >> Avg. depth (inches)",Chist.till.table >> This year (e.g. 2024) >> Avg. depth (inches)
+cropc,all,till_hist_yr1_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 1 year ago >> No. of tillage events",Chist.till.table >> 1 year ago >> No. of tillage events
+cropc,all,till_hist_yr1_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 1 year ago >> Tillage type",Chist.till.table >> 1 year ago >> Tillage type
+cropc,all,till_hist_yr1_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 1 year ago >> Avg. depth (inches)",Chist.till.table >> 1 year ago >> Avg. depth (inches)
+cropc,all,till_hist_yr2_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 2 years ago >> No. of tillage events",Chist.till.table >> 2 years ago >> No. of tillage events
+cropc,all,till_hist_yr2_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 2 years ago >> Tillage type",Chist.till.table >> 2 years ago >> Tillage type
+cropc,all,till_hist_yr2_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 2 years ago >> Avg. depth (inches)",Chist.till.table >> 2 years ago >> Avg. depth (inches)
+cropc,all,till_hist_yr3_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 3 years ago >> No. of tillage events",Chist.till.table >> 3 years ago >> No. of tillage events
+cropc,all,till_hist_yr3_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 3 years ago >> Tillage type",Chist.till.table >> 3 years ago >> Tillage type
+cropc,all,till_hist_yr3_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 3 years ago >> Avg. depth (inches)",Chist.till.table >> 3 years ago >> Avg. depth (inches)
+cropc,all,till_hist_yr4_events,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 4 years ago >> No. of tillage events",Chist.till.table >> 4 years ago >> No. of tillage events
+cropc,all,till_hist_yr4_type,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 4 years ago >> Tillage type",Chist.till.table >> 4 years ago >> Tillage type
+cropc,all,till_hist_yr4_depth,"Please fill in the following tillage information for the last 5 years within the study area to the best of your ability. If multiple types of tillage were used in one year, please characterize the most intensive event. ""Full till"", ""Reduced till"" and ""No-till"" are defined below the table. >> 4 years ago >> Avg. depth (inches)",Chist.till.table >> 4 years ago >> Avg. depth (inches)
+cropc,all,till_hist_remove,Tillage types,Chist.till.types
+cropc,all,hist_crop_details,Please fill out the following cropping information for the last 5 years within the study area to the best of your ability. Each row represents a crop (or cover crop) in a given year. The more management information you're able to provide will increase interpretability of the monitoring data.,Chist.crop.table
+cropc,all,cons_practice,Which conservation practice(s) is/are being implemented in the study area?,Chist.conservation.practice
+rangec,all,hist_currentlu_yrs,"To your knowledge, how many years has the property been managed as rangeland?",Rhist.yrs.rangeland
+rangec,all,hist_currentman_yrs,How many years ago did grazing begin under current management?,Rhist.yrs.grazed
+cropc,all,hist_ls_utilization,"On average, what percent of forage is used by grazing animals in the study area? (Under current management, before practice implementation)",NA
+rangec,all,hist_flood_yr,"Please enter the year of the last major flood within the study area, if applicable",Rhist.flood
+cropc,all,hist_ls_season_start,"Grazing season start (Under current management, before practice implementation)",Chist.livestock.table >> Livestock details >> Grazing duration per season (days)
+rangec,all,hist_fire_yr,"Please enter the year of the last major fire within the study area, if applicable",Rhist.fire
+cropc,all,hist_ls_season_end,"Grazing season end (Under current management, before practice implementation)",NA
+rangec,all,hist_crop_yn,Has the study area ever been under crop production?,Rhist.crop.production
+cropc,all,hist_ls_paddocks,"Number of paddocks in the grazed area (Under current management, before practice implementation)",NA
+rangec,all,hist_crop_yrs,Approximately when was the study area under crop production?,Rhist.yrs.crop
+cropc,all,hist_ls_resttime,"Average rest time per paddock within the grazing season (Under current management, before practice implementation)",NA
+cropc,all,hist_ls_utilization,"On average, what percent of forage is used by grazing animals in the study area? (Under current management, before practice implementation)",Chist.livestock.table >> Livestock details >> Number present
+cropc,all,hist_ls_ada,Average animal days per acre (ADA). Leave blank if unsure.,Chist.livestock.table >> Livestock details >> Weight per head (lbs)
+rangec,all,hist_ls_season_start,"Grazing season start (Under current management, before practice implementation)",Rhist.start.graze
+rangec,all,hist_ls_season_end,"Grazing season end (Under current management, before practice implementation)",Rhist.end.graze
+rangec,all,hist_ls_paddocks,"Number of paddocks in the grazed area (Under current management, before practice implementation)",Rhist.num.paddocks
+rangec,all,hist_ls_resttime,"Average rest time per paddock within the grazing season (Under current management, before practice implementation)",Rhist.paddock.rest
+cropc,all,hist_ls_notes,Provide any other relevant historical management details here,Rhist.other.notes
+rangec,all,cons_practice,Which conservation practice is being implemented through the Ag-C project?,Range.practice
+cropc,cr,cr_desc,Describe the cover cropping system or crop rotation you're switching to below. Make sure to include cover crops and fallow periods within the rotation if applicable.,CR.crop.rotation
+cropc,cr,cr_list,Please create a row for each cash crop or cover crop type in your planned crop rotation.,CR.crop.rotation.table
+cropc,lsinc,ls_utilization,Desired percent of forage ingested (vs. trampled and/or left behind):,LI.desired.forage
+cropc,lsinc,ls_season_start,Grazing season start,LI.start.graze
+cropc,lsinc,ls_season_end,Grazing season end,LI.end.graze
+rangec,all,hist_ls_type,What type(s) of livestock have been present in the study area during the last 5 years?,Rhist.animal.class.table
+cropc,lsinc,ls_paddocks,Number of paddocks/subdivisions in the grazed area,LI.num.grazed.paddocks
+cropc,lsinc,ls_rest_time,Planned rest time per paddock within the grazing season,LI.paddock.rest
+cropc,lsinc,ls_ada,Planned animal days per acre (ADA). Leave blank if unsure.,LI.animal.days
+cropc,lsinc,ls_notes,Provide any other relevant management details here,LI.other.notes
+cropc,mulch,mulch_ret_app,Which type of mulching is being applied?,MU.mulch.source
+cropc,mulch,mulch_perc_ret,Percent crop residue retained after harvest.,MU.residue.retained
+rangec,all,hist_ls_ada,Average animal days per acre (ADA). Leave blank if unsure.,NA
+cropc,mulch,mulch_type,Please indicate the type(s) of mulch or crop residue.,MU.mulch.type
+cropc,mulch,mulch_incorp,Is the mulch mechanically incorporated after application?,MU.mech.incorporated
+cropc,mulch,mulch_freq,Application frequency,MU.app.freq
+cropc,mulch,mulch_rate,Application rate,MU.app.rate
+cropc,oa,oa_type,Type of amendment,SC.amedment.type
+cropc,oa,oa_incorp,Is the amendment mechanically incorporated after application?,SC.mech.incroported
+cropc,oa,oa_c_conc,Carbon content %,SC.C.content
+cropc,oa,oa_n_conc,Nitrogen content %,SC.N.content
+cropc,oa,oa_rate,Application rate,SC.app.rate
+cropc,lsinc,ls_type,What type(s) of livestock will be present in the study area?,LI.animal.class.table
+cropc,cons_till,cons_till_yr1_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 1 (practice adoption) >> No. of tillage events",Till.implementation.table >> Year 1 (practice adoption) >> No. of tillage events
+cropc,cons_till,cons_till_yr1_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 1 (practice adoption) >> Tillage type",Till.implementation.table >> Year 1 (practice adoption) >> Tillage type
+cropc,cons_till,cons_till_yr1_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 1 (practice adoption) >> Avg. depth (inches)",Till.implementation.table >> Year 1 (practice adoption) >> Avg. depth (inches)
+cropc,cons_till,cons_till_yr2_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 2 >> No. of tillage events",Till.implementation.table >> Year 2 >> No. of tillage events
+cropc,cons_till,cons_till_yr2_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 2 >> Tillage type",Till.implementation.table >> Year 2 >> Tillage type
+cropc,cons_till,cons_till_yr2_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 2 >> Avg. depth (inches)",Till.implementation.table >> Year 2 >> Avg. depth (inches)
+cropc,cons_till,cons_till_yr3_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 3 >> No. of tillage events",Till.implementation.table >> Year 3 >> No. of tillage events
+cropc,cons_till,cons_till_yr3_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 3 >> Tillage type",Till.implementation.table >> Year 3 >> Tillage type
+cropc,cons_till,cons_till_yr3_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 3 >> Avg. depth (inches)",Till.implementation.table >> Year 3 >> Avg. depth (inches)
+cropc,cons_till,cons_till_yr4_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 4 >> No. of tillage events",Till.implementation.table >> Year 4 >> No. of tillage events
+cropc,cons_till,cons_till_yr4_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 4 >> Tillage type",Till.implementation.table >> Year 4 >> Tillage type
+cropc,cons_till,cons_till_yr4_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 4 >> Avg. depth (inches)",Till.implementation.table >> Year 4 >> Avg. depth (inches)
+cropc,cons_till,cons_till_yr5_events,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 5 >> No. of tillage events",Till.implementation.table >> Year 5 >> No. of tillage events
+cropc,cons_till,cons_till_yr5_type,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 5 >> Tillage type",Till.implementation.table >> Year 5 >> Tillage type
+cropc,cons_till,cons_till_yr5_depth,"Please fill in the planned tillage information for the next 5 years within the study area to the best of your ability. If multiple types of tillage are planned in one year, please characterize the most intensive event. Definitions for ""Full till"", ""Reduced Till"" and ""No-till"" can be found below the table. >> Year 5 >> Avg. depth (inches)",Till.implementation.table >> Year 5 >> Avg. depth (inches)
+cropc,cons_till,cons_till_remove,Tillage types,Tillage.type
+cropc,tsv,wood_replant_notes,"If replanting occurred, please explain when and to what extent.",TE.replanting
+cropc,tsv,wood_pruning_notes,"Please describe pruning methods, if applicable",TE.pruning.methods
+cropc,lgc,herb_type,Which type of living groundcover did you/will you implement? Numbers denote NRCS Conservation Practice Standards for reference.,LG.type
+cropc,lgc,herb_replant_notes,"If replanting occurred, please explain when and to what extent.",LG.replanting
+rangec,oa,oa_type,Type of material applied,CA.material.type
+rangec,oa,oa_incorp,Is the amendment mechanically incorporated after application?,CA.mech.incorporated
+rangec,oa,oa_rate,Application rate ,CA.app.rate
+rangec,oa,oa_c_conc,Carbon content %,CA.C.content
+rangec,oa,oa_n_conc,Nitrogen content %,CA.N.content
+rangec,rx,ls_utilization,"On average, what’s the target percent of forage to be used by grazing animals in the study area?",PG.target.forage
+rangec,rx,ls_season_start,Grazing season start,PG.start.graze
+rangec,rx,ls_season_end,Grazing season end,PG.end.graze
+rangec,rx,ls_paddocks,Number of paddocks in the grazed area,PG.num.grazed.paddocks
+rangec,rx,ls_rest_time,Planned rest time per paddock within the grazing season,PG.paddock.rest
+rangec,rx,ls_notes,Provide any other relevant management details here,PG.other.notes
+cropc,tsv,wood_species_list,Please add a row and fill in relevant details for each species or mix planted,NA
+rangec,oa,oa_freq,Application frequency,CA.app.freq
+cropc,lgc,herb_species_list,Please add a row and fill in relevant details for each species or mix planted,LG.species
+rangec,wood,wood_species_list,Please add a row and fill in relevant details for each species or mix planted,TE.species
+rangec,rx,ls_type,What type(s) of livestock will be present in the study area?,PG.animal.class.table
+rangec,rx,ls_ada,Planned animal days per acre (ADA). Leave blank if unsure.,NA
+rangec,herb,herb_species_list,Please add a row and fill in relevant details for each species or mix planted,NA
+rangec,wood,wood_replant_notes,"If replanting occurred, please explain when and to what extent.",NA
+rangec,wood,wood_pruning_notes,"Please describe pruning methods, if applicable",NA
+rangec,herb,herb_replant_notes,"If replanting occurred, please explain when and to what extent.",NA
+rangec,luc,hist_crop_details,Please fill out the following cropping information for the last 5 years within the study area to the best of your ability. Each row represents a crop (or cover crop) in a given year. The more management information you're able to provide will increase interpretability of the monitoring data.,NA
+rangec,luc,ls_type,What type(s) of livestock will be present in the study area?,NA
+rangec,luc,ls_utilization,"On average, what’s the target percent of forage to be used by grazing animals in the study area?",NA
+rangec,luc,ls_season_start,Grazing season start,NA
+rangec,luc,ls_season_end,Grazing season end,NA
+rangec,luc,ls_paddocks,Number of paddocks in the grazed area,NA
+rangec,luc,ls_rest_time,Planned rest time per paddock within the grazing season,NA
+rangec,luc,ls_notes,Planned animal days per acre (ADA). Leave blank if unsure.,NA
+all,all,ip_remove,Submission IP,Submission.IP
+all,all,submission_id,Submission ID,Submission.ID
+all,all,date_remove,Last Update Date,Last.update
