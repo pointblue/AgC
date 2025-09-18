@@ -1,0 +1,37 @@
+﻿column_name,description
+project_id,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
+ranch_name,Full name of ranch or farm
+ranch_code,First 4 letters of ranch name
+proj_practice_year,Conservation practice implementation year
+conservation_practice,List of conservation practices implemented within project
+indicators,List of indicators measured
+control_site,Control site included (TRUE or FALSE)
+control_baseline,Baseline sampling occurred before practice implementation (TRUE or FALSE)
+point_generation_method,Method for point selection
+stratify,Points selected using stratification (TRUE or FALSE)
+stratify_method,Stratification method
+sampling_density_method,Method for determining sampling density
+variability,"Field variability (low, medium or high)"
+certainty_level,"Certainty level desired (low, medium, or high)"
+composite,Composite sampling occurred (TRUE or FALSE)
+soc_method,Method for soil organic carbon analysis
+bd_method,Method for bulk density analysis
+hrb_method,Method for herbaceous root biomass
+wrb_method,Method for woody root biomass
+ahb_method,Method for aboveground herbaceous biomass
+awb_method,Method for aboveground woody biomass
+ph_method,Method for soil pH
+tx_method,Method for soil texture
+soc_num_samples,Number of samples taken for soil carbon analysis
+bd_num_samples,Number of samples taken for bulk density analysis
+hrb_num_samples,Number of samples taken for herbaceous root biomass analysis
+wrb_num_samples,Number of samples taken for woody root biomass analysis
+ahb_num_samples,Number of samples taken for herbaceous aboveground biomass analysis
+awb_num_samples,Number of samples taken for aboveground woody biomass analysis
+ph_num_samples,Number of samples taken for pH analysis
+tx_num_samples,Number of samples taken for soil texture analysis
+soc_sampling_depth,Max sampling depth for soc analysis
+soc_depth_increments,Number of depth increments sampled for soc analysis
+bd_sampling_depth,Max sampling depth for bulk density analysis
+bd_depth_increments,Number of depth increments sampled for bulk density analysis
+inference_score,Inference score calculated using Crop-C or Range-C protocol
