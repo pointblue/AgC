@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250811
+# Date updated: 20250917
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -22,7 +22,7 @@ agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shar
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
                           lab = "Ward", #Options: "Cquester", "Ward"
-                          file_name = "Ward_data_20250313.csv")  #optional- can specify if you know the file name and/or are not working with the most recent lab data
+                          file_name = NA)  #optional- can specify if you know the file name and/or are not working with the most recent lab data
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
@@ -30,7 +30,7 @@ tap_clean <- clean_tap_df(agc_data_entry)
 
 ## ---- Merge lab_clean and tap_clean dataframes ----
 df <- lab_clean %>%
-  left_join(tap_clean, by = c("sample_id","b_depth","e_depth")) %>%  # Merge lab and tap field data
+  left_join(tap_clean, by = c("sample_id","b_depth","e_depth","year")) %>%  # Merge lab and tap field data
   mutate(
     texture_name = coalesce(texture_name.x,texture_name.y),
     ph = coalesce(ph.x, ph.y),
@@ -95,7 +95,7 @@ df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df
 
 #Add rows and save 
 master_df <- rbind(df_current, df)
-write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/Master_Datasheet_",  Sys.Date(), ".csv"))
+write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"))
 
 ## ---- Import/clean management data from jotform ----
 
@@ -137,25 +137,5 @@ man_clean <- man_clean[colnames(field_df_current)] # Reorder columns to match ma
 field_df <- rbind(field_df_current, man_clean) # Append to original df
 write.csv(field_df, paste0(data_dir, "/Master Datasheets/FieldLevel/FieldLevel_Master_Datasheet_",  Sys.Date(), ".csv"))
 
-## ---- Export to FarmOS using API ----
-library(httr)
-library(jsonlite)
+## ---- Store project design info ----
 
-# Convert to JSON
-json_df <- toJSON(master_df, auto_unbox = TRUE)
-
-# Your farmOS API endpoint
-url <- "https://your-farmos-instance.com/api/log"
-
-# Authentication (replace 'your_token_here' with a real token)
-response <- POST(
-  url,
-  add_headers(
-    Authorization = "Bearer your_token_here",
-    `Content-Type` = "application/json"
-  ),
-  body = json_df
-)
-
-# Print response
-print(content(response, "parsed", simplifyVector = TRUE))

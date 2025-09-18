@@ -81,6 +81,9 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
   lab_clean <- lab_clean %>%
     select(col_map$Column.Name)
   
+  #Add year that data were reported from lab 
+  lab_clean$year <- str_extract(df_name, "\\d{4}(?=\\d{4}\\.csv)")
+  
   return(lab_clean)
 }
 
@@ -170,6 +173,8 @@ clean_tap_df <- function(agc_data_entry_path){
            ph = pH_infield) %>%
     select(c(project_id,sample_id,protocol, timepoint, sample_date, b_depth, e_depth, 
              b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g, vol_cm3,abv_bio)) %>%
+    mutate(
+           year = str_sub(sample_date, 1,4)) %>%
     as.data.frame()
     
   return(tap_clean)
