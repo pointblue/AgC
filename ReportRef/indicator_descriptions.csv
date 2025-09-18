@@ -1,0 +1,19 @@
+﻿Indicator,Acronym,Description,Final units,Status,CheckCol
+Soil Organic Carbon,SOC,"Carbon bound up in soil organic matter (SOM), which is composed of decomposing plants and animals, soil microbes, and the substances that soil microbes synthesize. SOC is a direct measurement of soil carbon sequestration and soil health.","% mass of SOC over soil mass; when BD is also measured, % SOC will be converted to tons of SOC stored per acre to the project's specified sampling depth",AgC,org_c
+Mineral Associated Organic Carbon,MAOC,Size fractionation is a laboratory process that divides SOC into two groups that provide different benefits. MAOC is a more stable form of soil organic carbon that can be stored in soils for centuries.,"% mass of POC over soil mass; when BD is also measured, % POC will be converted to tons of POC stored per acre to the project's specified sampling depth",AgC,maom
+Particulate Organic Carbon,POC,Size fractionation is a laboratory process that divides SOC into two groups that provide different benefits. POC is a form of soil organic carbon that has less longevity but is more available for providing soil nutrients.,"% mass of MAOC over soil mass; when BD is also measured, % MAOC will be converted to tons of MAOC stored per acre to the project's specified sampling depth",AgC,maoc
+Soil Inorganic Carbon,SIC,Nonliving carbon bound up in carbonate minerals; sometimes the dominant form of soil carbon in arid climates with alkaline soils. SIC is an important form of carbon storage for climate change mitigation; recommended only for soils with a pH over 7.,"% mass of SIC over soil mass; when BD is also measured, % SIC will be converted to tons of SIC stored per acre to the project's specified sampling depth",AgC,inorg_c
+Aboveground Herbaceous Biomass,AHB,Mass of living grasses and forbs above the soil. AHB serves as a measure of forage productivity; turns into soil carbon over time through decomposition.,Tons of dry biomass produced per acre per year,AgC,
+Herbaceous Root Biomass,HRB,Mass of living roots produced by grasses and forbs. HRB contributes to soil health; turns into soil carbon over time through decomposition.,Tons of dry herbaceous root biomass per acre,AgC,
+Aboveground Woody Biomass,AWB,Mass of living trees and shrubs above the soil. AWB represents longer-term carbon storage in trunks and branches,Tons of aboveground woody biomass per acre,AgC,
+Woody Root Biomass,WRB,Mass of tree and shrub roots. WRB contributes to soil health and longer-term carbon storage in woody roots.,Tons of woody root biomass per acre,AgC,
+Soil Bulk Density,BD,"The mass of dry soil for a given volume. BD is related to compaction and aeration which influence water infiltration, root penetration, and microbial habitat",Tons of dry soil per acre to the project's specified sampling depth,AgC,bulk_density
+Soil Texture,Tx,"The proportion of sand-sized, silt-sized, and clay-sized minerals in the soil. Soil texture provides information on how soils potentially interact with and stabilize carbon.","% sand, % silt, % clay",AgC,clay
+Soil pH,pH,"The acidity or alkalinity of soil. pH impacts the nutrient availability, microbes, and plant dynamics that in turn regulate the amount of carbon entering and cycling in the soil.",0-14 where <7 is acidic and >7 is alkaline,AgC,ph
+Mineral Associated Organic Nitrogen,MAON,,,Extra,maon
+Total Soil Nitrogen,N,,,Extra,total_n
+,K,,,Extra,k_ppm
+,Ca,,,Extra,ca_ppm
+,Mg,,,Extra,mg_ppm
+,Na,,,Extra,na_ppm
+,CEC,,,Extra,cec
