@@ -20,8 +20,6 @@ hrb_method,Method for herbaceous root biomass
 wrb_method,Method for woody root biomass
 ahb_method,Method for aboveground herbaceous biomass
 awb_method,Method for aboveground woody biomass
-ph_method,Method for soil pH
-tx_method,Method for soil texture
 soc_num_samples,Number of samples taken for soil carbon analysis
 bd_num_samples,Number of samples taken for bulk density analysis
 hrb_num_samples,Number of samples taken for herbaceous root biomass analysis
@@ -30,8 +28,6 @@ ahb_num_samples,Number of samples taken for herbaceous aboveground biomass analy
 awb_num_samples,Number of samples taken for aboveground woody biomass analysis
 ph_num_samples,Number of samples taken for pH analysis
 tx_num_samples,Number of samples taken for soil texture analysis
-soc_sampling_depth,Max sampling depth for soc analysis
-soc_depth_increments,Number of depth increments sampled for soc analysis
-bd_sampling_depth,Max sampling depth for bulk density analysis
-bd_depth_increments,Number of depth increments sampled for bulk density analysis
+sampling_depth,Max sampling depth
+depth_increments,Number of depth increments
 inference_score,Inference score calculated using Crop-C or Range-C protocol
