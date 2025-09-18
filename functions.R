@@ -187,5 +187,54 @@ out_of_range <- function(df, var, min, max){
     filter(.data[[var]] < min | .data[[var]] > max | is.na(.data[[var]]))
 }
 
-
+## ---- Store project design info ----
+proj_design <- function(projects){
+  
+  # Import latest project design df 
+  pd_df_list <- list.files(paste(data_dir,"Master Datasheets","ProjectDesign", sep="/"), pattern = "\\.csv$", full.names = TRUE)
+  pd_latest <- read.csv(pd_df_list[which.max(as.Date(gsub("\\D","", pd_df_list), format = "%Y%m%d"))])
+  
+  # Use latest pointlevel master df to populate appropriate columns
+  pl_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE)
+  pl_latest <- read.csv(pl_df_list[which.max(as.Date(gsub("\\D","", pl_df_list), format = "%Y%m%d"))]) %>%
+    filter(project_id %in% projects)
+  
+  # define numeric columns 
+  pl_latest <- pl_latest %>%
+    mutate(across(5:10, as.character)) %>%
+    mutate(across(where(~ is.logical(.) || is.integer(.)), as.numeric))
+  
+  # summarize to project design df 
+  pd <- pl_latest %>%
+    group_by(project_id) %>%
+    nest() %>%
+    mutate(
+      indicators = map(data, ~ .x %>%
+                         select(where(is.numeric)) %>%
+                         keep(~ any(!is.na(.))) %>%
+                         names()),
+      control_site = map2_lgl(project_id, data, ~ any(str_detect(.y$sample_id, paste0(.x, "\\.C")))),
+      control_baseline = map_lgl(data, ~ any(.x$timepoint == "T0")),
+      soc_method = map(data, ~ unique(na.omit(.x$c_method))),
+      bd_method = map(data, ~ unique(na.omit(.x$bd_method))),
+      soc_num_samples = map_int(data, ~ sum(!is.na(.x$org_c))),
+      bd_num_samples = map_int(data, ~ sum(!is.na(.x$bulk_density))),
+      tx_num_samples = map_int(data, ~ sum(!is.na(.x$sand))),
+      sampling_depth = map_dbl(data, ~ max(as.numeric(str_extract(.x$target_depth, "(?<=_)\\d+")), na.rm = TRUE)),
+      depth_increments = map_int(data, ~ n_distinct(.x$target_depth))
+    ) %>%
+    select(-data) %>% 
+  as.data.frame()
+  
+  pd <- pd %>%
+    mutate(across(where(is.list), ~ map_chr(., ~ paste(.x, collapse = ", "))))
+  
+  #Add columns that cannot be populated using the point-level master df 
+  missing_cols <- setdiff(colnames(pd_latest), names(pd))
+  pd[missing_cols] <- NA
+  pd <- pd[, colnames(pd_latest)]
+  
+  #Bind to latest project design df
+  pd_new <-rbind(pd_latest,pd)
+}
 

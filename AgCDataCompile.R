@@ -95,7 +95,7 @@ df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df
 
 #Add rows and save 
 master_df <- rbind(df_current, df)
-write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"))
+write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
 
 ## ---- Import/clean management data from jotform ----
 
@@ -139,3 +139,11 @@ write.csv(field_df, paste0(data_dir, "/Master Datasheets/FieldLevel/FieldLevel_M
 
 ## ---- Store project design info ----
 
+# Define projects of interest
+projects <- unique(df$project_id) #use this function if you want to select projects with new lab data processed above, or define as projects <- c("PRJ1","PRJ2",etc)
+
+# Run project design summary function
+pd_new <- proj_design(projects)
+
+# Write new project design df
+write.csv(pd_new, paste0(data_dir, "/Master Datasheets/ProjectDesign/ProjectDesign_Master_Datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
