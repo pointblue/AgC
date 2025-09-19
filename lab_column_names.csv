@@ -16,6 +16,7 @@ pon,percent,Particulate.organic.matter.nitrogen,percent,NA,NA
 maom,percent,Mineral.associated.organic.matter.mass,percent,NA,NA
 maoc,percent,Mineral.associated.organic.matter.carbon,percent,NA,NA
 maon,percent,mineral.associated.organic.matter.nitrogen,percent,NA,NA
+co2_resp_ppm,ppm,NA,NA,CO2.Soil.Respiration,ppm
 texture_name,NA,NA,NA,Texture,NA
 texture_name,NA,NA,NA,Texture.By.Feel,NA
 sand,percent,Sand.content,percent,X..Sand,percent
@@ -28,10 +29,17 @@ coarse_g,g,Biomass.removed,g,Roots.grams,g
 rocks_g,g,Rocks.removed,g,Rocks.grams,g
 dry_soil_g,g,Dry.soil.mass,g,Total.Dry.Weight,g
 bulk_density,g/cm3,Bulk.density..corrected.for.coarse.material..,g/cm3,Bulk.Density,g/cm3
+no3_ppm,ppm,NA,NA,Nitrate.N.ppm.N,ppm
+p_ppm,ppm,NA,NA,Olsen.P.ppm.P,ppm
 k_ppm,ppm,NA,NA,Potassium.ppm.K,ppm
+s_ppm,ppm,NA,NA,Sulfate.S.ppm.S,ppm
 ca_ppm,ppm,NA,NA,Calcium.ppm.Ca,ppm
 mg_ppm,ppm,NA,NA,Magnesium.ppm.Mg,ppm
 na_ppm,ppm,NA,NA,Sodium.ppm.Na,ppm
+zn_ppm,ppm,NA,NA,Zinc.ppm.Zn,ppm
+fe_ppm,ppm,NA,NA,Iron.ppm.Fe,ppm
+mn_ppm,ppm,NA,NA,Manganese.ppm.Mn,ppm
+cu_ppm,ppm,NA,NA,Copper.ppm.Cu,ppm
 soil_moisture,percent,NA,NA,Soil.Moisture..,percent
 sol_salts,mmho/cm,NA,NA,X1.1.S.Salts.mmho.cm,mmho/cm
 cec,meq/100g,NA,NA,CEC.Sum.of.Cations.me.100g,meq/100g
