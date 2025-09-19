@@ -14,7 +14,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: STAN
+  project_name: MERC
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
