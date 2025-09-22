@@ -170,9 +170,10 @@ clean_tap_df <- function(agc_data_entry_path){
            e_depth_meas = Edepth_cm,
            position = Position,
            texture_name = Texture_infield,
-           ph = pH_infield) %>%
+           ph = pH_infield,
+           rocks_g = RocksRemovedMass_g) %>%
     select(c(project_id,sample_id,protocol, timepoint, sample_date, b_depth, e_depth, 
-             b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g, vol_cm3,abv_bio)) %>%
+             b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g, rocks_g, vol_cm3,abv_bio)) %>%
     mutate(
            year = str_sub(sample_date, 1,4)) %>%
     as.data.frame()
