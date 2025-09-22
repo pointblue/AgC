@@ -13,10 +13,10 @@ Clay,Clay,,,AgC,clay,%
 Silt,Silt,,,AgC,silt,%
 Sand,Sand,,,AgC,sand,%
 Soil pH,pH,"The acidity or alkalinity of soil. pH impacts the nutrient availability, microbes, and plant dynamics that in turn regulate the amount of carbon entering and cycling in the soil.",0-14 where <7 is acidic and >7 is alkaline,AgC,ph,NA
-Mineral Associated Organic Nitrogen,MAON,,,Extra,maon,%
-Total Soil Nitrogen,N,,,Extra,total_n,%
-,K,,,Extra,k_ppm,ppm
-,Ca,,,Extra,ca_ppm,ppm
-,Mg,,,Extra,mg_ppm,ppm
-,Na,,,Extra,na_ppm,ppm
+Mineral Associated Organic Nitrogen,MAON,How to batch this up?,,Extra,maon,%
+Total Soil Nitrogen,N,Needs its own descriptions since it's reported in different units?,,Extra,total_n,%
+Soil Macronutrients,K,Lisa to write description for soil macronutrients,explain ppm,Extra,k_ppm,ppm
+Soil Macronutrients,Ca,Lisa to write description for soil macronutrients,explain ppm,Extra,ca_ppm,ppm
+Soil Macronutrients,Mg,Lisa to write description for soil macronutrients,explain ppm,Extra,mg_ppm,ppm
+Soil Macronutrients,Na,Lisa to write description for soil macronutrients,explain ppm,Extra,na_ppm,ppm
 ,CEC,,,Extra,cec,
