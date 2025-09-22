@@ -3,23 +3,23 @@ project_id,"Unique project ID with first 4 letters of ranch name, year (YY) of p
 ranch_name,Full name of ranch or farm
 ranch_code,First 4 letters of ranch name
 proj_practice_year,Conservation practice implementation year
-conservation_practice,List of conservation practices implemented within project
+conservation_practice,"List of conservation practices implemented within project; options: SC, CC, CR, LG, TE, WH, LI, RT, MU, PG, RR, RP, WS, HR, UP, CR"
 indicators,List of indicators measured
 control_site,Control site included (TRUE or FALSE)
 control_baseline,Baseline sampling occurred before practice implementation (TRUE or FALSE)
-point_generation_method,Method for point selection
+point_generation_method,"Method for point selection; options: GIS, paced"
 stratify,Points selected using stratification (TRUE or FALSE)
-stratify_method,Stratification method
-sampling_density_method,Method for determining sampling density
+stratify_method,"Stratification method; options: GRTS, soil"
+sampling_density_method,"Method for determining sampling density; options: lookup table, power analysis"
 variability,"Field variability (low, medium or high)"
 certainty_level,"Certainty level desired (low, medium, or high)"
 composite,Composite sampling occurred (TRUE or FALSE)
-soc_method,Method for soil organic carbon analysis
-bd_method,Method for bulk density analysis
-hrb_method,Method for herbaceous root biomass
-wrb_method,Method for woody root biomass
-ahb_method,Method for aboveground herbaceous biomass
-awb_method,Method for aboveground woody biomass
+soc_method,"Method for soil organic carbon analysis; options (Dry Combustion, LOI)"
+bd_method,"Method for bulk density analysis; options: Millet, slide hammer, ruler"
+hrb_method,Method for herbaceous root biomass; options: core sampling
+wrb_method,"Method for woody root biomass; Options: DBH only, DBH and HT"
+ahb_method,"Method for aboveground herbaceous biomass; Options: harvest, visual est"
+awb_method,"Method for aboveground woody biomass; Options: DBH only, DBH and HT"
 soc_num_samples,Number of samples taken for soil carbon analysis
 bd_num_samples,Number of samples taken for bulk density analysis
 hrb_num_samples,Number of samples taken for herbaceous root biomass analysis
