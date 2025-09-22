@@ -21,6 +21,7 @@ pon,percent,0.74,Concentration of particulate organic N in sample
 maom,percent,55.69,Mineral-associated organic matter as a percent of total organic matter in sample
 maoc,percent,0.15,Concentration of mineral-associated organic C in sample
 maon,percent,1.12,Concentration of mineral-associated organic N in sample
+co2_resp_ppm,ppm,80,CO2-C emitted following soil rewetting CO2 respiration test
 texture_name,NA,Silt loam,Texture class observed either in-field or texture by feel in lab. One of 11 USDA texture classes
 sand,percent,35,Sand content of sample measured in lab
 silt,percent,30,Silt content of sample measured in lab
@@ -30,10 +31,17 @@ buffer_ph,ph,6.5,Buffer pH indicating soil's resistance to changes in pH
 bd_method,NA,Millet; ruler; NA; ND,Specify method for bulk density measurement
 bulk_density,g/cm3,1.49,"Bulk density of sample, calculated by dividing mass of dry soil (rocks and roots removed) by total volume of sampling core"
 rocks_g,g,4.64,Weight of rocks removed from bulk density sample
+no3_ppm,ppm,3.5,Nitrate concentration (NO3-N)
+p_ppm,ppm,33.1,Phosphorus concentration
 k_ppm,ppm,387,Potassium concentration by NH4 acetate extraction 
+s_ppm,ppm,4.8,Sulfur concentration by NH4 acetate extraction 
 ca_ppm,ppm,3718,Calcium concentration by NH4 acetate extraction 
 mg_ppm,ppm,716,Magnesium concentration by NH4 acetate extraction 
 na_ppm,ppm,108,Sodium concentration by NH4 acetate extraction 
+zn_ppm,ppm,4.04,Zinc concentration by NH4 acetate extraction 
+fe_ppm,ppm,22.8,Iron concentration by NH4 acetate extraction 
+mn_ppm,ppm,4.4,Manganese concentration by NH4 acetate extraction 
+cu_ppm,ppm,6.8,Copper concentration by NH4 acetate extraction 
 soil_moisture,percent,10.7,Soil moisture measured in lab or during in-house bulk density processing
 sol_salts,mmho/cm,0.13,Soluble salts
 cec,meq/100g,29.2,Sum of cations calculated from cation NH4 acetate extraction and buffer pH
