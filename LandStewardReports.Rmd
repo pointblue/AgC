@@ -14,7 +14,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: MERC
+  project_name: JPBO
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -177,7 +177,8 @@ Table1 %>%
   column_spec(2, width="0.5in")%>%
   column_spec(3, width="2.5in")%>%
   column_spec(4, width="1.75in")%>%
-  row_spec(0, bold=TRUE)
+  row_spec(0, bold=TRUE)%>%
+  collapse_rows(columns = c(1, 3, 4), valign = "middle") #merges adjacent cells with identical values
 ```
 
 ### Spatial design
