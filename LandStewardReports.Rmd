@@ -221,16 +221,7 @@ leaflet() %>%
 
 ```
 ```{r Dynamic text generation 1, results='asis'}
-for.legend<-as.data.frame(points)
-for.legend<-arrange(for.legend, plot_type, labels)
-
 #this section states which, if any, indicators were measured at every sampling point and removes them from the following legend table
-
-for (column_name in proj.indicator.table$Acronym) {
-  if (length(unique(for.legend[[column_name]])) == 1) {
-    for.legend <- select(for.legend, -column_name)
-  }
-}
 
 allpoints.list <- proj.indicator.table$CheckCol[
   proj.indicator.table$CheckCol %in% names(PointLevel) &    # must exist
@@ -252,6 +243,9 @@ cat("Indicators that were only measured at some sampling points are listed in th
 ```{r, indicator.legend}
 #CHECK this system needs testing after being modified#
 #the conditional format here makes sure the table is only generated if the projected included some indicators only measured at some sampling points
+for.legend<-as.data.frame(points)
+for.legend<-arrange(for.legend, plot_type, labels)
+
 if (identical(allpoints.list, proj.indicator.table)==FALSE){
   legend.T <- list()
   legend.C <- list()
@@ -260,6 +254,9 @@ inds.for.legend <- proj.indicator.table$CheckCol[
   proj.indicator.table$CheckCol %in% names(PointLevel) &    # must exist
     sapply(proj.indicator.table$CheckCol, function(col) any(is.na(PointLevel[[col]])))
 ]  
+
+
+
 
   # List points monitored for each indicator in T and C plots
   for (column_name in inds.for.legend) {
