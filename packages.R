@@ -9,4 +9,5 @@ suppressPackageStartupMessages({
   library(stringr)
   library(readxl)
   library(purrr)
+  library(sf)
 })

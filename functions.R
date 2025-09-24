@@ -1,11 +1,13 @@
 # Title: functions.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250604
+# Date updated: 20250924
 # Purpose: Define Ag-C data cleaning functions used in AgCDataCompile.R to:
 #   1) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester)
 #   2) clean_tap_df: Renames columns and removes extra columns in TAP df
-#   3) out_of_range: verify required columns and check for data outside expected ranges
+#   3) coord_extract: Extracts coordinates for sampling points from projects of interest
+#   4) out_of_range: verify required columns and check for data outside expected ranges
+#   5) proj_design: Extracts project design data required for inference score calculation from point level db
 
 ## ---- clean_lab_df function ----
 
@@ -180,6 +182,47 @@ clean_tap_df <- function(agc_data_entry_path){
     as.data.frame()
     
   return(tap_clean)
+}
+
+## ---- Extract point coordinates for sampling points ----
+coord_extract <- function(projects){
+  # Create df to store results
+  coord_df <- data.frame(
+    sample_id = character(),
+    lat = numeric(),
+    long = numeric())
+  # Loop through projects
+  for(p in projects){
+    
+    # Define file paths
+    zip_path <- paste0(data_dir,"Raw Data/Spatial Data/ZippedShapefiles/",
+                       p,"_pointsfinal.zip")
+    
+    # Create a temporary directory to unzip files
+    unzip_dir <- paste0(data_dir,"Raw Data/Spatial Data/temp_unzip/")
+    dir.create(unzip_dir)
+    
+    # Unzip the shapefile
+    unzip(zip_path, exdir = unzip_dir)
+    
+    # Read shapefile (automatically finds the .shp)
+    shape_data <- st_read(paste0(unzip_dir,p,"_pointsfinal.shp"))
+    
+    # Extract geometries
+    shape_coords <- shape_data %>%
+      mutate(long = st_coordinates(geometry)[,1],
+             lat = st_coordinates(geometry)[,2]) %>%
+      st_drop_geometry() %>%
+      rename(sample_id = name) %>%
+      select(sample_id, long, lat)
+    
+    # Store data
+    coord_df <- rbind(coord_df,shape_coords)
+    
+    # Delete temp folder where file was unzipped
+    unlink(unzip_dir, recursive = TRUE)
+  }
+  return(coord_df)
 }
 
 ## ---- QAQC function ----

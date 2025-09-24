@@ -62,6 +62,10 @@ df <- df %>%
 ## ---- Fill in all identifying columns ----
 
 # Add coordinates
+projects <- unique(df$project_id[!is.na(df$project_id)])
+samp_coords <- coord_extract(projects)
+df <- df[,!names(df) %in% c("long","lat")] %>%
+  left_join(samp_coords)
 
 # Store target depths and measured depths
 df <- df %>%
@@ -89,6 +93,7 @@ df$inorg_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)] <-
 
 # Make sure all samples have identifying info, total_c or org_c value, and bulk_density value
 df[is.na(df$project_id),]
+df[is.na(df$lat) | is.na(df$long),]
 df[is.na(df$total_c) & is.na(df$org_c),]
 df[is.na(df$bulk_density),]
 
