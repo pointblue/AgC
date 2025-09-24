@@ -219,6 +219,16 @@ proj_design <- function(projects){
       control_baseline = map_lgl(data, ~ any(.x$timepoint == "T0")),
       soc_method = map(data, ~ unique(na.omit(.x$c_method))),
       bd_method = map(data, ~ unique(na.omit(.x$bd_method))),
+      tx_method = map_chr(data, ~ case_when(
+        any(!is.na(.x$sand)) ~ "hydrometer",
+        any(!is.na(.x$texture_name)) ~ "feel",
+        TRUE ~ NA_character_
+      )),
+      ph_method = map_chr(data, ~ case_when(
+        any(.x$ph_method == "lab", na.rm = TRUE) ~ "lab",
+        any(.x$ph_method == "field", na.rm = TRUE) ~ "field",
+        TRUE ~ NA_character_
+      )),
       soc_num_samples = map_int(data, ~ sum(!is.na(.x$org_c))),
       bd_num_samples = map_int(data, ~ sum(!is.na(.x$bulk_density))),
       tx_num_samples = map_int(data, ~ sum(!is.na(.x$sand))),

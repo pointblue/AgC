@@ -14,8 +14,12 @@ sampling_density_method,"Method for determining sampling density; options: looku
 variability,"Field variability (low, medium or high)"
 certainty_level,"Certainty level desired (low, medium, or high)"
 composite,Composite sampling occurred (TRUE or FALSE)
+composite_n,Number of composite samples per point
+composite_dist,Distance of composite subsamples from center point (meters)
 soc_method,"Method for soil organic carbon analysis; options (Dry Combustion, LOI)"
 bd_method,"Method for bulk density analysis; options: Millet, slide hammer, ruler"
+tx_method,"Method for texture analysis (hydrometer, feel)"
+ph_method,"Method for pH analysis (lab, field)"
 hrb_method,Method for herbaceous root biomass; options: core sampling
 wrb_method,"Method for woody root biomass; Options: DBH only, DBH and HT"
 ahb_method,"Method for aboveground herbaceous biomass; Options: harvest, visual est"

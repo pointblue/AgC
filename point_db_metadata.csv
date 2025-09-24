@@ -27,6 +27,7 @@ texture_name,Texture Name,,Silt loam,Texture class observed either in-field or t
 sand,Sand Content,percent,35,Sand content of sample measured in lab
 silt,Silt Content,percent,30,Silt content of sample measured in lab
 clay,Clay Content,percent,35,Clay content of sample measured in lab
+ph_method,pH Method,,"lab, field",Whether pH was measured in lab or in field
 ph,pH,ph,7.3,"pH of sample, measured in-field or in lab"
 buffer_ph,Buffer pH,ph,6.5,Buffer pH indicating soil's resistance to changes in pH
 bd_method,Bulk Density Method,NA,Millet; ruler; NA; ND,Specify method for bulk density measurement

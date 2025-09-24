@@ -38,6 +38,11 @@ df <- lab_clean %>%
     dry_soil_g = coalesce(dry_soil_g.x, dry_soil_g.y),
     rocks_g = coalesce(rocks_g.x,rocks_g.y)
   ) %>%
+  mutate(ph_method = case_when(
+    !is.na(ph.x) ~ "lab",
+    is.na(ph.x) & !is.na(ph.y) ~ "field",
+    TRUE ~ NA_character_
+  )) %>%
   select(-ends_with(c(".y",".x"))) %>%
   mutate(across(c(total_n:cec_na_perc), as.numeric))
 
