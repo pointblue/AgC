@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250917
+# Date updated: 20250924
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -66,6 +66,21 @@ df <- df %>%
          e_depth = e_depth_meas)
 
 ## ---- QA/QC of full dataset ----
+
+# Fill total_c if it's NA and org_c & inorg_c are both present
+df$total_c[is.na(df$total_c) & !is.na(df$org_c) & !is.na(df$inorg_c)] <- 
+  df$org_c[is.na(df$total_c) & !is.na(df$org_c) & !is.na(df$inorg_c)] + 
+  df$inorg_c[is.na(df$total_c) & !is.na(df$org_c) & !is.na(df$inorg_c)]
+
+# Fill org_c if it's NA and total_c & inorg_c are both present
+df$org_c[is.na(df$org_c) & !is.na(df$total_c) & !is.na(df$inorg_c)] <- 
+  df$total_c[is.na(df$org_c) & !is.na(df$total_c) & !is.na(df$inorg_c)] - 
+  df$inorg_c[is.na(df$org_c) & !is.na(df$total_c) & !is.na(df$inorg_c)]
+
+# Fill inorg_c if it's NA and total_c & org_c are both present
+df$inorg_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)] <- 
+  df$total_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)] - 
+  df$org_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)]
 
 # Make sure all samples have identifying info, total_c or org_c value, and bulk_density value
 df[is.na(df$project_id),]
