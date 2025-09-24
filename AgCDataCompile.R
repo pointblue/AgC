@@ -102,8 +102,13 @@ cols_to_add <- setdiff(colnames(df),colnames(df_current))
 df_current[,cols_to_add] <- NA
 df_current <- df_current[,final_cols$column_name]
 
-#Add rows and save 
+# Add rows 
 master_df <- rbind(df_current, df)
+
+# Change NA values to empty cells
+master_df[is.na(master_df)] <- ""
+
+# Save
 write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
 
 ## ---- Import/clean management data from jotform ----
