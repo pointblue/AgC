@@ -1,16 +1,16 @@
 ﻿column_name,label,units,levels_example,description
-project_id,Project ID,NA,EXPR.24.CA,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
-sample_id,Sample ID,NA,EXPR.24.CA.T.01,"Unique sample ID for each sampling location with project_id, treatment (T) or control (C), and sample number"
-timepoint,Timepoint,NA,"T0, T1, …","Timepoint of sampling event, indicating baseline (T0), first sampling after practice implementation (T1), and following events (T2, T3, etc)"
-sample_date,Sampling Date,NA,MM/DD/YYYY,Date of soil sampling event
+project_id,Project ID,,EXPR.24.CA,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
+sample_id,Sample ID,,EXPR.24.CA.T.01,"Unique sample ID for each sampling location with project_id, treatment (T) or control (C), and sample number"
+timepoint,Timepoint,,"T0, T1, …","Timepoint of sampling event, indicating baseline (T0), first sampling after practice implementation (T1), and following events (T2, T3, etc)"
+sample_date,Sampling Date,,MM/DD/YYYY,Date of soil sampling event
 lat,Latitude,CRS WGS 84,,Latitude of soil sampling point
 long,Longitude,CRS WGS 84,,Longitude of soil sampling point
 target_depth,Target Sampling Depth,cm,0_30,Planned beginning and end depth of sample separated by _
 b_depth,Beginning Depth,cm,0,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
 e_depth,End Depth,cm,32.4,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
-position,Sample Position,NA,alley; row; shoulder; NA,"Placement of the soil sample relative to perennial crop rows. Alley = between perennial rows, row = within planting rows, shoulder = slope between row and alley. Not applicable in annual crops and rangelands"
-lab_name,Lab Name,NA,Ward; Cquester; UCDavis; CSU,Name of lab service provider
-c_method,C Method,NA,Dry Combustion; LOI,Method used for soil C quantification
+position,Sample Position,,alley; row; shoulder; NA,"Placement of the soil sample relative to perennial crop rows. Alley = between perennial rows, row = within planting rows, shoulder = slope between row and alley. Not applicable in annual crops and rangelands"
+lab_name,Lab Name,,Ward; Cquester; UCDavis; CSU,Name of lab service provider
+c_method,C Method,,Dry Combustion; LOI,Method used for soil C quantification
 total_c,Total Soil C,percent,1.195,Total soil C concentration of sample
 total_n,Total Soil N,percent,0.802,Total soil N concentration of sample
 org_c,Soil Organic C,percent,1.002,Soil organic C concentration of sample
@@ -22,7 +22,7 @@ maom,Mineral Associated Organic Matter,percent,55.69,Mineral-associated organic 
 maoc,Mineral Associated Organic C,percent,0.15,Concentration of mineral-associated organic C in sample
 maon,Mineral Associate Organic N,percent,1.12,Concentration of mineral-associated organic N in sample
 co2_resp_ppm,CO2 Respiration,ppm,80,CO2-C emitted following soil rewetting CO2 respiration test
-texture_name,Texture Name,NA,Silt loam,Texture class observed either in-field or texture by feel in lab. One of 11 USDA texture classes
+texture_name,Texture Name,,Silt loam,Texture class observed either in-field or texture by feel in lab. One of 11 USDA texture classes
 sand,Sand Content,percent,35,Sand content of sample measured in lab
 silt,Silt Content,percent,30,Silt content of sample measured in lab
 clay,Clay Content,percent,35,Clay content of sample measured in lab
