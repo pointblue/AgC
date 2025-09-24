@@ -3,6 +3,7 @@ project_id,Project ID,,EXPR.24.CA,"Unique project ID with first 4 letters of ran
 sample_id,Sample ID,,EXPR.24.CA.T.01,"Unique sample ID for each sampling location with project_id, treatment (T) or control (C), and sample number"
 timepoint,Timepoint,,"T0, T1, …","Timepoint of sampling event, indicating baseline (T0), first sampling after practice implementation (T1), and following events (T2, T3, etc)"
 sample_date,Sampling Date,,MM/DD/YYYY,Date of soil sampling event
+plot_type,Plot Type,,"T, C",Indicates whether sample point is located in a treatment (T) or control (C) plot
 lat,Latitude,CRS WGS 84,,Latitude of soil sampling point
 long,Longitude,CRS WGS 84,,Longitude of soil sampling point
 target_depth,Target Sampling Depth,cm,0_30,Planned beginning and end depth of sample separated by _
