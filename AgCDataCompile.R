@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250917
+# Date updated: 20250924
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -38,6 +38,11 @@ df <- lab_clean %>%
     dry_soil_g = coalesce(dry_soil_g.x, dry_soil_g.y),
     rocks_g = coalesce(rocks_g.x,rocks_g.y)
   ) %>%
+  mutate(ph_method = case_when(
+    !is.na(ph.x) ~ "lab",
+    is.na(ph.x) & !is.na(ph.y) ~ "field",
+    TRUE ~ NA_character_
+  )) %>%
   select(-ends_with(c(".y",".x"))) %>%
   mutate(across(c(total_n:cec_na_perc), as.numeric))
 
@@ -57,6 +62,10 @@ df <- df %>%
 ## ---- Fill in all identifying columns ----
 
 # Add coordinates
+projects <- unique(df$project_id[!is.na(df$project_id)])
+samp_coords <- coord_extract(projects)
+df <- df[,!names(df) %in% c("long","lat")] %>%
+  left_join(samp_coords)
 
 # Store target depths and measured depths
 df <- df %>%
@@ -67,8 +76,24 @@ df <- df %>%
 
 ## ---- QA/QC of full dataset ----
 
+# Fill total_c if it's NA and org_c & inorg_c are both present
+df$total_c[is.na(df$total_c) & !is.na(df$org_c) & !is.na(df$inorg_c)] <- 
+  df$org_c[is.na(df$total_c) & !is.na(df$org_c) & !is.na(df$inorg_c)] + 
+  df$inorg_c[is.na(df$total_c) & !is.na(df$org_c) & !is.na(df$inorg_c)]
+
+# Fill org_c if it's NA and total_c & inorg_c are both present
+df$org_c[is.na(df$org_c) & !is.na(df$total_c) & !is.na(df$inorg_c)] <- 
+  df$total_c[is.na(df$org_c) & !is.na(df$total_c) & !is.na(df$inorg_c)] - 
+  df$inorg_c[is.na(df$org_c) & !is.na(df$total_c) & !is.na(df$inorg_c)]
+
+# Fill inorg_c if it's NA and total_c & org_c are both present
+df$inorg_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)] <- 
+  df$total_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)] - 
+  df$org_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)]
+
 # Make sure all samples have identifying info, total_c or org_c value, and bulk_density value
 df[is.na(df$project_id),]
+df[is.na(df$lat) | is.na(df$long),]
 df[is.na(df$total_c) & is.na(df$org_c),]
 df[is.na(df$bulk_density),]
 
@@ -102,8 +127,13 @@ cols_to_add <- setdiff(colnames(df),colnames(df_current))
 df_current[,cols_to_add] <- NA
 df_current <- df_current[,final_cols$column_name]
 
-#Add rows and save 
+# Add rows 
 master_df <- rbind(df_current, df)
+
+# Change NA values to empty cells
+master_df[is.na(master_df)] <- ""
+
+# Save
 write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
 
 ## ---- Import/clean management data from jotform ----
