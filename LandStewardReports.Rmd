@@ -1,7 +1,7 @@
 ---
 title: |
-  <img src="ReportImages/PBLogo.png" alt="My Image" style="width: 300px;">  
-  <img src="ReportImages/AgCLogo.png" alt="My Image" style="width: 500px;">  
+  <img src="ReportRef/Images/PBLogo.png" style="width: 300px;">  
+  <img src="ReportRef/Images/AgCLogo.png" style="width: 500px;">  
   Land Steward Report
 author: "Avalon Cook"
 date: "`r format(Sys.Date(), '%B %d %Y')`"
@@ -49,6 +49,23 @@ library(gridExtra)
 library(grid)
 
 gs4_auth_configure(api_key = 'AIzaSyBEULjhG3_r_ZX6F7ZKDEUQ5yOgUbKVh6o') #this auth key is linked to Avalon's account and should prevent from the user needing to manually authorize each time, like in the line below
+
+format_list <- function(x) { #oxford comma text list formatter (GPT)
+  n <- length(x)
+  if (n == 0) {
+    ""
+  } else if (n == 1) {
+    x
+  } else if (n == 2) {
+    paste(x, collapse = " and ")
+  } else {
+    paste0(
+      paste(x[-n], collapse = ", "),
+      ", and ",
+      x[n]
+    )
+  }
+}
 
 #gs4_auth() #this line will initiate a prompt in your console and take you to your browser to approve access to your Google Drive
 ```
@@ -101,26 +118,15 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
 
 #add project design datasheet, then assign all the variables created above
 
-format_practice_string <- function(x) { #this function reformats the string of conservation practices to be more readable (GPT)
-  n_commas <- stringr::str_count(x, ",")
-  if (n_commas == 1) {
-    # Replace the comma with " &"
-    sub(",", " &", x)
-  } else if (n_commas >= 2) {
-    # Replace only the last comma with ", and"
-    sub(",([^,]*)$", ", and\\1", x)
-  } else {
-    # No commas, return as-is
-    x
-  }
-}
-
 #Establishing variables for report structure
 proj.protocol <- FieldLevel$rangec_cropc[1]
 proj.inscore <- ProjectDesign$inference_score[1]
 proj.propertyname <- ProjectDesign$ranch_name[1]
-proj.implementationyear <- ProjectDesign$proj_practice_year[1]
-proj.practicetype <- format_practice_string(ProjectDesign$conservation_practice[1])
+proj.implementationyear <- if(is.na(ProjectDesign$proj_practice_year[1])){""}
+pract_codes<-read.csv('practice_abbreviations.csv')
+practs_vec<-strsplit(ProjectDesign$conservation_practice[1], ",\\s*")[[1]]
+practs_full<-pract_codes$Practice[match(practs_vec, pract_codes$Abbreviation)]
+proj.practicetype <- format_list(practs_full)
 proj.title <- paste(proj.propertyname, proj.implementationyear, proj.practicetype, sep=" ")
 ############################################################################
 
@@ -232,62 +238,44 @@ allpoints.table <- proj.indicator.table %>%
   filter(CheckCol %in% allpoints.list)
 
 if (length(allpoints.list)>0){
-cat("The following indicators were measured at every sampling point:", paste(allpoints.table$Indicator, collapse = ", "), "\n")}
+cat("The following indicators were measured at every sampling point:", paste(allpoints.table$Indicator, collapse = ", "), "<br><br>")}
 ```
+```{r Dynamic text generation 2, indicator.legend, results='asis'}
 
-```{r Dynamic text generation 2, results='asis'}
-if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){
-cat("Indicators that were only measured at some sampling points are listed in the table below.")}
-```
-
-```{r, indicator.legend}
-#CHECK this system needs testing after being modified#
-#the conditional format here makes sure the table is only generated if the projected included some indicators only measured at some sampling points
-for.legend<-as.data.frame(points)
-for.legend<-arrange(for.legend, plot_type, labels)
-
-if (identical(allpoints.list, proj.indicator.table)==FALSE){
-  legend.T <- list()
-  legend.C <- list()
+if (identical(allpoints.list, proj.indicator.table)==FALSE){ #only proceed if some indicators were not measured at every point
   
-inds.for.legend <- proj.indicator.table$CheckCol[
+  #identifying indicators that were measured at a subset of points
+  subset.inds <- proj.indicator.table$CheckCol[ 
   proj.indicator.table$CheckCol %in% names(PointLevel) &    # must exist
-    sapply(proj.indicator.table$CheckCol, function(col) any(is.na(PointLevel[[col]])))
-]  
-
-
-
-
-  # List points monitored for each indicator in T and C plots
-  for (column_name in inds.for.legend) {
-    result <- paste(for.legend$labels[complete.cases(for.legend[[column_name]]) & for.legend[[column_name]] == 1 & for.legend$plot_type == "T"], collapse = ", ")
-    legend.T[[column_name]] <- result
+    sapply(proj.indicator.table$CheckCol, function(col) any(is.na(PointLevel[[col]])))] 
+  
+  #checking if all those subset indicators were done at the same points -- if so we'll just list them instead of making a table
+  if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))){ #returns TRUE if all subset indicators were measured at the same sampling points
+    subset_points <- PointLevel$sample_id[complete.cases(PointLevel[subset.inds])]
+    subset.inds.name<-proj.indicator.table$Indicator[proj.indicator.table$CheckCol %in% subset.inds]
+    cat(paste0("The following indicators were measured at ", format_list(subset_points), ": ", format_list(subset.inds.name),"<br><br>"))
   }
   
-  for (column_name in inds.for.legend) {
-    result <- paste(for.legend$labels[complete.cases(for.legend[[column_name]]) & for.legend[[column_name]] == 1 & for.legend$plot_type == "C"], collapse = ", ")
-    legend.C[[column_name]] <- result
+  #CHECK Here is where we go back to generating the table for when not all subset inds were measured at the same point. Not relevant for current report deadline. Model based on pilot reports code when ready
+  if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))==FALSE){ 
+    cat("Indicators that were only measured at some sampling points are listed in the table below.")
+    
+    #might have to generate the table in a different chunk, don't remember
   }
   
-  # Turn it into a dataframe and render a table
-  results_df <- data.frame(Column = names(legend.T), ResultT = unlist(legend.T), ResultC = unlist(legend.C), stringsAsFactors = FALSE)
-  rownames(results_df) <- NULL
-  colnames(results_df) <- c("Indicator", "Treatment points", "Control points")
-  if (length(unique(for.legend$plot_type)) ==1 ){
-    results_df<-select(results_df, -3)}
-kbl(caption = "Indicators measured at a subset of sampling points", results_df, align='lccr') %>% kable_styling(position='center', full_width = F)
 }
+
 ```
-```{r, other spatial design elements}
+```{r, other spatial design elements, results='asis'}
 if (ProjectDesign$composite==TRUE){
   cat("Each soil sample was composed of smaller composited samples to capture small-scale variability at each sampling point. ")
 }
 
 if (ProjectDesign$point_generation_method=="GIS"){
   cat("Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
-}else{cat("Sampling points were randomly selected using the Range-C Point Selector tool and paced to in the field.")}
+}else{cat("Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
 
-#CHECK add statement for stratification? 
+#CHECK add statement for stratification? Not worried about it right now but may come back after deadline
 ```
 
 
@@ -296,13 +284,13 @@ The Ag-C framework flexibly accommodates different project design approaches. Fo
 
 ```{r Dynamic text Baseline and Control, results='asis'}
 
-if (ProjectDesign$control_baseline=="yes" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site."))}
+if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site.", "<br><br>"))}
 
-if (ProjectDesign$control_baseline=="yes" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented, but did not include parallel monitoring at an untreated control site."))}
+if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented, but did not include parallel monitoring at an untreated control site.", "<br><br>"))}
 
-if (ProjectDesign$control_baseline=="no" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes parallel monitoring at an untreated control site, but did not capture baseline conditions before practice implementation."))}
+if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes parallel monitoring at an untreated control site, but did not capture baseline conditions before practice implementation.", "<br><br>"))}
   
-if (ProjectDesign$control_baseline=="no" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project did not capture baseline conditions before practice implementation and was not able to compare current conditions to an untreated control site. While we are still able to characterize current conditions now and into the future, the results will have limited interpretability for understanding the full scope of practice impact."))}
+if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project did not capture baseline conditions before practice implementation and was not able to compare current conditions to an untreated control site. While we are still able to characterize current conditions now and into the future, the results will have limited interpretability for understanding the full scope of practice impact.", "<br><br>"))}
 
 #Do some conversions for a statement about max depth and depth increments
 depth.increments.no <- ProjectDesign$depth_increments
@@ -339,25 +327,15 @@ if (depth.increments.no>1){
 
 ### All soil properties
 The following table summarizes average values across the study area for all soil metric(s) included in your project. 
-```{r Summarize non-stocks soil means}
+```{r Summarize non-stocks soil means} 
 
 #creating a vector of value names that match the names in PointLevel
 if ("Tx" %in% proj.indicators==TRUE) {
   proj.indicators.SSC<-c(proj.indicator.table$CheckCol, "sand", "silt")
 } else {proj.indicators.SSC <- proj.indicator.table$CheckCol}
 
-#Calculating stocks on qualifying soil metrics
-if ("bulk_density" %in% proj.indicators.SSC){
-soil.stocks.inds <- c("total_c", "total_n", "org_c", "inorg_c", "maoc", "poc", "pon") #these are the columns that can be turned into stocks (CHECK hard coding these in for now. Not sure if there's a better solution)
-for(col in intersect(proj.indicators.SSC, soil.stocks.inds)) {
-  new_col <- paste0(col, "_stocks")  # new column name
-  PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4461 #calculating stocks in US tons / acre (percent to decimal cancels out) 
-}
-proj.indicators.SSC<- c(proj.indicators.SSC, paste0(intersect(proj.indicators.SSC, soil.stocks.inds), "_stocks")) #add those new column names to my list of indicator columns
-}
-
 PointLevel<-PointLevel%>% 
-  mutate(plot_type = substr(sample_id, 6, 6)) #CHECK! should be temporary (will get built into PointLevel)
+  mutate(plot_type = "T")#substr(sample_id, 6, 6)) #CHECK! should be temporary (will get built into PointLevel)
 
 Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type) %>%
@@ -365,7 +343,7 @@ Project.Means <- PointLevel %>%
 
 Means.Pivot<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>%
           pivot_wider(names_from = c("plot_type"), values_from = value)%>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
-           left_join(
+           left_join( #add the units column (CHECK,)
     proj.indicator.table %>% select(CheckCol, UnitsTable),
     by = c("Indicator" = "CheckCol")
   ) %>%
@@ -376,7 +354,7 @@ Means.Pivot<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), n
       TRUE ~ UnitsTable                                          # default mapping
     )
   ) %>%
-  select(-UnitsTable)%>%
+  select(-UnitsTable)%>% #clunky way of fixing units...not worth chasing down rn
   mutate(
     # remove _stocks for matching if present
     Indicator_base = str_remove(Indicator, "_stocks$")
@@ -386,151 +364,148 @@ Means.Pivot<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), n
     by = c("Indicator_base" = "CheckCol")
   ) %>%
   mutate(
-    Units = case_when(
-      str_ends(Indicator, "_stocks") ~ "tons/acre",  # special case
-      Indicator %in% c("sand", "silt", "clay") ~ "%", # special values
-      TRUE ~ UnitsTable                                # default mapping
+    Acronym = case_when(
+      Indicator_base == "sand" ~ "Sand",
+      Indicator_base == "silt" ~ "Silt",
+      Indicator_base == "clay" ~ "Clay",
+      TRUE ~ Acronym                                # default mapping
     )
   ) %>%
-  select(-Indicator_base, -UnitsTable)
+  select(-Indicator_base, -Indicator)
           
+my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
 
-#
-#soil.inds<- c("SOC", "MAOC", "POC", "SIC", "BD", 'pH', "Sand", "Silt", "Clay") #define which indicators should be included in the soils table
-
-soil.units.lookup <- data.frame(
-  Indicator = proj.indicator.table$CheckCol,
-  Units = proj.indicator.table$UnitsTable
-) #define indicator units
-
-
-
-Soil.Means <- Means.Pivot[Means.Pivot$Indicator, ] %>% #subset the means table to only include soil indicators [REMOVED THE SUBSET:  %in% soil.inds]
-              left_join(soil.units.lookup, by="Indicator") %>% #add a column for the units
-              select(Indicator, Units, everything()) #reorder
+Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder columns
+              mutate( #all the rest allows me to specify an order for the first few Ag-C metrics, and leave the rest alone
+                  order_helper = match(Acronym, my_order),
+                  original_order = row_number()
+                ) %>%
+                arrange(is.na(order_helper), order_helper, original_order) %>%
+                select(-order_helper, -original_order)
 ```
-```{r Calculating carbon stocks}
-#This should only happen if SOC and BD are present
+```{r Calculating carbon stocks, eval=FALSE} 
+###CHECK! OLD! don't run this, I'm skipping it##
+##This should only happen if SOC and BD are present
 
-if (ProjectTracker$Roadmap != "low"){
+#if (ProjectTracker$Roadmap != "low"){
 
-#Calculating SOC stocks
-if ("BD" %in% proj.indicators == TRUE){
-PointData.proj$SOC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$SOC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-PointData.proj$SOC_stocks_tons.acre <- PointData.proj$SOC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
+##Calculating SOC stocks
+#if ("BD" %in% proj.indicators == TRUE){
+#PointData.proj$SOC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$SOC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
+#PointData.proj$SOC_stocks_tons.acre <- PointData.proj$SOC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
 
-SOC_stocks_summary<-PointData.proj %>%
-  group_by(plot_typee) %>%
-  summarise(
-    indicator = "SOC",
-    mean = mean(SOC_stocks_tons.acre, na.rm = TRUE),
-    se = sd(SOC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-  rename(plot=plot_typee)%>%
-  select(indicator, mean, se, plot)
+#SOC_stocks_summary<-PointData.proj %>%
+#  group_by(plot_type) %>%
+#  summarise(
+#    indicator = "SOC",
+#    mean = mean(SOC_stocks_tons.acre, na.rm = TRUE),
+#    se = sd(SOC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
+#  rename(plot=plot_type)%>%
+#  select(indicator, mean, se, plot)
 
 
-PointData.proj$SIC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$SIC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-PointData.proj$SIC_stocks_tons.acre <- PointData.proj$SIC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
+#PointData.proj$SIC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$SIC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
+#PointData.proj$SIC_stocks_tons.acre <- PointData.proj$SIC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
 
-SIC_stocks_summary<-PointData.proj %>%
-  group_by(plot_typee) %>%
-  summarise(
-    indicator = "SIC",
-    mean = mean(SIC_stocks_tons.acre, na.rm = TRUE),
-    se = sd(SIC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-  rename(plot=plot_typee)%>%
-  select(indicator, mean, se, plot)
+#SIC_stocks_summary<-PointData.proj %>%
+#  group_by(plot_type) %>%
+#  summarise(
+#    indicator = "SIC",
+#    mean = mean(SIC_stocks_tons.acre, na.rm = TRUE),
+#    se = sd(SIC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
+#  rename(plot=plot_type)%>%
+#  select(indicator, mean, se, plot)
 
   
-}
+#}
 
-if (all(c("BD", "MAOC") %in% proj.indicators)==TRUE) {
-  PointData.proj$MAOC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$MAOC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-PointData.proj$MAOC_stocks_tons.acre <- PointData.proj$MAOC_stocks_g.cm2*40470000/1000000 #convert to tons/acre to specified depth
+#if (all(c("BD", "MAOC") %in% proj.indicators)==TRUE) {
+#  PointData.proj$MAOC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$MAOC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
+#PointData.proj$MAOC_stocks_tons.acre <- PointData.proj$MAOC_stocks_g.cm2*40470000/1000000 #convert to tons/acre to specified depth
 
-MAOC_stocks_summary<-PointData.proj %>%
-  group_by(plot_typee) %>%
-  summarise(
-    indicator = "MAOC",
-    mean = mean(MAOC_stocks_tons.acre, na.rm = TRUE),
-    se = sd(MAOC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-  rename(plot=plot_typee)%>%
-  select(indicator, mean, se, plot)
-}
+#MAOC_stocks_summary<-PointData.proj %>%
+#  group_by(plot_type) %>%
+#  summarise(
+#    indicator = "MAOC",
+#    mean = mean(MAOC_stocks_tons.acre, na.rm = TRUE),
+#    se = sd(MAOC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
+#  rename(plot=plot_type)%>%
+#  select(indicator, mean, se, plot)
+#}
 
-if (all(c("BD", "POC") %in% proj.indicators)==TRUE) {
-  PointData.proj$POC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$POC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-PointData.proj$POC_stocks_tons.acre <- PointData.proj$POC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
+#if (all(c("BD", "POC") %in% proj.indicators)==TRUE) {
+#  PointData.proj$POC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$POC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
+#PointData.proj$POC_stocks_tons.acre <- PointData.proj$POC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
 
-POC_stocks_summary<-PointData.proj %>%
-  group_by(plot_typee) %>%
-  summarise(
-    indicator = "POC",
-    mean = mean(POC_stocks_tons.acre, na.rm = TRUE),
-    se = sd(POC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-  rename(plot=plot_typee)%>%
-  select(indicator, mean, se, plot)
-}
+#POC_stocks_summary<-PointData.proj %>%
+#  group_by(plot_type) %>%
+#  summarise(
+#    indicator = "POC",
+#    mean = mean(POC_stocks_tons.acre, na.rm = TRUE),
+#    se = sd(POC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
+#  rename(plot=plot_type)%>%
+#  select(indicator, mean, se, plot)
+#}
 
 ####bind all the summaries together into one table
 
 #list all the indicators that can be reported as stocks
-stock_inds <- c("SOC", "SIC", "MAOC", "POC", "BD") #add MAOC and POC later
+#stock_inds <- c("SOC", "SIC", "MAOC", "POC", "BD") #add MAOC and POC later
 
 #Return the ones included in this project
-proj_stock_inds <- stock_inds[stock_inds %in% proj.indicators]
+#proj_stock_inds <- stock_inds[stock_inds %in% proj.indicators]
 
 #If SOC and BD are both present, return SOC, otherwise, SOC should not be included
-if (all(c("SOC", "BD") %in% proj.indicators)) {
-  proj_stock_inds <- setdiff(proj_stock_inds, "BD") # Keep SOC, remove BD
-} else {
-  proj_stock_inds <- setdiff(proj_stock_inds, c("SOC", "SIC", "BD")) # Remove both if not both are present
-}
+#if (all(c("SOC", "BD") %in% proj.indicators)) {
+#  proj_stock_inds <- setdiff(proj_stock_inds, "BD") # Keep SOC, remove BD
+#} else {
+#  proj_stock_inds <- setdiff(proj_stock_inds, c("SOC", "SIC", "BD")) # Remove both if not both are present
+#}
 
 #Append "_stocks_summary" to each indicator to match the names of the objects made above
 
-stocks_summaries <- paste0(proj_stock_inds, "_stocks_summary")
+#stocks_summaries <- paste0(proj_stock_inds, "_stocks_summary")
 
 
-standardize_columns <- function(df) {
-  df %>%
-    mutate(
-      indicator = as.character(indicator),
-      mean = as.numeric(mean),
-      se = as.numeric(se),
-      plot = as.character(plot)
-    )
-}
+#standardize_columns <- function(df) {
+#  df %>%
+#    mutate(
+#      indicator = as.character(indicator),
+#      mean = as.numeric(mean),
+#      se = as.numeric(se),
+#      plot = as.character(plot)
+#    )
+#}
 
-tables_list<-mget(stocks_summaries)
+#tables_list<-mget(stocks_summaries)
 
-for (i in seq_along(tables_list)) {
-  tables_list[[i]] <- standardize_columns(tables_list[[i]])
-}
+#for (i in seq_along(tables_list)) {
+#  tables_list[[i]] <- standardize_columns(tables_list[[i]])
+#}
 
-# Retrieve the actual objects using mget and pass them to rbind
-stocks_summary <- do.call(rbind, tables_list)
+## Retrieve the actual objects using mget and pass them to rbind
+#stocks_summary <- do.call(rbind, tables_list)
 
-#add rows for all pools combined
-summed_means <- stocks_summary %>% filter(indicator != "MAOC")%>%filter(indicator != "POC")%>%
-  group_by(plot) %>%
-  dplyr::summarize(mean = sum(mean, na.rm=TRUE), .groups = 'drop')
+##add rows for all pools combined
+#summed_means <- stocks_summary %>% filter(indicator != "MAOC")%>%filter(indicator != "POC")%>%
+#  group_by(plot) %>%
+#  dplyr::summarize(mean = sum(mean, na.rm=TRUE), .groups = 'drop')
 
-stocks_summary <- bind_rows(
-  stocks_summary,
-  summed_means %>%
-    mutate(indicator = "All", se = NA, depth = NA)  # Assign placeholder values for other columns
+#stocks_summary <- bind_rows(
+#  stocks_summary,
+#  summed_means %>%
+#    mutate(indicator = "All", se = NA, depth = NA)  # Assign placeholder values for other columns
 )
 
 #change stocks_summary format to match Soil.Means to bind and combine into one summary table
-stocks_summary_fortable<-stocks_summary%>%
-  rename(Indicator = indicator) %>%
-  mutate(Units = "metric tons of carbon/acre")%>%
-  select(-c(se, depth)) %>%
-  pivot_wider(names_from = plot, values_from = mean) %>%
-  filter(Indicator != "All")
+#stocks_summary_fortable<-stocks_summary%>%
+#  rename(Indicator = indicator) %>%
+#  mutate(Units = "metric tons of carbon/acre")%>%
+#  select(-c(se, depth)) %>%
+#  pivot_wider(names_from = plot, values_from = mean) %>%
+#  filter(Indicator != "All")
 
-Soil.Means<-rbind(Soil.Means, stocks_summary_fortable)
+#Soil.Means<-rbind(Soil.Means, stocks_summary_fortable)
 }
 
 ```
@@ -569,16 +544,15 @@ if ("Tx" %in% proj.indicators){ #only do any of this if texture was included as 
 
   if (length(unique(border$plot_type))==1){ #make one triangle for plots with only T site
     
-  texture <- PointData.proj %>% 
-    rename(SAND=Sand, SILT=Silt, CLAY=Clay) %>%
+  texture <- PointLevel %>% 
+    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
     filter(!is.na(CLAY)) %>%
     filter(!is.na(SAND)) %>%
     filter(!is.na(SILT))
-library(soiltexture)
 TT.plot(
   class.sys = "USDA.TT",
   tri.data = texture,
-  z.name = "SOC",
+  z.name = "org_c",
   main = NA,
   grid.show = FALSE,
  class.lab.show="full",
@@ -596,21 +570,20 @@ TT.plot(
   
   if (length(unique(border$plot_type))==2){ #make 2 triangles for plots with a T and a C site
   
-    library(gridExtra)
+
+    texture_T <- PointLevel %>% 
+    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
+    filter(!is.na(CLAY)) %>%
+    filter(!is.na(SAND)) %>%
+    filter(!is.na(SILT)) %>%
+    filter(plot_type == "T") #CHECK! This won't work right now until lisa adds this column to PointLevel
     
-    texture_T <- PointData.proj %>% 
+    texture_C <- PointLevel %>% 
     rename(SAND=Sand, SILT=Silt, CLAY=Clay) %>%
     filter(!is.na(CLAY)) %>%
     filter(!is.na(SAND)) %>%
     filter(!is.na(SILT)) %>%
-    filter(plot_typee == "T")
-    
-    texture_C <- PointData.proj %>% 
-    rename(SAND=Sand, SILT=Silt, CLAY=Clay) %>%
-    filter(!is.na(CLAY)) %>%
-    filter(!is.na(SAND)) %>%
-    filter(!is.na(SILT)) %>%
-    filter(plot_typee == "C")
+    filter(plot_type == "C") #CHECK! This won't work right now until lisa adds this column to PointLevel
 
 #this parts funny; in order to get the two plots to show side by side, i have to save them as PNGs first; using a temp directory to keep the working directory clean
     
@@ -622,7 +595,7 @@ png(TextureT_path)
 TT.plot(
   class.sys = "USDA.TT",
   tri.data = texture_T,
-  z.name = "SOC",
+  z.name = "org_c",
   main = "Treated Site",
   grid.show = FALSE,
  class.lab.show="full",
@@ -642,7 +615,7 @@ png(TextureC_path)
 TT.plot(
   class.sys = "USDA.TT",
   tri.data = texture_C,
-  z.name = "SOC",
+  z.name = "org_c",
   main = "Control Site",
   grid.show = FALSE,
  class.lab.show="full",
@@ -658,7 +631,6 @@ TT.plot(
 ) 
 dev.off()
 
-library(grid)
 imgT <- rasterGrob(png::readPNG(TextureT_path), interpolate = TRUE)
 imgC <- rasterGrob(png::readPNG(TextureC_path), interpolate = TRUE)
 
@@ -669,94 +641,74 @@ grid.arrange(imgT, imgC, ncol = 2)
 
 
 ```
-```{r results='asis', eval = "Tx" %in% proj.indicators}
+```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
 asis_output("### Soil carbon stocks\\n") #CONDITIONAL HEADER
-```
-
-```{r Dynamic text carbon stocks, results='asis'}
-
-if (ProjectTracker$Roadmap!="low"){cat("The following graph shows calculated carbon stocks values for the study area. Carbon stocks represent the amount of carbon stored in the study area to the specified sampling depth. These 'violin plots' also show the variability of carbon stocks across the site. The widest part of the plot represents the most common carbon level in the study area. The white dot represents the average value, and white lines show one standard deviation above and below the average.")}
 
 ```
-```{r Rapid Carbon Asessment regional baselines}
-#NOT USING IN BASIC VERSION
-##Here, I will pull in data from USDAs rapid carbon assessment for the county the project is location in for comparison to our measured values
-#library(soilDB)
-#library(aqp)
-#library(tigris)
-
-#proj.county<-counties(cb = TRUE, filter_by=border)%>%st_transform(4326) #pull in the county that the proj border falls within
-#county.bbox<- st_bbox(proj.county) #make a bbox for the county (RaCA fetch only wants a bbox)
-#countybbox.RaCA<-fetchRaCA(bbox=county.bbox) #run the county bbox through raCA fetch to get carbon data
-#countybbox.RaCA.sf<-st_as_sf(site(countybbox.RaCA$pedons), coords = c("x", "y"), crs = 4326) #turn RaCA spatial data into an SF object
-#county.RaCA <- st_intersection(proj.county, countybbox.RaCA.sf) #trim RaCA points to the actual county boundary
-
-###Visual Check Steps###
-#plot(proj.county$geometry)
-#plot.new()
-#plot(countybbox.RaCA.sf$geometry)#, add=TRUE)
-#plot(proj.county$geometry, add=TRUE)
-#plot(county.RaCA, add=TRUE)
-#mapview(countybbox.RaCA.sf)+mapview(proj.county)
-
-#add carbon stocks data to the sf object based on the rcapid column
-#county.RaCA<- county.RaCA%>%
-#  select(rcapid, geometry) %>%
-#  left_join(countybbox.RaCA$stock, by="rcapid")%>%
-#  select(rcapid, geometry, value_30cm)
-
-#some filtering and calculations are needed to wrangle the SOC data; this is only needed for low inference projects
-#county.soc_perc_0.30<-countybbox.RaCA$sample%>% #get the sample dataframe
-#  filter(sample_top<30&sample_bottom<30)%>% #filter so that only samples between 0 and 30 remain
-#  group_by(rcapid)%>% #group by rcapid
-#  dplyr::summarize(SOC_perc_0.30 = mean(soc, na.rm = TRUE)) #get an average soc concentration across all depths measured for that rcapid
-
-#Put it all together
-#county.RaCA<- county.RaCA %>%
-#  left_join(county.soc_perc_0.30, by="rcapid") %>%
-#  select(rcapid, geometry, value_30cm, SOC_perc_0.30)%>%
-#  mutate(group=1)
-
-#county.RaCA.stocks.mean<-mean(county.RaCA$value_30cm)
-#county.RaCA.concentrations.mean<-mean(county.RaCA$SOC_perc_0.30)
-
-
+```{r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
+asis_output("The following graph shows calculated carbon stocks values for the study area. Carbon stocks represent the amount of carbon stored in the study area to the specified sampling depth. These 'violin plots' also show the variability of carbon stocks across the site. The widest part of the plot represents the most common carbon level in the study area. The white dot represents the average value, and white lines show one standard deviation above and below the average.")
 ```
 
-```{r fig.cap="Carbon stocks comparing treated and control sites for each relevant indicator"}
-if (ProjectTracker$Roadmap != "low"){
+
+```{r, Calculating stocks}
+#Calculating stocks on qualifying soil metrics
+if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be different when we get plant projects cause someone could have SOC% only but also have measured plants
+stocks.inds <- c("total_c", "total_n", "org_c", "inorg_c", "maoc", "poc", "pon") #these are the columns that can be turned into stocks (CHECK hard coding these in for now. Not sure if there's a better solution)
+for(col in intersect(proj.indicators.SSC, stocks.inds)) {
+  new_col <- paste0(col, "_stocks")  # new column name
+  PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4461 #calculating stocks in US tons / acre (percent to decimal cancels out) 
+}
+proj.indicators.SSC.stocks<- c(proj.indicators.SSC, paste0(intersect(proj.indicators.SSC, stocks.inds), "_stocks")) #add those new column names to my list of indicator columns
+
+if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 'maoc_stocks')))>1){ #if the number of stocks indicators (minus poc and maoc) are greater than one, create a summed all stocks column
+  
+  PointLevel <- PointLevel %>%
+  mutate(
+    all_stocks = rowSums(
+      select(., ends_with("_stocks"), -maoc_stocks, -poc_stocks), #create a column for all pools combined, but make sure you're not double-counting poc and maoc, since org_c should cover that
+      na.rm = TRUE
+    )
+  )
+  proj.indicators.SSC<-c(proj.indicators.SSC, "all_stocks")
+}
+
+}
+```
+
+
+
+```{r fig.cap="Carbon stocks variability and average"}
+if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
 ###Preparing variables and aesthetics###
-if (all(c("POC", "MAOC") %in% stocks_summary$indicator)) {
-  stocks_summary_facet<-stocks_summary%>%filter(indicator != c("POC", "MAOC"))
-} else { stocks_summary_facet<-stocks_summary}
+#if (all(c("poc", "maoc") %in% proj.indicators.SSC.stocks)) {
+#  stocks_summary_facet<-stocks_summary%>%filter(indicator != c("poc", "maoc"))
+#} else { stocks_summary_facet<-stocks_summary}
 
 Var.Labels <- c('All pools combined', 'Soil Organic Carbon', 'Soil Inorganic Carbon')
-names(Var.Labels) <- c('All', 'SOC_stocks_tons.acre', 'SIC_stocks_tons.acre')
+names(Var.Labels) <- c('All', 'org_c_stocks', 'inorg_c_stocks')
 cbbPalette <- c("#384F8D80","#384F8Dff") 
-
+length(grep("_stocks$", proj.indicators.SSC, value = TRUE))
 #define layout for facets depending on the number of indicators included
-if(length(unique(stocks_summary_facet$indicator))==4){design <- matrix(c(1, 1, 2, 3, 4, 4), 2, 3)}
-if(length(unique(stocks_summary_facet$indicator))==6){design <- matrix(c(1,1,2,3,4,5,6,6), 2, 4)}
-if(length(unique(stocks_summary_facet$indicator))==3){
-  design <- matrix(c(1, 2, 3), 1, 3)}
+if(length(grep("_stocks$", proj.indicators.SSC, value = TRUE))==4){design <- matrix(c(1, 1, 2, 3, 4, 4), 2, 3)}
+if(length(grep("_stocks$", proj.indicators.SSC, value = TRUE))==6){design <- matrix(c(1,1,2,3,4,5,6,6), 2, 4)}
+if(length(grep("_stocks$", proj.indicators.SSC, value = TRUE))==3){design <- matrix(c(1, 2, 3), 1, 3)}
+else{design <- matrix(c(1, 2, 3), 1, 3)} #CHECK
 
-if (ProjectTracker$Roadmap != "low"){ #this will throw an error if you try to run a project with no stocks through it
-df_long <- PointData.proj %>%
+df_long <- PointLevel %>%
   pivot_longer(
-    cols = contains("stocks_tons"), # Select columns to pivot
+    cols = contains("_stocks"), # Select columns to pivot
     names_to = "Stocks_Indicator",          # Name for the new column with column names
     values_to = "Tons.Acre"              # Name for the new column with values
   )
-}
 
-facet_order <- c("SOC_stocks_tons.acre", "SIC_stocks_tons.acre", "POC_stocks_tons.acre", "MAOC_stocks_tons.acre")
+facet_order <- c("org_c_stocks", "inorg_c_stocks", "poc_stocks", "maoc_stocks")
 
 df_long$Stocks_Indicator <- factor(df_long$Stocks_Indicator, levels = facet_order)
 
-ggplot(df_long, aes(x = plot_typee, y = Tons.Acre, fill=plot_typee)) +
+ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
 #geom_hline(yintercept = county.RaCA.stocks.mean, linetype = "dashed", color = "red") +  # Horizontal line #NOT USING IN BASIC VERSION
-  geom_violin(trim=TRUE,  color = "black") + #, show.legend=ifelse(length(unique(df_long$plot_typee))>1, TRUE, FALSE))
+  geom_violin(trim=TRUE,  color = "black") + #, show.legend=ifelse(length(unique(df_long$plot_type))>1, TRUE, FALSE))
   facet_wrap(~ Stocks_Indicator) +  # Facet by Indicator column
   theme_minimal() +
   geom_point(aes(color = "Sampling point values"), alpha = .5, size = 3, position = position_jitterdodge(jitter.width = 0.1, jitter.height = 0.1))+
@@ -808,67 +760,68 @@ Use the map below to explore all measured values for each sampling location. Sel
 
 ```{r Dynamic map}
 
-if (ProjectTracker$Roadmap != "low"){
-stockscolumns<-paste0(proj_stock_inds, "_stocks_tons.acre") #use the project stock indicators previously created to replicate the names of the stocks columns
+if ("bulk_density" %in% proj.indicators.SSC.stocks){
+stockscolumns<-grep("_stocks$", proj.indicators.SSC, value = TRUE) #gather the names of the stocks columns
 }
 
-proj.indicators.nonbiomass<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB")] #get the rest of the project indicators that can be reported not as stocks...this is irrelevant for ACTION but will leave anyways
+proj.indicators.nonbiomass<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...
 
-if (ProjectTracker$Roadmap != "low") { #combine into one vector 
+if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector 
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
 } else {
   dynamicmap.inds <- proj.indicators.nonbiomass
 }
 
-dynamicmap.inds <- c("SOC", dynamicmap.inds[dynamicmap.inds != "SOC"]) #ensure SOC% always comes first; important for map rendering
+dynamicmap.inds <- c("org_c", dynamicmap.inds[dynamicmap.inds != "org_c"]) #ensure SOC% always comes first; important for map rendering
 
-PointData.projDYNAMIC<-PointData.proj%>%
-  select(Sample.ID, plot_typee, all_of(dynamicmap.inds))
+PointData.projDYNAMIC<-PointLevel%>%
+  select(sample_id, plot_type, all_of(dynamicmap.inds))
 
 
 points<-points%>%
-  rename(Sample.ID=name)%>%
-  select(Sample.ID, geometry)
-DataMap.proj<-left_join(points, PointData.projDYNAMIC, by="Sample.ID")
+  rename(sample_id=name)%>%
+  select(sample_id, geometry)
+DataMap.proj<-left_join(points, PointData.projDYNAMIC, by="sample_id")
 
 base_colors <- rainbow(length(dynamicmap.inds)) #create a rainbow palette from which to create color ramps
 
+#CHECK -- we need to do this differentyl
 legends_names <- c(
-  "SOC_stocks_tons.acre" = "SOC stocks (tons/acre)",
-  "SIC_stocks_tons.acre" = "SIC stocks (tons/acre)",
-  "MAOC_stocks_tons.acre" = "MAOC stocks (tons/acre)",
-  "POC_stocks_tons.acre" = "POC stocks (tons/acre)",
-  "SOC" = "SOC %",
-  "SIC" = "SIC %",
-  "MAOC" = "MAOC %",
-  "POC" = "POC %",
-  "BD" = "BD (g/cm3)",
-  "Sand" = "Sand %",
-  "Silt" = "Silt %",
-  "Clay" = "Clay %",
-  "pH" = "pH"
+  "org_c_stocks" = "SOC stocks (tons/acre)",
+  "inorg_c_stoks" = "SIC stocks (tons/acre)",
+  "maoc_stocks" = "MAOC stocks (tons/acre)",
+  "poc_stocks" = "POC stocks (tons/acre)",
+  "org_c" = "SOC %",
+  "inorg_c" = "SIC %",
+  "maoc" = "MAOC %",
+  "poc" = "POC %",
+  "bulk_density" = "BD (g/cm3)",
+  "sand" = "Sand %",
+  "silt" = "Silt %",
+  "clay" = "Clay %",
+  "ph" = "pH"
 )
 
 #these bits are needed so that the popup table comes in correctly 
 rename_map <- c(
-  SOC_stocks_tons.acre = "SOC stocks (tons/acre)",
-  SIC_stocks_tons.acre = "SIC stocks (tons/acre)",
-  MAOC_stocks_tons.acre = "MAOC stocks (tons/acre)",
-  POC_stocks_tons.acre = "POC stocks (tons/acre)",
-  SOC = "SOC %",
-  SIC = "SIC %",
-  MAOC = "MAOC %",
-  POC = "POC %",
-  BD = "BD (g/cm3)",
-  Sand = "Sand %",
-  Silt = "Silt %",
-  Clay = "Clay %",
-  pH = "pH"
+  org_c_stocks = "SOC stocks (tons/acre)",
+  inorg_c_stoks = "SIC stocks (tons/acre)",
+  maoc_stocks = "MAOC stocks (tons/acre)",
+  poc_stocks = "POC stocks (tons/acre)",
+  org_c = "SOC %",
+  inorg_c = "SIC %",
+  maoc = "MAOC %",
+  poc = "POC %",
+  bulk_density = "BD (g/cm3)",
+  sand = "Sand %",
+  silt = "Silt %",
+  clay = "Clay %",
+  ph = "pH"
 )
 df_forpopup <- DataMap.proj %>%
     mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
   rename_with(~ rename_map[.x], .cols = any_of(names(rename_map)))
-popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_typee", "plot_type"))
+popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_type", "plot_type"))
 
 
     pal <- colorFactor(c("white","black"), c("T", "C"))
@@ -910,7 +863,7 @@ popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_typee", "plot_type"))
             opacity = 1,
             radius = 3,
             group = legend_name,
-            label = DataMap.proj$Sample.ID,
+            label = DataMap.proj$sample_id,
             popup=popupTable(df_forpopup, zcol=popupcols, row.numbers = FALSE, feature.id = FALSE)
               )%>%
        addLegend(
