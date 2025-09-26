@@ -14,7 +14,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: JPBO
+  project_name: JPNV
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -341,7 +341,7 @@ Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type) %>%
                     dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
 
-Means.Pivot<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>%
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>%
           pivot_wider(names_from = c("plot_type"), values_from = value)%>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
            left_join( #add the units column (CHECK,)
     proj.indicator.table %>% select(CheckCol, UnitsTable),
@@ -370,7 +370,9 @@ Means.Pivot<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), n
       Indicator_base == "clay" ~ "Clay",
       TRUE ~ Acronym                                # default mapping
     )
-  ) %>%
+  ) 
+
+Means.Pivot<-Means.Pivot1%>%
   select(-Indicator_base, -Indicator)
           
 my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
@@ -522,7 +524,8 @@ Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder c
 
 
 SummaryTable %>%
-  kable_styling(position='center', full_width = F)
+  kable_styling(position='center', full_width = F)%>%
+  collapse_rows(columns = 2, valign = "middle") #merges adjacent cells with identical values
 
 #Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
 ```
@@ -706,8 +709,8 @@ facet_order <- c("org_c_stocks", "inorg_c_stocks", "poc_stocks", "maoc_stocks")
 
 df_long$Stocks_Indicator <- factor(df_long$Stocks_Indicator, levels = facet_order)
 
+library(shadowtext)
 ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
-#geom_hline(yintercept = county.RaCA.stocks.mean, linetype = "dashed", color = "red") +  # Horizontal line #NOT USING IN BASIC VERSION
   geom_violin(trim=TRUE,  color = "black") + #, show.legend=ifelse(length(unique(df_long$plot_type))>1, TRUE, FALSE))
   facet_wrap(~ Stocks_Indicator) +  # Facet by Indicator column
   theme_minimal() +
@@ -726,11 +729,22 @@ ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
     geom = "pointrange",
     color = "white"
   ) +
+  stat_summary(
+    fun = mean,
+    geom = "shadowtext", #requires package shadowtext
+    bg.color = "black", #text outline color
+    bg.r = 0.15,  #thickness of outline
+    aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
+    color = "#FFD700", #text color
+    hjust = -0.5,
+    vjust = 0.2,
+    fontface = "bold",
+    size = 4
+  )+
   theme(axis.title.x=element_blank(),
         plot.caption = element_text(hjust = 0),
         plot.title = element_text(hjust = 0.5), 
         axis.text.x=element_blank(), 
-        #legend.position='bottom',
         axis.ticks.x=element_blank()) +
   scale_fill_manual(values=cbbPalette,
                     name = str_wrap('Plot average +/- 1 standard deviation', width = 15),
@@ -743,8 +757,8 @@ ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
                labeller = as_labeller(Var.Labels, 
                                       default=label_wrap_gen(20)))+
   expand_limits(y=0.1)#+ #limits the lowest value for the y axis so graphs with 0 values dont show 
-}
 
+}
 ```
 
 ```{r fig.cap=""}
@@ -772,7 +786,11 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector
   dynamicmap.inds <- proj.indicators.nonbiomass
 }
 
-dynamicmap.inds <- c("org_c", dynamicmap.inds[dynamicmap.inds != "org_c"]) #ensure SOC% always comes first; important for map rendering
+fixed_order <- c("org_c", "maoc", "poc", "bulk_density", "ph", "sand", "silt", "clay")
+dynamicmap.inds <- c(
+  intersect(fixed_order, dynamicmap.inds),           # fixed values in order
+  setdiff(dynamicmap.inds, fixed_order)             # remaining values
+) #getting values in the desired display order
 
 PointData.projDYNAMIC<-PointLevel%>%
   select(sample_id, plot_type, all_of(dynamicmap.inds))
@@ -785,47 +803,22 @@ DataMap.proj<-left_join(points, PointData.projDYNAMIC, by="sample_id")
 
 base_colors <- rainbow(length(dynamicmap.inds)) #create a rainbow palette from which to create color ramps
 
-#CHECK -- we need to do this differentyl
-legends_names <- c(
-  "org_c_stocks" = "SOC stocks (tons/acre)",
-  "inorg_c_stoks" = "SIC stocks (tons/acre)",
-  "maoc_stocks" = "MAOC stocks (tons/acre)",
-  "poc_stocks" = "POC stocks (tons/acre)",
-  "org_c" = "SOC %",
-  "inorg_c" = "SIC %",
-  "maoc" = "MAOC %",
-  "poc" = "POC %",
-  "bulk_density" = "BD (g/cm3)",
-  "sand" = "Sand %",
-  "silt" = "Silt %",
-  "clay" = "Clay %",
-  "ph" = "pH"
-)
+#define labels for legend and popups
+Means.Pivot1<-Means.Pivot1%>%
+  mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
+legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator) 
 
-#these bits are needed so that the popup table comes in correctly 
-rename_map <- c(
-  org_c_stocks = "SOC stocks (tons/acre)",
-  inorg_c_stoks = "SIC stocks (tons/acre)",
-  maoc_stocks = "MAOC stocks (tons/acre)",
-  poc_stocks = "POC stocks (tons/acre)",
-  org_c = "SOC %",
-  inorg_c = "SIC %",
-  maoc = "MAOC %",
-  poc = "POC %",
-  bulk_density = "BD (g/cm3)",
-  sand = "Sand %",
-  silt = "Silt %",
-  clay = "Clay %",
-  ph = "pH"
-)
+#create dataframe for point popups
 df_forpopup <- DataMap.proj %>%
     mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
-  rename_with(~ rename_map[.x], .cols = any_of(names(rename_map)))
+  rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))
 popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_type", "plot_type"))
 
 
-    pal <- colorFactor(c("white","black"), c("T", "C"))
+#color palette for plot borders
+pal <- colorFactor(c("white","black"), c("T", "C"))
   
+#create the leaflet map for plot borders
     DynamicMap<-leaflet()%>% #establishing the basemap first
       addProviderTiles(providers$Esri.WorldImagery) %>%
       addPolygons(data = st_zm(border),
@@ -843,7 +836,7 @@ popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_type", "plot_type"))
   
     overlay_groups <- c()
 
-  
+  #start formatting legend values for the points
   for (i in seq_along(dynamicmap.inds)) {
     legend_name <- ifelse(dynamicmap.inds[i] %in% names(legends_names), 
                           legends_names[dynamicmap.inds[i]], 
@@ -852,9 +845,11 @@ popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_type", "plot_type"))
     #this prevents errors from being thrown when there are NAs 
     if (all(is.na(DataMap.proj[[dynamicmap.inds[i]]]))){domainz=c(0,1)
     }else{domainz=DataMap.proj[[dynamicmap.inds[i]]]}
-
+    
+    #establish color palette for points for different indicators -- a different raindbow color will be selected for each indicator
     pal<- colorNumeric(palette = colorRampPalette(c("white", base_colors[i]))(100), domain =domainz)
 
+  #pipe the points into the map created for the plot borders
    DynamicMap<-  DynamicMap %>%
           addProviderTiles(providers$Esri.WorldImagery) %>%  # Add satellite imagery as the basemap
           addCircleMarkers(
@@ -864,7 +859,7 @@ popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_type", "plot_type"))
             radius = 3,
             group = legend_name,
             label = DataMap.proj$sample_id,
-            popup=popupTable(df_forpopup, zcol=popupcols, row.numbers = FALSE, feature.id = FALSE)
+            popup=popupTable(df_forpopup, zcol=popupcols,row.numbers = FALSE, feature.id = FALSE)
               )%>%
        addLegend(
             pal = pal, 
