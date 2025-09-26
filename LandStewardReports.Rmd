@@ -157,9 +157,9 @@ The monitoring plan developed for the `r paste0(proj.implementationyear, " ", pr
 ### Carbon indicators
 The following table includes carbon indicators that were included in this monitoring project and their corresponding acronyms that will be used in the following tables, graphs, and maps. A description of each indicator and reported units are provided. 
 
-```{r}
+```{r, , results='asis'}
 if ("Extra" %in% proj.indicator.table$Status){
-cat("Note that your project included indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the `r proj.protocol` handbook.  ")}
+cat(paste0("Note that your project included indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the ", proj.protocol,  " handbook."))}
 ```
 
 ```{r, updated}
