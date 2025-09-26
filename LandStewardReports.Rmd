@@ -127,14 +127,14 @@ pract_codes<-read.csv('practice_abbreviations.csv')
 practs_vec<-strsplit(ProjectDesign$conservation_practice[1], ",\\s*")[[1]]
 practs_full<-pract_codes$Practice[match(practs_vec, pract_codes$Abbreviation)]
 proj.practicetype <- format_list(practs_full)
-proj.title <- paste(proj.propertyname, proj.implementationyear, proj.practicetype, sep=" ")
+proj.title <- paste0(proj.propertyname, ": ", proj.implementationyear, proj.practicetype)
 ############################################################################
 
 ```
 
 # `r proj.title` {.unlisted .unnumbered}
 
-## Background: ACTION for CSA and Ag-C
+## Background
 Thank you for participating in the Agricultural Carbon Monitoring Program. Ag-C was developed to help practitioners conduct transparent, fit-for-purpose monitoring of aboveground and belowground carbon in response to common conservation practices. At the same time that it supports management efforts at the farm scale, Ag-C is designed to evaluate management effects on carbon at regional scales when data is aggregated network-wide in the secure Point Blue Science Cloud. The collected information, from management history to field measurements, will support greater understanding of commonly incentivized practice impact on ecosystem carbon. 
 
 The Agricultural Carbon ("Ag-C") Monitoring Program was developed by the Soils Team at Point Blue Conservation Science to help practitioners conduct transparent, fit-for-purpose monitoring of carbon dynamics in response to rangeland and cropland management. This report reviews the initial measurement for the baseline carbon indicators measured at your agricultural site. Continued use of the Ag-C protocols over time can assess the impact of your conservation effort. 
@@ -156,6 +156,12 @@ The monitoring plan developed for the `r paste0(proj.implementationyear, " ", pr
 
 ### Carbon indicators
 The following table includes carbon indicators that were included in this monitoring project and their corresponding acronyms that will be used in the following tables, graphs, and maps. A description of each indicator and reported units are provided. 
+
+```{r}
+if ("Extra" %in% proj.indicator.table$Status){
+cat("Note that your project included indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the `r proj.protocol` handbook.  ")}
+```
+
 ```{r, updated}
 proj.indicator.db<-read.csv("ReportRef/indicator_descriptions.csv", check.names=FALSE)#read in the indicator descriptions reference sheet
 
@@ -894,8 +900,8 @@ One ton of carbon per acre is equal to 3.67 metric tons of CO2 removed from the 
 The information in this report provides a baseline to measure the impact of future management changes. As time series data is not currently available, comparing across different areas of your own farm or ranch is most informative. Explore the dynamic map to gauge how different sites across the study area differ in key metrics. Additionally, our team is working towards a reporting structure that will allow landowners to compare their Ag-C data to other sites within the network, especially to other enrolled farms and ranches in their region. As our database grows, network-wide and regional comparisons will provide an increasingly detailed understanding of differing practice impacts across spatial scales. An online user dashboard allowing Ag-C land stewards to view and compare their results is planned for launch in Fall of 2025.
 
 #### To measure the impact of conservation practices, I need to monitor change over time. How do I sample a second time?
-The ACTION project is designed to set land stewards up with quality baseline data before a new conservation practice is implemented. Under the Ag-C framework, each conservation practice has its own recommended resampling interval that ranges from 1 year to 10 years, based on the expected impact of the practice over time^[Consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`) for more information about resampling intervals by conservation practice.]. Our team is working to identify opportunities for continued monitoring at sites baselined through the ACTION project. Contact our team if you're interested in pursuing support for future resampling events or if you have existing support for future monitoring and would like to continue participating in the Ag-C Monitoring Program.
+Under the Ag-C framework, each conservation practice has its own recommended resampling interval that ranges from 1 year to 10 years, based on the expected impact of the practice over time^[Consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`) for more information about resampling intervals by conservation practice.]. Our team is always working to identify opportunities for continued monitoring for Ag-C participants. Contact our team if you're interested in pursuing support for future resampling events or if you have existing support for future monitoring and would like to continue participating in the Ag-C Monitoring Program.
 
 
 ## Conclusion
-Thank you again for your participation in the Ag-C Monitoring Program funded by the USDA ACTION for Climate-Smart Agriculture project. For more information about project design, further interpretation of results, or to access the raw data from your study site, please reach out to [RangeC\@pointblue.org](mailto:RangeC@pointblue.org) or [CropC\@pointblue.org](mailto:CropC@pointblue.org). Our team is happy to engage with additional questions or feedback. Your participation with the Ag-C Monitoring Program and sharing data will launch new scientific understanding of conservation management and support improved incentive structures across the nation.
+Thank you again for your participation in the Ag-C Monitoring Program. For more information about project design, further interpretation of results, or to access the raw data from your study site, please reach out to [RangeC\@pointblue.org](mailto:RangeC@pointblue.org) or [CropC\@pointblue.org](mailto:CropC@pointblue.org). Our team is happy to engage with additional questions or feedback. Your participation sharing data will launch new scientific understanding of conservation management and support improved incentive structures across the nation.
