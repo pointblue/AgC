@@ -14,37 +14,24 @@
 rm(list = ls())
 #renv::restore() #not using renv?
 
-#establish the path where ACTION data is stored
-data_path<-("G:/Shared drives/Ag-C (ACTION)/MonitoringSupport/ACTION_MonitoringData") 
-
-#write a function to render a report with markdown; it will save to LandStewardReports and to the TAP's project folder
+#write a function to render one report with markdown
 render_one_html <- function(project) {
   rmarkdown::render(
-    input = 'LandStewardReports.Rmd', #identify the markdown file that will be used to render the report; update this as we develop ACTION reports V2
+    input = 'LandStewardReports.Rmd', #identify the markdown file that will be used to render the report
     output_file = paste0(project, '_Report_', Sys.Date(), '.html'), #ID the file path and naming pattern
     output_dir = "Z:/Soils Team/AgC Data/RenderedReports",
-    params = list(project_name = project), #"project" references the name of the parameter in the YAML header; "project" represents the current throughput of the loop
+    params = list(project_name = project), #"project_name" references the name of the parameter in the YAML header; "project" represents the current throughput of the loop
     envir = parent.frame()
   )
 }
 
-
-## ---- 2. Render One Report ----
-
-#If you'd just like to render one report, change the function input to the project code, and run
-
-render_one_html("JPNC") #for an HTML report with interactive maps
-
-
-## ---- 4. Loop Render Reports ----
-
-#establish a vector called new_projects, then run the following loop:
-new_projects <- c()
-
-#For HTML reports with dynamic maps
-for (project in new_projects){
-  render_one_html(project)
+#layering that so you can pass a vector of project names to render many reports at once
+render_html_report <- function(projects){ #when projects is a project name or a vector of project names
+  for(project in projects){
+    render_one_html(project)
+  }
 }
 
-###Reports will write to
+
+#Reports will write to
     #Z:\Soils Team\AgC Data\RenderedReports
