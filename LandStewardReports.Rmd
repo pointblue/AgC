@@ -22,55 +22,22 @@ params:
 #Created: 20231214
 #Updated: 20241126 (by AC)
 
+source('packages.R')
+source('functions.R')
+
+#renv::restore() #CHECK add renv to this rproj?
+setwd("Z:/Soils Team/AgC")
+data_path<-("Z:/Soils Team/AgC Data/Master Datasheets")
+
 knitr::opts_chunk$set(
 	echo = FALSE,
 	message = FALSE,
 	warning = FALSE, 
 	error=FALSE)
 
-setwd("Z:/Soils Team/AgC")
-data_path<-("Z:/Soils Team/AgC Data/Master Datasheets")
-
-#renv::restore() #CHECK add renv to this rproj?
-
-library(knitr)
-library(sf)
-library(leaflet)
-library(googlesheets4)
-library(dplyr)
-library(kableExtra)
-library(tidyr)
-library(ggplot2)
-library(ggh4x)
-library(stringr)
-library(soiltexture)
-library(leafpop)
-library(gridExtra)
-library(grid)
-
-gs4_auth_configure(api_key = 'AIzaSyBEULjhG3_r_ZX6F7ZKDEUQ5yOgUbKVh6o') #this auth key is linked to Avalon's account and should prevent from the user needing to manually authorize each time, like in the line below
-
-format_list <- function(x) { #oxford comma text list formatter (GPT)
-  n <- length(x)
-  if (n == 0) {
-    ""
-  } else if (n == 1) {
-    x
-  } else if (n == 2) {
-    paste(x, collapse = " and ")
-  } else {
-    paste0(
-      paste(x[-n], collapse = ", "),
-      ", and ",
-      x[n]
-    )
-  }
-}
-
-#gs4_auth() #this line will initiate a prompt in your console and take you to your browser to approve access to your Google Drive
+#gs4_auth_configure(api_key = 'AIzaSyBEULjhG3_r_ZX6F7ZKDEUQ5yOgUbKVh6o') #this auth key is linked to Avalon's account and should prevent from the user needing to manually authorize each time, like in the line below
 ```
 ```{r, project.summary}
-######################NEW#######################
 #pulling in spatial data
 spatial_path <- "Z:/Soils Team/AgC Data/Raw Data/Spatial Data/ZippedShapefiles" #define the location of ACTION GIS data
 
@@ -96,10 +63,7 @@ temp_folder2 <- tempfile()
 unzip(pointszip_file, exdir = temp_folder2)
 points_file<-list.files(temp_folder2, pattern = "\\_pointsfinal.shp$", full.names = TRUE)
 points<- read_sf(points_file) 
-######################NEW#######################
 
-
-###################NEW reading in master datasheets###################
 #Reading in master datasheets and filtering by project of interest
 list_dfs_field<-list.files(file.path(data_path, "FieldLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 FieldLevel<-list_dfs_field[which.max(as.Date(gsub("\\D","", list_dfs_field), format = "%Y%m%d"))]%>%
@@ -128,11 +92,10 @@ practs_vec<-strsplit(ProjectDesign$conservation_practice[1], ",\\s*")[[1]]
 practs_full<-pract_codes$Practice[match(practs_vec, pract_codes$Abbreviation)]
 proj.practicetype <- format_list(practs_full)
 proj.title <- paste0(proj.propertyname, ": ", proj.implementationyear, proj.practicetype)
-############################################################################
-
 ```
 
-# `r proj.title` {.unlisted .unnumbered}
+# `r proj.propertyname` {.unlisted .unnumbered}
+#### Conservation practice(s): `r proj.practicetype` {.unlisted .unnumbered}
 
 ## Background
 Thank you for participating in the Agricultural Carbon Monitoring Program. Ag-C was developed to help practitioners conduct transparent, fit-for-purpose monitoring of aboveground and belowground carbon in response to common conservation practices. At the same time that it supports management efforts at the farm scale, Ag-C is designed to evaluate management effects on carbon at regional scales when data is aggregated network-wide in the secure Point Blue Science Cloud. The collected information, from management history to field measurements, will support greater understanding of commonly incentivized practice impact on ecosystem carbon. 
@@ -147,20 +110,10 @@ The Ag-C program offers a flexible approach to designing a monitoring program. T
 To support interpretability and comparability, `r proj.protocol` assigns each monitoring project an “inference score” which reflects how decisions made in the project design process impact the overall rigor and reliability of the resulting data. Inference scores range from 40 to 100, where a higher score generally reflects greater confidence in the project's findings or a more holistic characterization of carbon dynamics in the study site. Nonetheless, all `r proj.protocol` projects represent a minimum standard of rigor and reliability. 
 
 The monitoring plan developed for the `r paste0(proj.implementationyear, " ", proj.practicetype)` practice at `r proj.propertyname ` results in a `r proj.protocol` inference score of `r proj.inscore`.
-```{r, echo=FALSE, fig.height=3, fig.align='center', fig.cap="A visual representation of how different project design decisions impact the final inference score"}
-#CHECK new graphic necessary?
-#not including this for now because we need to make an updated version for crop-c; the one i currently have is range-c specific
-#Refer to the graphic below for a visual representation of how different project design decisions contribute to the inference score. 
-#knitr::include_graphics("InferenceScore.png") # CHANGE THIS TO ACCOMODATE BOTH PROTOCOLS
-```
 
 ### Carbon indicators
 The following table includes carbon indicators that were included in this monitoring project and their corresponding acronyms that will be used in the following tables, graphs, and maps. A description of each indicator and reported units are provided. 
 
-```{r, , results='asis'}
-if ("Extra" %in% proj.indicator.table$Status){
-cat(paste0("Note that your project included indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the ", proj.protocol,  " handbook."))}
-```
 
 ```{r, updated}
 proj.indicator.db<-read.csv("ReportRef/indicator_descriptions.csv", check.names=FALSE)#read in the indicator descriptions reference sheet
@@ -171,8 +124,12 @@ proj.indicator.table<-proj.indicator.db%>%
   rowwise() %>%
   filter(!all(is.na(PointLevel[[CheckCol]])))%>%
   filter(!Acronym %in% c("Sand", "Silt", "Clay"))
-
-
+```
+```{r, , results='asis'}
+if ("Extra" %in% proj.indicator.table$Status){
+cat(paste0("Note that your project included indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the ", proj.protocol,  " handbook."))}
+```
+```{r}
 ind.table.kbl<-proj.indicator.table%>%select(Indicator, Acronym, Description, `Final units`)
 
 Table1<-kbl(ind.table.kbl,
@@ -313,7 +270,7 @@ max.depth.inches <- max(as.numeric(sub(".*-", "", depths.inches)))
 cat(paste0("Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches. " ))
 
 if (depth.increments.no>1){
-  cat("Depth increments from ", depths.string[1], " inches and ", depths.string[2], " inches were analyzed separately. ")
+  cat("Depth increments from ", depths.string[1], " inches and ", depths.string[2], " inches were analyzed separately.")
   
   depth_sentence <- function(depths.string) {
   paste0(
@@ -328,13 +285,8 @@ if (depth.increments.no>1){
 }
 
 ```
-
 ## Results
-
-### All soil properties
-The following table summarizes average values across the study area for all soil metric(s) included in your project. 
-```{r Summarize non-stocks soil means} 
-
+```{r}
 #creating a vector of value names that match the names in PointLevel
 if ("Tx" %in% proj.indicators==TRUE) {
   proj.indicators.SSC<-c(proj.indicator.table$CheckCol, "sand", "silt")
@@ -342,312 +294,6 @@ if ("Tx" %in% proj.indicators==TRUE) {
 
 PointLevel<-PointLevel%>% 
   mutate(plot_type = "T")#substr(sample_id, 6, 6)) #CHECK! should be temporary (will get built into PointLevel)
-
-Project.Means <- PointLevel %>%
-                    dplyr::group_by(plot_type) %>%
-                    dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
-
-Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>%
-          pivot_wider(names_from = c("plot_type"), values_from = value)%>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
-           left_join( #add the units column (CHECK,)
-    proj.indicator.table %>% select(CheckCol, UnitsTable),
-    by = c("Indicator" = "CheckCol")
-  ) %>%
-  mutate(
-    Units = case_when(
-      Indicator %in% c("sand", "silt", "clay") ~ "%",           # special values
-      str_ends(Indicator, "_stocks") ~ "tons/acre",             # ends with _stocks
-      TRUE ~ UnitsTable                                          # default mapping
-    )
-  ) %>%
-  select(-UnitsTable)%>% #clunky way of fixing units...not worth chasing down rn
-  mutate(
-    # remove _stocks for matching if present
-    Indicator_base = str_remove(Indicator, "_stocks$")
-  ) %>%
-  left_join(
-    proj.indicator.table %>% select(Acronym, CheckCol),
-    by = c("Indicator_base" = "CheckCol")
-  ) %>%
-  mutate(
-    Acronym = case_when(
-      Indicator_base == "sand" ~ "Sand",
-      Indicator_base == "silt" ~ "Silt",
-      Indicator_base == "clay" ~ "Clay",
-      TRUE ~ Acronym                                # default mapping
-    )
-  ) 
-
-Means.Pivot<-Means.Pivot1%>%
-  select(-Indicator_base, -Indicator)
-          
-my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
-
-Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder columns
-              mutate( #all the rest allows me to specify an order for the first few Ag-C metrics, and leave the rest alone
-                  order_helper = match(Acronym, my_order),
-                  original_order = row_number()
-                ) %>%
-                arrange(is.na(order_helper), order_helper, original_order) %>%
-                select(-order_helper, -original_order)
-```
-```{r Calculating carbon stocks, eval=FALSE} 
-###CHECK! OLD! don't run this, I'm skipping it##
-##This should only happen if SOC and BD are present
-
-#if (ProjectTracker$Roadmap != "low"){
-
-##Calculating SOC stocks
-#if ("BD" %in% proj.indicators == TRUE){
-#PointData.proj$SOC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$SOC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-#PointData.proj$SOC_stocks_tons.acre <- PointData.proj$SOC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
-
-#SOC_stocks_summary<-PointData.proj %>%
-#  group_by(plot_type) %>%
-#  summarise(
-#    indicator = "SOC",
-#    mean = mean(SOC_stocks_tons.acre, na.rm = TRUE),
-#    se = sd(SOC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-#  rename(plot=plot_type)%>%
-#  select(indicator, mean, se, plot)
-
-
-#PointData.proj$SIC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$SIC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-#PointData.proj$SIC_stocks_tons.acre <- PointData.proj$SIC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
-
-#SIC_stocks_summary<-PointData.proj %>%
-#  group_by(plot_type) %>%
-#  summarise(
-#    indicator = "SIC",
-#    mean = mean(SIC_stocks_tons.acre, na.rm = TRUE),
-#    se = sd(SIC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-#  rename(plot=plot_type)%>%
-#  select(indicator, mean, se, plot)
-
-  
-#}
-
-#if (all(c("BD", "MAOC") %in% proj.indicators)==TRUE) {
-#  PointData.proj$MAOC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$MAOC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-#PointData.proj$MAOC_stocks_tons.acre <- PointData.proj$MAOC_stocks_g.cm2*40470000/1000000 #convert to tons/acre to specified depth
-
-#MAOC_stocks_summary<-PointData.proj %>%
-#  group_by(plot_type) %>%
-#  summarise(
-#    indicator = "MAOC",
-#    mean = mean(MAOC_stocks_tons.acre, na.rm = TRUE),
-#    se = sd(MAOC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-#  rename(plot=plot_type)%>%
-#  select(indicator, mean, se, plot)
-#}
-
-#if (all(c("BD", "POC") %in% proj.indicators)==TRUE) {
-#  PointData.proj$POC_stocks_g.cm2<-PointData.proj$BD * (PointData.proj$POC*0.01) * (30) #get soc stocks in g/cm2 to specified depth
-#PointData.proj$POC_stocks_tons.acre <- PointData.proj$POC_stocks_g.cm2 *40470000/1000000 #convert to tons/acre to specified depth
-
-#POC_stocks_summary<-PointData.proj %>%
-#  group_by(plot_type) %>%
-#  summarise(
-#    indicator = "POC",
-#    mean = mean(POC_stocks_tons.acre, na.rm = TRUE),
-#    se = sd(POC_stocks_tons.acre, na.rm = TRUE) / sqrt(n()),) %>%
-#  rename(plot=plot_type)%>%
-#  select(indicator, mean, se, plot)
-#}
-
-####bind all the summaries together into one table
-
-#list all the indicators that can be reported as stocks
-#stock_inds <- c("SOC", "SIC", "MAOC", "POC", "BD") #add MAOC and POC later
-
-#Return the ones included in this project
-#proj_stock_inds <- stock_inds[stock_inds %in% proj.indicators]
-
-#If SOC and BD are both present, return SOC, otherwise, SOC should not be included
-#if (all(c("SOC", "BD") %in% proj.indicators)) {
-#  proj_stock_inds <- setdiff(proj_stock_inds, "BD") # Keep SOC, remove BD
-#} else {
-#  proj_stock_inds <- setdiff(proj_stock_inds, c("SOC", "SIC", "BD")) # Remove both if not both are present
-#}
-
-#Append "_stocks_summary" to each indicator to match the names of the objects made above
-
-#stocks_summaries <- paste0(proj_stock_inds, "_stocks_summary")
-
-
-#standardize_columns <- function(df) {
-#  df %>%
-#    mutate(
-#      indicator = as.character(indicator),
-#      mean = as.numeric(mean),
-#      se = as.numeric(se),
-#      plot = as.character(plot)
-#    )
-#}
-
-#tables_list<-mget(stocks_summaries)
-
-#for (i in seq_along(tables_list)) {
-#  tables_list[[i]] <- standardize_columns(tables_list[[i]])
-#}
-
-## Retrieve the actual objects using mget and pass them to rbind
-#stocks_summary <- do.call(rbind, tables_list)
-
-##add rows for all pools combined
-#summed_means <- stocks_summary %>% filter(indicator != "MAOC")%>%filter(indicator != "POC")%>%
-#  group_by(plot) %>%
-#  dplyr::summarize(mean = sum(mean, na.rm=TRUE), .groups = 'drop')
-
-#stocks_summary <- bind_rows(
-#  stocks_summary,
-#  summed_means %>%
-#    mutate(indicator = "All", se = NA, depth = NA)  # Assign placeholder values for other columns
-)
-
-#change stocks_summary format to match Soil.Means to bind and combine into one summary table
-#stocks_summary_fortable<-stocks_summary%>%
-#  rename(Indicator = indicator) %>%
-#  mutate(Units = "metric tons of carbon/acre")%>%
-#  select(-c(se, depth)) %>%
-#  pivot_wider(names_from = plot, values_from = mean) %>%
-#  filter(Indicator != "All")
-
-#Soil.Means<-rbind(Soil.Means, stocks_summary_fortable)
-}
-
-```
-```{r}
-#Create plot summary table
-  if (length(unique(border$plot_type))==1) { # Use this table format if there's only a treatment site
-    SummaryTable <- Soil.Means %>% 
-      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Treatment"))
-  } 
-  if (length(unique(border$plot_type))==2) { # Use this table format if there's a treatment and control site
-    SummaryTable <- Soil.Means %>% 
-      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Control", "Treatment"))
-  }
-
-
-SummaryTable %>%
-  kable_styling(position='center', full_width = F)%>%
-  collapse_rows(columns = 2, valign = "middle") #merges adjacent cells with identical values
-
-#Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
-```
-
-```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
-asis_output("### Texture and organic carbon\\n") #CONDITIONAL HEADER
-```
-```{r results='asis'}
-if ("Tx" %in% proj.indicators){cat("The graphic below represents where each soil sample falls in a texture triangle, indicating the percentage of clay-sized, silt-sized, and sand-sized particles. The corresponding USDA texture categories are named inside the triangle. In general, we expect clays to store more SOC than sands. To visualize and explore this effect, the size and color of each point represents the relative SOC % for that soil sample. Darker and larger points represent more SOC content, while smaller and lighter points represent less SOC content.")}
-
-```
-```{r Texture T and C, results='asis'}
-if ("Tx" %in% proj.indicators & length(unique(border$plot_type))==2){cat("Since this project includes a treated and control site, it's also important to note how well the texture values between plots 'match' one another - this helps us interpret differences in carbon dynamics between the sites. Two texture triangles are shown, one for the treated site, and one for the control site.")}
-
-```
-
-```{r fig.height=6, fig.cap="Texture triangle(s) showing texture classifications for samples in the study area. The size and color of bubbles on the plot represent percent soil organic carbon content for each sample, where larger and darker bubbles correspond to higher percentages."}
-if ("Tx" %in% proj.indicators){ #only do any of this if texture was included as an indicator (med and high ACTION roadmaps)
-
-  if (length(unique(border$plot_type))==1){ #make one triangle for plots with only T site
-    
-  texture <- PointLevel %>% 
-    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
-    filter(!is.na(CLAY)) %>%
-    filter(!is.na(SAND)) %>%
-    filter(!is.na(SILT))
-TT.plot(
-  class.sys = "USDA.TT",
-  tri.data = texture,
-  z.name = "org_c",
-  main = NA,
-  grid.show = FALSE,
- class.lab.show="full",
- css.lab = c("Clay %", "Silt %", "Sand %"),
-  arrows.show=TRUE,
- cex.axis = 0.8,
- cex.lab = 0.8,
- lwd.lab = 0.8,
- z.col.hue = 0.4,
- z.pch = 1,
- arrows.lty='blank',
- new.mar =c(5.1, 0.1, 0.02, 0.1) #bottom, left, top, right
-) 
-  }
-  
-  if (length(unique(border$plot_type))==2){ #make 2 triangles for plots with a T and a C site
-  
-
-    texture_T <- PointLevel %>% 
-    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
-    filter(!is.na(CLAY)) %>%
-    filter(!is.na(SAND)) %>%
-    filter(!is.na(SILT)) %>%
-    filter(plot_type == "T") #CHECK! This won't work right now until lisa adds this column to PointLevel
-    
-    texture_C <- PointLevel %>% 
-    rename(SAND=Sand, SILT=Silt, CLAY=Clay) %>%
-    filter(!is.na(CLAY)) %>%
-    filter(!is.na(SAND)) %>%
-    filter(!is.na(SILT)) %>%
-    filter(plot_type == "C") #CHECK! This won't work right now until lisa adds this column to PointLevel
-
-#this parts funny; in order to get the two plots to show side by side, i have to save them as PNGs first; using a temp directory to keep the working directory clean
-    
-temp_dir<-tempdir()
-TextureT_path <- file.path(temp_dir, "TextureT")
-TextureC_path <- file.path(temp_dir, "TextureC")
-         
-png(TextureT_path)
-TT.plot(
-  class.sys = "USDA.TT",
-  tri.data = texture_T,
-  z.name = "org_c",
-  main = "Treated Site",
-  grid.show = FALSE,
- class.lab.show="full",
- css.lab = c("Clay %", "Silt %", "Sand %"),
- arrows.show=TRUE,
- cex.axis = 0.8,
- cex.lab = 0.8,
- lwd.lab = 0.8,
- z.col.hue = 0.4,
- z.pch = 1,
- arrows.lty='blank',
- new.mar = c(.2, 1, .2, 1) #bottom, left, top, right
-) 
-dev.off()
-
-png(TextureC_path)
-TT.plot(
-  class.sys = "USDA.TT",
-  tri.data = texture_C,
-  z.name = "org_c",
-  main = "Control Site",
-  grid.show = FALSE,
- class.lab.show="full",
- css.lab = c("Clay %", "Silt %", "Sand %"),
-  arrows.show=TRUE,
- cex.axis = 0.8,
- cex.lab = 0.8,
- lwd.lab = 0.8,
- z.col.hue = 0.4,
- z.pch = 1,
- arrows.lty='blank',
- new.mar = c(.2, 1, .2, 1) #bottom, left, top, right
-) 
-dev.off()
-
-imgT <- rasterGrob(png::readPNG(TextureT_path), interpolate = TRUE)
-imgC <- rasterGrob(png::readPNG(TextureC_path), interpolate = TRUE)
-
-grid.arrange(imgT, imgC, ncol = 2)
-  }
-  
-}
-
 
 ```
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
@@ -657,8 +303,6 @@ asis_output("### Soil carbon stocks\\n") #CONDITIONAL HEADER
 ```{r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
 asis_output("The following graph shows calculated carbon stocks values for the study area. Carbon stocks represent the amount of carbon stored in the study area to the specified sampling depth. These 'violin plots' also show the variability of carbon stocks across the site. The widest part of the plot represents the most common carbon level in the study area. The white dot represents the average value, and white lines show one standard deviation above and below the average.")
 ```
-
-
 ```{r, Calculating stocks}
 #Calculating stocks on qualifying soil metrics
 if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be different when we get plant projects cause someone could have SOC% only but also have measured plants
@@ -683,16 +327,8 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
 
 }
 ```
-
-
-
 ```{r fig.cap="Carbon stocks variability and average"}
 if ("bulk_density" %in% proj.indicators.SSC.stocks){
-
-###Preparing variables and aesthetics###
-#if (all(c("poc", "maoc") %in% proj.indicators.SSC.stocks)) {
-#  stocks_summary_facet<-stocks_summary%>%filter(indicator != c("poc", "maoc"))
-#} else { stocks_summary_facet<-stocks_summary}
 
 Var.Labels <- c('All pools combined', 'Soil Organic Carbon', 'Soil Inorganic Carbon')
 names(Var.Labels) <- c('All', 'org_c_stocks', 'inorg_c_stocks')
@@ -715,7 +351,6 @@ facet_order <- c("org_c_stocks", "inorg_c_stocks", "poc_stocks", "maoc_stocks")
 
 df_long$Stocks_Indicator <- factor(df_long$Stocks_Indicator, levels = facet_order)
 
-library(shadowtext)
 ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
   geom_violin(trim=TRUE,  color = "black") + #, show.legend=ifelse(length(unique(df_long$plot_type))>1, TRUE, FALSE))
   facet_wrap(~ Stocks_Indicator) +  # Facet by Indicator column
@@ -766,17 +401,202 @@ ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
 
 }
 ```
-
 ```{r fig.cap=""}
 
+```
+### All soil properties
+The following table summarizes average values across the study area for all soil metric(s) included in your project. 
+```{r Summarize non-stocks soil means} 
+
+Project.Means <- PointLevel %>%
+                    dplyr::group_by(plot_type) %>%
+                    dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
+
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>%
+          pivot_wider(names_from = c("plot_type"), values_from = value)%>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
+           left_join( #add the units column (CHECK,)
+    proj.indicator.table %>% select(CheckCol, UnitsTable),
+    by = c("Indicator" = "CheckCol")
+  ) %>%
+  mutate(
+    Units = case_when(
+      Indicator %in% c("sand", "silt", "clay") ~ "%",           # special values
+      str_ends(Indicator, "_stocks") ~ "tons/acre",             # ends with _stocks
+      TRUE ~ UnitsTable                                          # default mapping
+    )
+  ) %>%
+  select(-UnitsTable)%>% #clunky way of fixing units...not worth chasing down rn
+  mutate(
+    # remove _stocks for matching if present
+    Indicator_base = str_remove(Indicator, "_stocks$")
+  ) %>%
+  left_join(
+    proj.indicator.table %>% select(Acronym, CheckCol),
+    by = c("Indicator_base" = "CheckCol")
+  ) %>%
+  mutate(
+    Acronym = case_when(
+      Indicator_base == "sand" ~ "Sand",
+      Indicator_base == "silt" ~ "Silt",
+      Indicator_base == "clay" ~ "Clay",
+      TRUE ~ Acronym                                # default mapping
+    )
+  ) 
+
+Means.Pivot<-Means.Pivot1%>%
+  select(-Indicator_base, -Indicator)
+          
+my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
+
+Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder columns
+              mutate( #all the rest allows me to specify an order for the first few Ag-C metrics, and leave the rest alone
+                  order_helper = match(Acronym, my_order),
+                  original_order = row_number()
+                ) %>%
+                arrange(is.na(order_helper), order_helper, original_order) %>%
+                select(-order_helper, -original_order)
+```
+```{r}
+#Create plot summary table
+  if (length(unique(border$plot_type))==1) { # Use this table format if there's only a treatment site
+    SummaryTable <- Soil.Means %>% 
+      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Treatment"))
+  } 
+  if (length(unique(border$plot_type))==2) { # Use this table format if there's a treatment and control site
+    SummaryTable <- Soil.Means %>% 
+      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Control", "Treatment"))
+  }
+
+
+SummaryTable %>%
+  kable_styling(position='center', full_width = F)%>%
+  collapse_rows(columns = 2, valign = "middle") #merges adjacent cells with identical values
+
+#Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
+```
+
+```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
+asis_output("#### Soil texture\\n") #CONDITIONAL HEADER
+```
+```{r results='asis'}
+if ("Tx" %in% proj.indicators){cat("The graphic below represents where each soil sample falls in a texture triangle, indicating the percentage of clay-sized, silt-sized, and sand-sized particles. The corresponding USDA texture categories are named inside the triangle. In general, we expect clays to store more SOC than sands.")}
+
+```
+```{r Texture T and C, results='asis'}
+if ("Tx" %in% proj.indicators & length(unique(border$plot_type))==2){cat("Since this project includes a treated and control site, it's also important to note how well the texture values between plots 'match' one another - this helps us interpret differences in carbon dynamics between the sites. Two texture triangles are shown, one for the treated site, and one for the control site.")}
+
+```
+```{r fig.height=6, fig.cap="Texture triangle(s) showing texture classifications for samples in the study area."}
+if ("Tx" %in% proj.indicators){ #only do any of this if texture was included as an indicator (med and high ACTION roadmaps)
+
+  if (length(unique(border$plot_type))==1){ #make one triangle for plots with only T site
+    
+  texture <- PointLevel %>% 
+    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
+    filter(!is.na(CLAY)) %>%
+    filter(!is.na(SAND)) %>%
+    filter(!is.na(SILT))
+TT.plot(
+  class.sys = "USDA.TT",
+  tri.data = texture,
+  #z.name = "org_c",
+  col="darkblue",
+  main = NA,
+  grid.show = FALSE,
+ class.lab.show="full",
+ css.lab = c("Clay %", "Silt %", "Sand %"),
+  arrows.show=TRUE,
+ cex.axis = 0.8,
+ cex.lab = 0.8,
+ lwd.lab = 0.8,
+# z.col.hue = 0.4,
+# z.pch = 1,
+ arrows.lty='blank',
+ new.mar =c(5.1, 0.1, 0.02, 0.1) #bottom, left, top, right
+) 
+  }
+  
+  if (length(unique(border$plot_type))==2){ #make 2 triangles for plots with a T and a C site
+  
+
+    texture_T <- PointLevel %>% 
+    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
+    filter(!is.na(CLAY)) %>%
+    filter(!is.na(SAND)) %>%
+    filter(!is.na(SILT)) %>%
+    filter(plot_type == "T") #CHECK! This won't work right now until lisa adds this column to PointLevel
+    
+    texture_C <- PointLevel %>% 
+    rename(SAND=Sand, SILT=Silt, CLAY=Clay) %>%
+    filter(!is.na(CLAY)) %>%
+    filter(!is.na(SAND)) %>%
+    filter(!is.na(SILT)) %>%
+    filter(plot_type == "C") #CHECK! This won't work right now until lisa adds this column to PointLevel
+
+#this parts funny; in order to get the two plots to show side by side, i have to save them as PNGs first; using a temp directory to keep the working directory clean
+    
+temp_dir<-tempdir()
+TextureT_path <- file.path(temp_dir, "TextureT")
+TextureC_path <- file.path(temp_dir, "TextureC")
+         
+png(TextureT_path)
+TT.plot(
+  class.sys = "USDA.TT",
+  tri.data = texture_T,
+ # z.name = "org_c",
+  main = "Treated Site",
+    col="darkblue",
+  grid.show = FALSE,
+ class.lab.show="full",
+ css.lab = c("Clay %", "Silt %", "Sand %"),
+ arrows.show=TRUE,
+ cex.axis = 0.8,
+ cex.lab = 0.8,
+ lwd.lab = 0.8,
+ z.col.hue = 0.4,
+ z.pch = 1,
+ arrows.lty='blank',
+ new.mar = c(.2, 1, .2, 1) #bottom, left, top, right
+) 
+dev.off()
+
+png(TextureC_path)
+TT.plot(
+  class.sys = "USDA.TT",
+  tri.data = texture_C,
+ # z.name = "org_c",
+  main = "Control Site",
+  grid.show = FALSE,
+     col="darkblue",
+ class.lab.show="full",
+ css.lab = c("Clay %", "Silt %", "Sand %"),
+  arrows.show=TRUE,
+ cex.axis = 0.8,
+ cex.lab = 0.8,
+ lwd.lab = 0.8,
+ z.col.hue = 0.4,
+ z.pch = 1,
+ arrows.lty='blank',
+ new.mar = c(.2, 1, .2, 1) #bottom, left, top, right
+) 
+dev.off()
+
+imgT <- rasterGrob(png::readPNG(TextureT_path), interpolate = TRUE)
+imgC <- rasterGrob(png::readPNG(TextureC_path), interpolate = TRUE)
+
+grid.arrange(imgT, imgC, ncol = 2)
+  }
+  
+}
 
 
 ```
 
 
+
 ### Dynamic map: all measured values
 
-Use the map below to explore all measured values for each sampling location. Select a layer to visually explore values for a given indicator. Click a point to see all measured values at that point. 
+The previous tables and figures report results averaged across the study area. Use the interactive map below to explore results at each sampling point. Hover over the layers symbol to select from included metrics -- click on a sampling point to see all measured values at that point. 
 
 ```{r Dynamic map}
 
@@ -897,11 +717,16 @@ Soil organic carbon makes up the majority of soil organic matter which provides 
 One ton of carbon per acre is equal to 3.67 metric tons of CO2 removed from the atmosphere, equivalent to 1 year of passenger car emissions. It is important to note that 1 ton of carbon per acre in our soil data is only to a 12 inch depth; much more carbon can be stored below that depth.  
 
 #### As a land steward, how do I use all of this information?
-The information in this report provides a baseline to measure the impact of future management changes. As time series data is not currently available, comparing across different areas of your own farm or ranch is most informative. Explore the dynamic map to gauge how different sites across the study area differ in key metrics. Additionally, our team is working towards a reporting structure that will allow landowners to compare their Ag-C data to other sites within the network, especially to other enrolled farms and ranches in their region. As our database grows, network-wide and regional comparisons will provide an increasingly detailed understanding of differing practice impacts across spatial scales. An online user dashboard allowing Ag-C land stewards to view and compare their results is planned for launch in Fall of 2025.
+Ag-C data is designed to track changes in carbon storage and cycling over time in response to conservation practices. Over time, land stewards can use this information to make adaptive management decisions. If time-series data is not yet available, comparing across different areas of your own farm or ranch is most informative. Explore the dynamic map to gauge how different sites across the study area differ in key metrics. Additionally, our team is working towards a reporting structure that will allow landowners to compare their Ag-C data to other sites within the network, especially to other enrolled farms and ranches in their region. As our database grows, network-wide and regional comparisons will provide an increasingly detailed understanding of differing practice impacts across spatial scales. An online user dashboard allowing Ag-C land stewards to view and compare their results is planned for launch in 2026.
 
-#### To measure the impact of conservation practices, I need to monitor change over time. How do I sample a second time?
+#### How can the data from my site contribute to agricultural conservation science?  
+
+The Ag-C Program is designed to collect data that is comparable to other projects across space and time. Participants have the option to contribute their data to the Ag-C Database, where it is securely stored in the Point Blue Science Cloud. Data owners select a sharing level they are comfortable with, ranging from private to open. Data submitted to the Ag-C Database are used to advance scientific understanding of regional practice impact and greenhouse gas cycling. Please visit [this link](https://form.jotform.com/250767021376053) to read about our data sharing policies and select a data sharing level for your project.  
+
+Detailed management data advances the science of agricultural conservation by helping to tease out relationships between management activities and changes in soil health. If you choose to submit your data to the Ag-C Database, please consider filling out a [Management Questionnaire](https://form.jotform.com/243406539772160) to multiply the impact of your contribution.  
+
+#### How can I continue monitoring my conservation practice over time?
 Under the Ag-C framework, each conservation practice has its own recommended resampling interval that ranges from 1 year to 10 years, based on the expected impact of the practice over time^[Consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`) for more information about resampling intervals by conservation practice.]. Our team is always working to identify opportunities for continued monitoring for Ag-C participants. Contact our team if you're interested in pursuing support for future resampling events or if you have existing support for future monitoring and would like to continue participating in the Ag-C Monitoring Program.
-
 
 ## Conclusion
 Thank you again for your participation in the Ag-C Monitoring Program. For more information about project design, further interpretation of results, or to access the raw data from your study site, please reach out to [RangeC\@pointblue.org](mailto:RangeC@pointblue.org) or [CropC\@pointblue.org](mailto:CropC@pointblue.org). Our team is happy to engage with additional questions or feedback. Your participation sharing data will launch new scientific understanding of conservation management and support improved incentive structures across the nation.

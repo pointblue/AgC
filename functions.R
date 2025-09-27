@@ -293,3 +293,40 @@ proj_design <- function(projects){
   pd_new <-rbind(pd_latest,pd)
 }
 
+## ---- format text function ----
+#takes in a vector of strings and formats it into a list sentence with oxford comma where relevant
+format_list <- function(x) {
+  n <- length(x)
+  if (n == 0) {
+    ""
+  } else if (n == 1) {
+    x
+  } else if (n == 2) {
+    paste(x, collapse = " and ")
+  } else {
+    paste0(
+      paste(x[-n], collapse = ", "),
+      ", and ",
+      x[n]
+    )
+  }
+}
+
+## ---- Render HTML Reports ----
+#Reports will write to
+#Z:\Soils Team\AgC Data\RenderedReports
+render_one_html <- function(project) {
+  rmarkdown::render(
+    input = 'LandStewardReports.Rmd', #identify the markdown file that will be used to render the report
+    output_file = paste0(project, '_Report_', Sys.Date(), '.html'), #ID the file path and naming pattern
+    output_dir = "Z:/Soils Team/AgC Data/RenderedReports",
+    params = list(project_name = project), #"project_name" references the name of the parameter in the YAML header; "project" represents the current throughput of the loop
+    envir = parent.frame()
+  )
+}
+#layering that so you can pass a vector of project names to render many reports at once
+render_html_report <- function(projects){ #when projects is a project name or a vector of project names
+  for(project in projects){
+    render_one_html(project)
+  }
+}
