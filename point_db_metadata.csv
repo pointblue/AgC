@@ -52,3 +52,10 @@ cec_k_perc,Potassium base saturation,percent,2,Potassium base saturation
 cec_ca_perc,Calcium base saturation,percent,76,Calcium base saturation
 cec_mg_perc,Magnesium base saturation,percent,19,Magnesium base saturation
 cec_na_perc,Sodium base saturation,percent,2,Sodium base saturation
+sample_date_abh,ABH Sampling Date,,,Aboveground herbaceous biomass sampling date
+abh_bio,Aboveground Herbaceous Biomass,kg/ha,,Aboveground herbaceous biomass
+sample_date_hrb,HRB Sampling Date,,,Herbaceous root biomass sampling date
+e_depth_hrb,End Depth for Root Biomass Sampling,cm,,End sampling depth for herbaceous root biomass
+hrb_fine,Fine Root Herbaceous Biomass,kg/ha,,Fine herbaceous root biomass
+hrb_coarse,Coarse Root Herbaceous Biomass,kg/ha,,Coarse herbaceous root biomass
+hrb_total,Total Root Herbaceous Biomass,kg/ha,,Herbaceous root biomass total (fine + coarse)
