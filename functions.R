@@ -97,11 +97,16 @@ clean_tap_df <- function(agc_data_entry_path){
              na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   tap_bio<-read_excel(agc_data_entry_path, sheet="AbovegroundHerbaceousBiomass", col_names=TRUE,
                        na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_herb_root<-read_excel(agc_data_entry_path, sheet="HerbaceousRootBiomass", col_names=TRUE,
+                      na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   #Remove extra columns, define column types
   soils_clean <- tap_soils %>%
     slice(-1) %>% # remove unit row
-    mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d"),
-           across(c(BdepthTarget_cm:Edepth_cm,pH_infield), as.numeric),
+    mutate(SamplingDate = case_when(
+      !is.na(as.numeric(SamplingDate)) & !grepl("/", SamplingDate) ~ as.Date(as.numeric(SamplingDate), origin = "1899-12-30"),
+      TRUE ~ as.Date(SamplingDate, format = "%m/%d/%Y")
+    )) %>%
+    mutate(across(c(BdepthTarget_cm:Edepth_cm,pH_infield), as.numeric),
            Bdepth_cm = round(Bdepth_cm,1),
            Edepth_cm = round(Edepth_cm,1)
            ) %>%
@@ -116,6 +121,16 @@ clean_tap_df <- function(agc_data_entry_path){
     filter(!is.na(PointID))%>% #filter out empty rows
     mutate(across(c(Area_cm2:DryMass_g), as.numeric)) %>%
     select(PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
+  
+  root_bio_clean <- tap_herb_root %>%
+    slice(-1) %>% # remove unit row
+    mutate(sample_date_hrb = as.Date(SamplingDate, format = "%m/%d/%Y")) %>%
+    filter(!is.null(PointID))%>% #filter out empty rows
+    filter(!is.na(PointID))%>% #filter out empty rows
+    select(PointID, Timepoint, sample_date_hrb, BdepthTarget_cm,EdepthTarget_cm,
+           CoreDiameter_cm, TinMassFine_g:DryMassCourse_g) %>%
+    mutate(across(c(CoreDiameter_cm:DryMassCourse_g), as.numeric))
+    
   
   #Determine bulk density method  
   tap_clean <- soils_clean %>%
@@ -150,14 +165,29 @@ clean_tap_df <- function(agc_data_entry_path){
     mutate(soil_moisture = (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100,
            dry_soil_g = (WetMass_g - RocksRemovedMass_g - RootsRemovedMass_g)*((100-soil_moisture)/100))
   
-  #Calculate biomass
+  #Calculate aboveground herb biomass
   bio_clean <- bio_clean %>%
-    mutate(abv_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
+    mutate(abh_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
            ) %>%
-    select(PointID,Timepoint,abv_bio)
+    select(PointID,Timepoint,SamplingDate,abh_bio) %>%
+    rename(sample_date_abh = SamplingDate) %>%
+    group_by(PointID, Timepoint, sample_date_abh) %>%
+    summarise(abh_bio = mean(abh_bio, na.rm = TRUE))
   
-  #Bind to biomass sheet
-  tap_clean<-merge(tap_clean,bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
+  #Calculate root herb biomass
+  root_bio_clean <- root_bio_clean %>%
+    mutate(core_area_m2 = pi*(CoreDiameter_cm/100/2)^2,
+           coarse_roots_g = DryMassCourse_g - TinMassCourse_g,
+           fine_roots_g = DryMassFine_g - TinMassFine_g) %>%
+    mutate(hrb_fine = fine_roots_g/core_area_m2*10000/1000, #calculate herbaceous root biomass in kg/ha
+           hrb_coarse = coarse_roots_g/core_area_m2*10000/1000,
+           hrb_total = hrb_fine + hrb_coarse) %>%
+    rename(e_depth_hrb = EdepthTarget_cm) %>%
+    select(PointID, Timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
+  
+  #Bind sheets together
+  tap_clean <- merge(tap_clean,bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
+  tap_clean <- merge(tap_clean,root_bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
   
   #Select rows
   tap_clean <- tap_clean %>%
@@ -176,9 +206,10 @@ clean_tap_df <- function(agc_data_entry_path){
            ph = pH_infield,
            rocks_g = RocksRemovedMass_g) %>%
     select(c(project_id,sample_id,plot_type,protocol, timepoint, sample_date, b_depth, e_depth, 
-             b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g, rocks_g, vol_cm3,abv_bio)) %>%
-    mutate(
-           year = str_sub(sample_date, 1,4)) %>%
+             b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
+             rocks_g, vol_cm3,sample_date_abh, abh_bio, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)) %>%
+    mutate(year = str_sub(sample_date, 1,4)) %>%
+    filter(!is.na(project_id)) %>%
     as.data.frame()
     
   return(tap_clean)
