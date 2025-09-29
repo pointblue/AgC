@@ -8,6 +8,7 @@
 #   3) coord_extract: Extracts coordinates for sampling points from projects of interest
 #   4) out_of_range: verify required columns and check for data outside expected ranges
 #   5) proj_design: Extracts project design data required for inference score calculation from point level db
+#   6) reg_baseline: Associates regional soil carbon baselines (mean and 95% conf. interval) with field polygon for producer reports
 
 ## ---- clean_lab_df function ----
 
@@ -323,6 +324,38 @@ proj_design <- function(projects){
   #Bind to latest project design df
   pd_new <-rbind(pd_latest,pd)
 }
+
+## ---- Extract regional baseline for producer reports ----
+reg_baseline <- function(polygon #Specify polygon of project
+                         ){
+  # Find centroid of polygon
+  cent <- st_centroid(polygon)[1,]
+  
+  # Associate centroid of polygon with ecoregion
+  ecoregions <- st_read("./Ecoregions/us_eco_l3.shp")
+  ecoregions <- st_transform(ecoregions, st_crs(cent))
+  region <- ecoregions[st_contains(ecoregions, cent, sparse = FALSE), ]
+  
+  # Pull RACA data for ecoregion of interest
+  RACA_coords <- read.csv("./RaCA Data/RaCa_general_location.csv") %>% #imports RaCA point coords
+    st_as_sf(coords = c("Gen_long", "Gen_lat"), crs = 4326)
+  RACA_coords <- st_transform(RACA_coords, st_crs(region))
+  RACA_coords <- RACA_coords[st_within(RACA_coords, region, sparse = FALSE), ] #select all points within ecoregion of interest
+  RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% #Select only range and cropland points
+    filter(LU %in% c("R","C")) %>%
+    select(rcasiteid, sample.id, LU) %>%
+    filter(rcasiteid %in% RACA_coords$RaCA_Id)
+  RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
+    filter(rcasiteid %in% RACA_samples$rcasiteid)
+  #Remove outliers
+  outliers <- boxplot.stats(RACA_soc$SOCstock30)$out
+  RACA_soc_no_out <- RACA_soc[!RACA_soc$SOCstock30 %in% outliers, ]
+  RACA_n <- nrow(RACA_soc_no_out) #defines number of sites for regional baseline
+  RACA_mean <- mean(RACA_soc_no_out$SOCstock30, na.rm=TRUE)
+  RACA_ci <- sd(RACA_soc_no_out$SOCstock30, na.rm=TRUE)/sqrt(RACA_n)*1.96 #creates 95% confidence interval
+  RACA_res <- data.frame(mean = RACA_mean, ci95 = RACA_ci, n = RACA_n)
+  return(RACA_res)
+  }
 
 ## ---- format text function ----
 #takes in a vector of strings and formats it into a list sentence with oxford comma where relevant
