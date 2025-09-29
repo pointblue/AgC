@@ -8,7 +8,10 @@
 #   3) coord_extract: Extracts coordinates for sampling points from projects of interest
 #   4) out_of_range: verify required columns and check for data outside expected ranges
 #   5) proj_design: Extracts project design data required for inference score calculation from point level db
-#   6) reg_baseline: Associates regional soil carbon baselines (mean and 95% conf. interval) with field polygon for producer reports
+#   6) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
+#       mean, 95% confidence interval and n points for all RACA crop and rangeland points (excluding outliers) 
+#       within the Level 3 ecoregion associated with the polygon you read in. The confidence interval is the
+#       value +/- the mean, so for example if mean = 5 and ci = 2, the confidence interval would be from 3 to 7
 
 ## ---- clean_lab_df function ----
 
