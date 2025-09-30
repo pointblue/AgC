@@ -353,11 +353,11 @@ reg_baseline <- function(polygon #Specify polygon of project
   #Remove outliers
   outliers <- boxplot.stats(RACA_soc$SOCstock30)$out
   RACA_soc_no_out <- RACA_soc[!RACA_soc$SOCstock30 %in% outliers, ]
-  RACA_n <- nrow(RACA_soc_no_out) #defines number of sites for regional baseline
-  RACA_mean <- mean(RACA_soc_no_out$SOCstock30, na.rm=TRUE)
-  RACA_ci <- sd(RACA_soc_no_out$SOCstock30, na.rm=TRUE)/sqrt(RACA_n)*1.96 #creates 95% confidence interval
-  RACA_res <- data.frame(mean = RACA_mean, ci95 = RACA_ci, n = RACA_n)
-  return(RACA_res)
+  # RACA_n <- nrow(RACA_soc_no_out) #defines number of sites for regional baseline
+  # RACA_mean <- mean(RACA_soc_no_out$SOCstock30, na.rm=TRUE)
+  # RACA_ci <- sd(RACA_soc_no_out$SOCstock30, na.rm=TRUE)/sqrt(RACA_n)*1.96 #creates 95% confidence interval
+  # RACA_res <- data.frame(mean = RACA_mean, ci95 = RACA_ci, n = RACA_n)
+  return(RACA_soc_no_out)
   }
 
 ## ---- format text function ----
