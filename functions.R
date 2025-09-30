@@ -338,6 +338,7 @@ reg_baseline <- function(polygon #Specify polygon of project
   ecoregions <- st_read("./Ecoregions/us_eco_l3.shp")
   ecoregions <- st_make_valid(st_transform(ecoregions, st_crs(cent)))
   region <- ecoregions[st_contains(ecoregions, cent, sparse = FALSE), ]
+  region_name <-unique(region$US_L3NAME)
   
   # Pull RACA data for ecoregion of interest
   RACA_coords <- read.csv("./RaCA Data/RaCa_general_location.csv") %>% #imports RaCA point coords
@@ -353,11 +354,11 @@ reg_baseline <- function(polygon #Specify polygon of project
   #Remove outliers
   outliers <- boxplot.stats(RACA_soc$SOCstock30)$out
   RACA_soc_no_out <- RACA_soc[!RACA_soc$SOCstock30 %in% outliers, ]
-  # RACA_n <- nrow(RACA_soc_no_out) #defines number of sites for regional baseline
-  # RACA_mean <- mean(RACA_soc_no_out$SOCstock30, na.rm=TRUE)
-  # RACA_ci <- sd(RACA_soc_no_out$SOCstock30, na.rm=TRUE)/sqrt(RACA_n)*1.96 #creates 95% confidence interval
-  # RACA_res <- data.frame(mean = RACA_mean, ci95 = RACA_ci, n = RACA_n)
-  return(RACA_soc_no_out)
+  RACA_n <- nrow(RACA_soc_no_out) #defines number of sites for regional baseline
+  RACA_mean <- mean(RACA_soc_no_out$SOCstock30, na.rm=TRUE)
+  RACA_ci <- sd(RACA_soc_no_out$SOCstock30, na.rm=TRUE)/sqrt(RACA_n)*1.96 #creates 95% confidence interval
+  RACA_res <- data.frame(ecoregion = region_name, mean = RACA_mean, ci95 = RACA_ci, n = RACA_n)
+  return(list(data_points = RACA_soc_no_out, summary_stats = RACA_res))
   }
 
 ## ---- format text function ----
