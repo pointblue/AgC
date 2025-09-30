@@ -26,7 +26,6 @@ source('packages.R')
 source('functions.R')
 
 #renv::restore() #CHECK add renv to this rproj?
-setwd("Z:/Soils Team/AgC")
 data_path<-("Z:/Soils Team/AgC Data/Master Datasheets")
 
 knitr::opts_chunk$set(
@@ -109,7 +108,32 @@ The Ag-C program offers a flexible approach to designing a monitoring program. T
 
 To support interpretability and comparability, `r proj.protocol` assigns each monitoring project an “inference score” which reflects how decisions made in the project design process impact the overall rigor and reliability of the resulting data. Inference scores range from 40 to 100, where a higher score generally reflects greater confidence in the project's findings or a more holistic characterization of carbon dynamics in the study site. Nonetheless, all `r proj.protocol` projects represent a minimum standard of rigor and reliability. 
 
-The monitoring plan developed for the `r paste0(proj.implementationyear, " ", proj.practicetype)` practice at `r proj.propertyname ` results in a `r proj.protocol` inference score of `r proj.inscore`.
+### Your inference score
+
+The monitoring plan developed for the `r paste0(proj.implementationyear, " ", proj.practicetype)` practice at `r proj.propertyname ` results in a `r proj.protocol` inference score of `r proj.inscore`. In addition to the indicators measured, their sampling densities, and the selected methods, the following design factors contributed to the score: 
+
+```{r Dynamic text Baseline and Control, results='asis'}
+if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site.", "<br><br>"))}
+
+if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented, but did not include parallel monitoring at an untreated control site.", "<br><br>"))}
+
+if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes parallel monitoring at an untreated control site, but did not capture baseline conditions before practice implementation.", "<br><br>"))}
+  
+if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project did not capture baseline conditions before practice implementation and was not able to compare current conditions to an untreated control site. While we are still able to characterize current conditions now and into the future, the results will have limited interpretability for understanding the full scope of practice impact.", "<br><br>"))}
+```
+The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results. 
+  
+```{r, max depth and selection method, results = 'asis'}
+depths.inches<-unique(PointLevel$target_depth)%>%convert_depths
+max.depth.inches <- max(as.numeric(sub(".*-", "", depths.inches)))
+
+cat(paste0("Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches. ", "<br><br>" ))
+
+if (ProjectDesign$point_generation_method=="GIS"){
+  cat("Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
+}else{cat("Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
+```
+
 
 ### Carbon indicators
 The following table includes carbon indicators that were included in this monitoring project and their corresponding acronyms that will be used in the following tables, graphs, and maps. A description of each indicator and reported units are provided. 
@@ -234,27 +258,11 @@ if (ProjectDesign$composite==TRUE){
   cat("Each soil sample was composed of smaller composited samples to capture small-scale variability at each sampling point. ")
 }
 
-if (ProjectDesign$point_generation_method=="GIS"){
-  cat("Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
-}else{cat("Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
+
 
 #CHECK add statement for stratification? Not worried about it right now but may come back after deadline
 ```
-
-
-### Other design elements
-The Ag-C framework flexibly accommodates different project design approaches. For example, the most rigorous project would include baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results. 
-
-```{r Dynamic text Baseline and Control, results='asis'}
-
-if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site.", "<br><br>"))}
-
-if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented, but did not include parallel monitoring at an untreated control site.", "<br><br>"))}
-
-if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes parallel monitoring at an untreated control site, but did not capture baseline conditions before practice implementation.", "<br><br>"))}
-  
-if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project did not capture baseline conditions before practice implementation and was not able to compare current conditions to an untreated control site. While we are still able to characterize current conditions now and into the future, the results will have limited interpretability for understanding the full scope of practice impact.", "<br><br>"))}
-
+```{r, depth increments, results='asis'}
 #Do some conversions for a statement about max depth and depth increments
 depth.increments.no <- ProjectDesign$depth_increments
 convert_depths <- function(x) {
@@ -264,10 +272,6 @@ convert_depths <- function(x) {
     paste(nums, collapse = "-")
   })
 }
-depths.inches<-unique(PointLevel$target_depth)%>%convert_depths
-max.depth.inches <- max(as.numeric(sub(".*-", "", depths.inches)))
-
-cat(paste0("Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches. " ))
 
 if (depth.increments.no>1){
   cat("Depth increments from ", depths.string[1], " inches and ", depths.string[2], " inches were analyzed separately.")
@@ -283,7 +287,6 @@ if (depth.increments.no>1){
   depth_sentence(depths.inches)
   
 }
-
 ```
 ## Results
 ```{r}
@@ -351,25 +354,36 @@ facet_order <- c("org_c_stocks", "inorg_c_stocks", "poc_stocks", "maoc_stocks")
 
 df_long$Stocks_Indicator <- factor(df_long$Stocks_Indicator, levels = facet_order)
 
-ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
-  geom_violin(trim=TRUE,  color = "black") + #, show.legend=ifelse(length(unique(df_long$plot_type))>1, TRUE, FALSE))
-  facet_wrap(~ Stocks_Indicator) +  # Facet by Indicator column
+ggplot(df_long, aes(x = plot_type, y = Tons.Acre, color = plot_type)) +
+
+  facet_wrap(~ Stocks_Indicator) +
   theme_minimal() +
-  geom_point(aes(color = "Sampling point values"), alpha = .5, size = 3, position = position_jitterdodge(jitter.width = 0.1, jitter.height = 0.1))+
+  
+  # jittered sampling points
+  geom_point(aes(color = "Sampling point values"), alpha = .5, size = 3, position = position_jitterdodge(jitter.width = 1, jitter.height = 0.1))+
+  
   scale_color_manual(values = c("Sampling point values" = "black"), name = "")+
+  
+  # Mean + 95% CI (colored by plot_type)
   stat_summary(
     fun.data = function(x) {
       mean_x <- mean(x, na.rm = TRUE)
-      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))  # Standard error
+      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+      ci <- 1.96 * se_x
       data.frame(
         y = mean_x,
-        ymin = mean_x - se_x,
-        ymax = mean_x + se_x
+        ymin = mean_x - ci,
+        ymax = mean_x + ci
       )
     },
     geom = "pointrange",
-    color = "white"
+    aes(color = plot_type),
+    size = 1.5,
+    linewidth = 1.5,
+    shape = 16
   ) +
+  
+  # Mean labels (always gold)
   stat_summary(
     fun = mean,
     geom = "shadowtext", #requires package shadowtext
@@ -382,22 +396,36 @@ ggplot(df_long, aes(x = plot_type, y = Tons.Acre, fill=plot_type)) +
     fontface = "bold",
     size = 4
   )+
-  theme(axis.title.x=element_blank(),
-        plot.caption = element_text(hjust = 0),
-        plot.title = element_text(hjust = 0.5), 
-        axis.text.x=element_blank(), 
-        axis.ticks.x=element_blank()) +
-  scale_fill_manual(values=cbbPalette,
-                    name = str_wrap('Plot average +/- 1 standard deviation', width = 15),
-                    breaks = c('C', 'T'),
-                    labels = c('control', "treatment"))+
-  labs(x = '', y = 'Carbon Stored (tons/acre)')+
-  facet_manual(~Stocks_Indicator, 
-               design = design, 
-               #scales = "free_y", 
-               labeller = as_labeller(Var.Labels, 
-                                      default=label_wrap_gen(20)))+
-  expand_limits(y=0.1)#+ #limits the lowest value for the y axis so graphs with 0 values dont show 
+  
+  theme(
+    axis.title.x = element_blank(),
+    plot.caption = element_text(hjust = 0),
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  
+  #Color scale for both plot_type and sampling points
+  scale_color_manual(
+    values = c(
+      "C" = cbbPalette[1],
+      "T" = cbbPalette[2],
+      "Sampling point values" = "black"
+    ),
+    breaks = c("C", "T", "Sampling point values"),
+    labels = c(str_wrap("Control site average with 95% confidence interval", width=21), 
+               str_wrap("Treated site average with 95% confidence interval", width=21), 
+               "Sampling point values"),
+    name = ""
+  ) +
+  
+  labs(x = '', y = 'Carbon Stored (tons/acre)') +
+  facet_manual(
+    ~Stocks_Indicator,
+    design = design,
+    labeller = as_labeller(Var.Labels, default = label_wrap_gen(20))
+  ) +
+  expand_limits(y = 0.1)#+ #limits the lowest value for the y axis so graphs with 0 values dont show 
 
 }
 ```
@@ -714,7 +742,7 @@ DynamicMap
 Soil organic carbon makes up the majority of soil organic matter which provides a variety of services in agro-ecosystems. Soil organic carbon benefits soil organisms by creating a structured, porous environment. In turn, these soil organisms then increase fertility by cycling nutrients from waste materials, leading to higher productivity. Soils with higher levels of organic carbon have higher water holding capacity contributing to overall landscape resilience. Understanding how soil organic carbon changes in response to management practices across a variety of soils and climates, will help us prioritize lands for maximum conservation planting impact.
 
 #### How can I interpret 1 ton of carbon per acre?
-One ton of carbon per acre is equal to 3.67 metric tons of CO2 removed from the atmosphere, equivalent to 1 year of passenger car emissions. It is important to note that 1 ton of carbon per acre in our soil data is only to a 12 inch depth; much more carbon can be stored below that depth.  
+One ton of carbon per acre is equal to 3.67 metric tons of CO2 removed from the atmosphere, equivalent to 1 year of passenger car emissions. It is important to note that 1 ton of carbon per acre in our soil data is only to a 12-inch depth; much more carbon can be stored below that depth.  
 
 #### As a land steward, how do I use all of this information?
 Ag-C data is designed to track changes in carbon storage and cycling over time in response to conservation practices. Over time, land stewards can use this information to make adaptive management decisions. If time-series data is not yet available, comparing across different areas of your own farm or ranch is most informative. Explore the dynamic map to gauge how different sites across the study area differ in key metrics. Additionally, our team is working towards a reporting structure that will allow landowners to compare their Ag-C data to other sites within the network, especially to other enrolled farms and ranches in their region. As our database grows, network-wide and regional comparisons will provide an increasingly detailed understanding of differing practice impacts across spatial scales. An online user dashboard allowing Ag-C land stewards to view and compare their results is planned for launch in 2026.
