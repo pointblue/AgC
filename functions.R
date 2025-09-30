@@ -336,7 +336,7 @@ reg_baseline <- function(polygon #Specify polygon of project
   
   # Associate centroid of polygon with ecoregion
   ecoregions <- st_read("./Ecoregions/us_eco_l3.shp")
-  ecoregions <- st_transform(ecoregions, st_crs(cent))
+  ecoregions <- st_make_valid(st_transform(ecoregions, st_crs(cent)))
   region <- ecoregions[st_contains(ecoregions, cent, sparse = FALSE), ]
   
   # Pull RACA data for ecoregion of interest
