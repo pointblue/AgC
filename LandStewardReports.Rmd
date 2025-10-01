@@ -459,9 +459,9 @@ The following table summarizes average values across the study area for all soil
 
 Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type) %>%
-                    dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
+                    dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
 
-Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>%
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>%
           pivot_wider(names_from = c("plot_type"), values_from = value)%>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
            left_join( #add the units column (CHECK,)
     proj.indicator.table %>% select(CheckCol, UnitsTable),
@@ -508,11 +508,11 @@ Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder c
 ```{r}
 #Create plot summary table
   if (length(unique(border$plot_type))==1) { # Use this table format if there's only a treatment site
-    SummaryTable <- Soil.Means %>% 
+    SummaryTable <- Soil.Means %>% filter(Units!='tons/acre')%>% #dont include stocks here
       kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Treatment"))
   } 
   if (length(unique(border$plot_type))==2) { # Use this table format if there's a treatment and control site
-    SummaryTable <- Soil.Means %>% 
+    SummaryTable <- Soil.Means %>% filter(Units!='tons/acre')%>% #dont include stocks here
       kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Control", "Treatment"))
   }
 
@@ -650,10 +650,10 @@ The previous tables and figures report results averaged across the study area. U
 ```{r Dynamic map}
 
 if ("bulk_density" %in% proj.indicators.SSC.stocks){
-stockscolumns<-grep("_stocks$", proj.indicators.SSC, value = TRUE) #gather the names of the stocks columns
+stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
 }
 
-proj.indicators.nonbiomass<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...
+proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
 
 if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector 
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
@@ -661,7 +661,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector
   dynamicmap.inds <- proj.indicators.nonbiomass
 }
 
-fixed_order <- c("org_c", "maoc", "poc", "bulk_density", "ph", "sand", "silt", "clay")
+fixed_order <- c("org_c", "maoc", "poc", "inorg_c", "org_c_stocks", "maoc_stocks", "poc_stocks", "inorg_c_stocks", "bulk_density", "ph", "sand", "silt", "clay") #
 dynamicmap.inds <- c(
   intersect(fixed_order, dynamicmap.inds),           # fixed values in order
   setdiff(dynamicmap.inds, fixed_order)             # remaining values
