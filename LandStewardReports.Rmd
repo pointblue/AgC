@@ -3,7 +3,7 @@ title: |
   <img src="ReportRef/Images/PBLogo.png" style="width: 300px;">  
   <img src="ReportRef/Images/AgCLogo.png" style="width: 500px;">  
   Land Steward Report
-author: "Avalon Cook"
+author: "Avalon Cook and Lisa Eash"
 date: "`r format(Sys.Date(), '%B %d %Y')`"
 output:
   bookdown::html_document2:
@@ -151,7 +151,7 @@ proj.indicator.table<-proj.indicator.db%>%
 ```
 ```{r, , results='asis'}
 if ("Extra" %in% proj.indicator.table$Status){
-cat(paste0("Note that your project included indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the ", proj.protocol,  " handbook."))}
+cat(paste0("Note that your project includes indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the ", proj.protocol,  " handbook."))}
 ```
 ```{r}
 ind.table.kbl<-proj.indicator.table%>%select(Indicator, Acronym, Description, `Final units`)
@@ -304,7 +304,13 @@ asis_output("### Soil carbon stocks\\n") #CONDITIONAL HEADER
 
 ```
 ```{r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
-asis_output("The following graph shows calculated carbon stocks values for the study area. Carbon stocks represent the amount of carbon stored in the study area to the specified sampling depth. These 'violin plots' also show the variability of carbon stocks across the site. The widest part of the plot represents the most common carbon level in the study area. The white dot represents the average value, and white lines show one standard deviation above and below the average.")
+asis_output(
+
+paste0("The following graph shows soil organic carbon stocks stored in the study area compared to other rangeland and cropland sites in your ecoregion: ", 
+       raca_summary$ecoregion,
+       ". These comparison values are from the [USDA’s Rapid Carbon Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other agricultural sites in comparable climates. As you continue implementing conservation practices, your soil organic carbon (SOC) stocks have the potential to increase, moving closer to the higher end of SOC stocks seen in your region.")
+
+)
 ```
 ```{r, Calculating stocks}
 #Calculating stocks on qualifying soil metrics
@@ -330,107 +336,122 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
 
 }
 ```
-```{r fig.cap="Carbon stocks variability and average"}
-if ("bulk_density" %in% proj.indicators.SSC.stocks){
+```{r, RACA baselines, warning=FALSE, message=FALSE, include=FALSE}
+raca_data<-reg_baseline(border)[[1]]%>% #use Lisa's function to get raca data for our region and extract the dataframe
+  select(upedonid, SOCstock30)%>% #select relevant columns
+  mutate(
+    SOCstock30 = SOCstock30*0.4461, #convert metric to imperial
+    plot_type = "raca", #adding this variable allows for binding to main dataset and faceting the graph below
+    Stocks_Indicator = "org_c_stocks") #adding this helps later behavior when I filter based on carbon pool 
 
-Var.Labels <- c('All pools combined', 'Soil Organic Carbon', 'Soil Inorganic Carbon')
-names(Var.Labels) <- c('All', 'org_c_stocks', 'inorg_c_stocks')
-cbbPalette <- c("#384F8D80","#384F8Dff") 
-length(grep("_stocks$", proj.indicators.SSC, value = TRUE))
-#define layout for facets depending on the number of indicators included
-if(length(grep("_stocks$", proj.indicators.SSC, value = TRUE))==4){design <- matrix(c(1, 1, 2, 3, 4, 4), 2, 3)}
-if(length(grep("_stocks$", proj.indicators.SSC, value = TRUE))==6){design <- matrix(c(1,1,2,3,4,5,6,6), 2, 4)}
-if(length(grep("_stocks$", proj.indicators.SSC, value = TRUE))==3){design <- matrix(c(1, 2, 3), 1, 3)}
-else{design <- matrix(c(1, 2, 3), 1, 3)} #CHECK
-
-df_long <- PointLevel %>%
+raca_summary<-reg_baseline(border)[[2]] #create an object that holds the raca summary values (mean, CI, and ecoregion)
+```
+```{r, formatting stocks data}
+stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
   pivot_longer(
     cols = contains("_stocks"), # Select columns to pivot
-    names_to = "Stocks_Indicator",          # Name for the new column with column names
-    values_to = "Tons.Acre"              # Name for the new column with values
+    names_to = "Stocks_Indicator",          # Name for the new column
+    values_to = "Tons.Acre"              # values to populate the new column
+  ) %>%
+  bind_rows( #bind project stocks df to the raca dataset
+  raca_data %>%
+    mutate(
+      sample_id = upedonid,
+      Tons.Acre = SOCstock30,
+      plot_type = plot_type,
+      Stocks_Indicator = Stocks_Indicator,
+      .keep = "none"   # keep only these renamed columns
+    )
   )
 
-facet_order <- c("org_c_stocks", "inorg_c_stocks", "poc_stocks", "maoc_stocks")
+```
 
-df_long$Stocks_Indicator <- factor(df_long$Stocks_Indicator, levels = facet_order)
 
-ggplot(df_long, aes(x = plot_type, y = Tons.Acre, color = plot_type)) +
+```{r fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Black dots in the background show individual sampling point values."}
+if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
-  facet_wrap(~ Stocks_Indicator) +
-  theme_minimal() +
-  
-  # jittered sampling points
-  geom_point(aes(color = "Sampling point values"), alpha = .5, size = 3, position = position_jitterdodge(jitter.width = 1, jitter.height = 0.1))+
-  
-  scale_color_manual(values = c("Sampling point values" = "black"), name = "")+
-  
-  # Mean + 95% CI (colored by plot_type)
-  stat_summary(
-    fun.data = function(x) {
-      mean_x <- mean(x, na.rm = TRUE)
-      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
-      ci <- 1.96 * se_x
-      data.frame(
-        y = mean_x,
-        ymin = mean_x - ci,
-        ymax = mean_x + ci
-      )
-    },
-    geom = "pointrange",
-    aes(color = plot_type),
-    size = 1.5,
-    linewidth = 1.5,
-    shape = 16
-  ) +
-  
-  # Mean labels (always gold)
-  stat_summary(
-    fun = mean,
-    geom = "shadowtext", #requires package shadowtext
-    bg.color = "black", #text outline color
-    bg.r = 0.15,  #thickness of outline
-    aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
-    color = "#FFD700", #text color
-    hjust = -0.5,
-    vjust = 0.2,
-    fontface = "bold",
-    size = 4
-  )+
-  
-  theme(
-    axis.title.x = element_blank(),
-    plot.caption = element_text(hjust = 0),
-    plot.title = element_text(hjust = 0.5),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  
-  #Color scale for both plot_type and sampling points
-  scale_color_manual(
-    values = c(
-      "C" = cbbPalette[1],
-      "T" = cbbPalette[2],
-      "Sampling point values" = "black"
-    ),
-    breaks = c("C", "T", "Sampling point values"),
-    labels = c(str_wrap("Control site average with 95% confidence interval", width=21), 
-               str_wrap("Treated site average with 95% confidence interval", width=21), 
-               "Sampling point values"),
-    name = ""
-  ) +
-  
-  labs(x = '', y = 'Carbon Stored (tons/acre)') +
-  facet_manual(
-    ~Stocks_Indicator,
-    design = design,
-    labeller = as_labeller(Var.Labels, default = label_wrap_gen(20))
-  ) +
-  expand_limits(y = 0.1)#+ #limits the lowest value for the y axis so graphs with 0 values dont show 
+#SOC stocks graphic comparing to RaCa baselines
+    SOC_stocks_df<-stocks_df%>%filter(Stocks_Indicator=="org_c_stocks") #filter the stocks df for only SOC (including raca)
+    
+    #Define the desired order of x-axis values
+    SOC_stocks_df$plot_type <- factor(SOC_stocks_df$plot_type, levels = c("T", "C", "raca"))
+    
+    #Define custom palette
+    cbbPalette <- c("T" = "#384F8Dff", 
+                    "C" = "#384F8D80", 
+                    "raca"= "#db7821",  
+                    "Sampling point values" = "black") 
+    
+    #Begin graph
+    ggplot(SOC_stocks_df, aes(x = plot_type, y = Tons.Acre)) +
+      
+      # Jittered black points
+      geom_point(aes(color = "Sampling point values"),
+        alpha = 0.5,
+        size = 3,
+        position = position_jitter(width = 0.2, height = 0)
+      ) +
+      
+      # Mean + 95% CI (colored by plot_type)
+      stat_summary(
+        fun.data = function(x) {
+          mean_x <- mean(x, na.rm = TRUE)
+          se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+          ci <- 1.96 * se_x
+          data.frame(
+            y = mean_x,
+            ymin = mean_x - ci,
+            ymax = mean_x + ci
+          )
+        },
+        geom = "pointrange",
+        aes(color = plot_type),
+        size = 1.5, #size of dot
+        linewidth = 1.5, #thickness of CI line
+        shape = 16
+      ) +
+      
+      # Labels, axes, theme
+      labs(
+        x = "",
+        y = "Soil Organic Carbon Stored (tons/acre)",
+      ) +
+      scale_color_manual(values = cbbPalette,
+                         breaks = c("C", "T", "raca", "Sampling point values"),
+                         labels = c(str_wrap("Control site average", width=21), 
+                                    str_wrap("Treated site average", width=21),
+                                    str_wrap(paste0(raca_summary$ecoregion, " average"), width=21),
+                                    "Sampling point values"),
+                         name = "" #don't need a label over the legend
+      ) +
+      
+      # Custom x-axis labels
+      scale_x_discrete(labels = c(
+        "T" = "Treated site",
+        "C" = "Control site",
+        "raca" = str_wrap(paste0(raca_summary$ecoregion, " ag-lands"), width=28)
+      )) +
+      
+      # Text labels for means
+      stat_summary(
+        fun = mean,
+        geom = "shadowtext", #requires package shadowtext
+        bg.color = "black", #text outline color
+        bg.r = 0.15,  #thickness of outline
+        aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
+        color = "#FFD700", #text color
+        hjust = -0.5,
+        vjust = 0.2,
+        fontface = "bold",
+        size = 4
+      )+
+      
+      theme_minimal()
 
 }
 ```
-```{r fig.cap=""}
-
+```{r, Stocks figure for all other pools, fig.cap=""}
+#Placeholder
 ```
 ### All soil properties
 The following table summarizes average values across the study area for all soil metric(s) included in your project. 
@@ -660,13 +681,35 @@ base_colors <- rainbow(length(dynamicmap.inds)) #create a rainbow palette from w
 #define labels for legend and popups
 Means.Pivot1<-Means.Pivot1%>%
   mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
-legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator) 
+legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator)
+legends_names["sample_id"]<-"Sample ID" #forcing in value for sample ID
 
 #create dataframe for point popups
-df_forpopup <- DataMap.proj %>%
-    mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
-  rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))
-popupcols<-setdiff(names(df_forpopup), c("geometry", "plot_type", "plot_type"))
+    #used chat gpt for a lot of this cause I couldn't figure how to generate the tables row-wise so we're not stuck with a ton of NAs
+    df_forpopup <- DataMap.proj %>%
+        mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
+      rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))#%>%
+    
+    # Helper function to build HTML for a single row (GPT)
+    build_popup_html <- function(row, cols) {
+      vals <- row[cols]                   # select the relevant columns
+      vals <- vals[!is.na(vals)]          # remove NAs
+      vals <- lapply(vals, as.character)  # convert all to character
+      if(length(vals) == 0) return("")    # in case all values are NA
+      paste0(
+        "<table>",
+        paste0("<tr><td><b>", names(vals), "</b></td><td>", vals, "</td></tr>", collapse=""),
+        "</table>"
+      )
+    }
+    
+    popupcols<-setdiff(names(df_forpopup), c("sample_id", "geometry", "plot_type", "plot_type")) #define column to be included in the popups
+    
+    # Apply row-wise
+    df_forpopup$popup_html <- apply(
+      df_forpopup, 1, 
+      function(r) build_popup_html(r, popupcols)
+    )
 
 
 #color palette for plot borders
@@ -713,7 +756,10 @@ pal <- colorFactor(c("white","black"), c("T", "C"))
             radius = 3,
             group = legend_name,
             label = DataMap.proj$sample_id,
-            popup=popupTable(df_forpopup, zcol=popupcols,row.numbers = FALSE, feature.id = FALSE)
+            popup=df_forpopup$popup_html#popupTable(df_forpopup, 
+                  #           zcol=popupcols, 
+                  #           row.numbers = FALSE, 
+                  #           feature.id = FALSE)
               )%>%
        addLegend(
             pal = pal, 
@@ -742,14 +788,20 @@ DynamicMap
 Soil organic carbon makes up the majority of soil organic matter which provides a variety of services in agro-ecosystems. Soil organic carbon benefits soil organisms by creating a structured, porous environment. In turn, these soil organisms then increase fertility by cycling nutrients from waste materials, leading to higher productivity. Soils with higher levels of organic carbon have higher water holding capacity contributing to overall landscape resilience. Understanding how soil organic carbon changes in response to management practices across a variety of soils and climates, will help us prioritize lands for maximum conservation planting impact.
 
 #### How can I interpret 1 ton of carbon per acre?
-One ton of carbon per acre is equal to 3.67 metric tons of CO2 removed from the atmosphere, equivalent to 1 year of passenger car emissions. It is important to note that 1 ton of carbon per acre in our soil data is only to a 12-inch depth; much more carbon can be stored below that depth.  
+One ton of carbon per acre is equal to 3.67 metric tons of CO2 removed from the atmosphere, equivalent to 1 year of passenger car emissions. It's important to note that carbon stored in this report is always related to the sampling depth. While sampling to a 12-inch depth is an industry-standard minimum, much more carbon can be stored below a foot of soil.     
 
 #### As a land steward, how do I use all of this information?
-Ag-C data is designed to track changes in carbon storage and cycling over time in response to conservation practices. Over time, land stewards can use this information to make adaptive management decisions. If time-series data is not yet available, comparing across different areas of your own farm or ranch is most informative. Explore the dynamic map to gauge how different sites across the study area differ in key metrics. Additionally, our team is working towards a reporting structure that will allow landowners to compare their Ag-C data to other sites within the network, especially to other enrolled farms and ranches in their region. As our database grows, network-wide and regional comparisons will provide an increasingly detailed understanding of differing practice impacts across spatial scales. An online user dashboard allowing Ag-C land stewards to view and compare their results is planned for launch in 2026.
+Ag-C data is designed to track changes in carbon storage and cycling over time in response to conservation practices. Over several monitoring cycles, land stewards can use this information to make adaptive management decisions. If time-series data is not yet available, comparing across different areas of your own farm or ranch is most informative. Explore the dynamic map to gauge how different sites across the study area differ in key metrics.    
+
+Additionally, our team is working towards a reporting structure that will allow landowners to compare their Ag-C data to other sites within the network, especially to other enrolled farms and ranches in their region. As our database grows, network-wide and regional comparisons will provide an increasingly detailed understanding of differing practice impacts across spatial scales. An online user dashboard allowing Ag-C land stewards to view and compare their results is planned for launch in 2026. 
+
+If you’d like to pursue options for implementing carbon-building practices, reaching out to your local NRCS office is a great start. You can find a service center in your county at [www.nrcs.usda.gov/contact/find-a-service-center](https://www.nrcs.usda.gov/contact/find-a-service-center). 
 
 #### How can the data from my site contribute to agricultural conservation science?  
 
-The Ag-C Program is designed to collect data that is comparable to other projects across space and time. Participants have the option to contribute their data to the Ag-C Database, where it is securely stored in the Point Blue Science Cloud. Data owners select a sharing level they are comfortable with, ranging from private to open. Data submitted to the Ag-C Database are used to advance scientific understanding of regional practice impact and greenhouse gas cycling. Please visit [this link](https://form.jotform.com/250767021376053) to read about our data sharing policies and select a data sharing level for your project.  
+Currently, accurate predictions of conservation practice outcomes are limited due to a lack of sufficient data on how on-farm management interacts with local environmental conditions. The Ag-C Program will address this gap by creating a publicly accessible database that spans a broad geographic range and timescale. This resource will enhance our understanding of how farm-level climate and management practices influence conservation outcomes, improve our ability to predict results locally, and support the development of practical, user-friendly tools for producers.  
+
+Participants have the option to contribute their data to the Ag-C Database, where it is securely stored in the Point Blue Science Cloud. Data owners select a sharing level they are comfortable with, ranging from private to open. Please visit [this link](https://form.jotform.com/250767021376053) to read about our data sharing policies and select a data sharing level for your project.  
 
 Detailed management data advances the science of agricultural conservation by helping to tease out relationships between management activities and changes in soil health. If you choose to submit your data to the Ag-C Database, please consider filling out a [Management Questionnaire](https://form.jotform.com/243406539772160) to multiply the impact of your contribution.  
 
@@ -757,4 +809,4 @@ Detailed management data advances the science of agricultural conservation by he
 Under the Ag-C framework, each conservation practice has its own recommended resampling interval that ranges from 1 year to 10 years, based on the expected impact of the practice over time^[Consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`) for more information about resampling intervals by conservation practice.]. Our team is always working to identify opportunities for continued monitoring for Ag-C participants. Contact our team if you're interested in pursuing support for future resampling events or if you have existing support for future monitoring and would like to continue participating in the Ag-C Monitoring Program.
 
 ## Conclusion
-Thank you again for your participation in the Ag-C Monitoring Program. For more information about project design, further interpretation of results, or to access the raw data from your study site, please reach out to [RangeC\@pointblue.org](mailto:RangeC@pointblue.org) or [CropC\@pointblue.org](mailto:CropC@pointblue.org). Our team is happy to engage with additional questions or feedback. Your participation sharing data will launch new scientific understanding of conservation management and support improved incentive structures across the nation.
+Thank you for your participation in the Ag-C Monitoring Program. For more information about project design, further interpretation of results, or to access the raw data from your study site, please reach out to [RangeC\@pointblue.org](mailto:RangeC@pointblue.org) or [CropC\@pointblue.org](mailto:CropC@pointblue.org). Our team is happy to engage with additional questions or feedback. Your participation and sharing data will launch new scientific understanding of conservation management and support improved incentive structures across the nation.
