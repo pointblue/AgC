@@ -14,7 +14,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: JPNV
+  project_name: STAN
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -33,6 +33,23 @@ knitr::opts_chunk$set(
 	message = FALSE,
 	warning = FALSE, 
 	error=FALSE)
+
+convert_depths <- function(x) {
+  sapply(strsplit(x, "_"), function(parts) {
+    nums <- as.numeric(parts)
+    nums <- round(nums * 0.393701)
+    paste(nums, collapse = "-")
+  })
+}
+
+depth_sentence <- function(depths.string) {
+  paste0(
+    "Depth increments from ",
+    paste(depths.string, collapse = ", "),
+    " inches were analyzed separately."
+  ) |>
+    sub(", ([^,]*)$", " and \\1", x = _)
+  }
 
 #gs4_auth_configure(api_key = 'AIzaSyBEULjhG3_r_ZX6F7ZKDEUQ5yOgUbKVh6o') #this auth key is linked to Avalon's account and should prevent from the user needing to manually authorize each time, like in the line below
 ```
@@ -124,7 +141,7 @@ if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==
 The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results. 
   
 ```{r, max depth and selection method, results = 'asis'}
-depths.inches<-unique(PointLevel$target_depth)%>%convert_depths
+depths.inches<-unique(PointLevel$target_depth)%>%convert_depths()
 max.depth.inches <- max(as.numeric(sub(".*-", "", depths.inches)))
 
 cat(paste0("Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches. ", "<br><br>" ))
@@ -265,25 +282,11 @@ if (ProjectDesign$composite==TRUE){
 ```{r, depth increments, results='asis'}
 #Do some conversions for a statement about max depth and depth increments
 depth.increments.no <- ProjectDesign$depth_increments
-convert_depths <- function(x) {
-  sapply(strsplit(x, "_"), function(parts) {
-    nums <- as.numeric(parts)
-    nums <- round(nums * 0.393701)
-    paste(nums, collapse = "-")
-  })
-}
+
 
 if (depth.increments.no>1){
   cat("Depth increments from ", depths.string[1], " inches and ", depths.string[2], " inches were analyzed separately.")
   
-  depth_sentence <- function(depths.string) {
-  paste0(
-    "Depth increments from ",
-    paste(depths.string, collapse = ", "),
-    " inches were analyzed separately."
-  ) |>
-    sub(", ([^,]*)$", " and \\1", x = _)
-  }
   depth_sentence(depths.inches)
   
 }
@@ -303,7 +306,20 @@ PointLevel<-PointLevel%>%
 asis_output("### Soil carbon stocks\\n") #CONDITIONAL HEADER
 
 ```
-```{r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
+
+``` {r, RACA baselines, warning=FALSE, message=FALSE, include=FALSE}
+raca_data<-reg_baseline(border)[[1]]%>% #use Lisa's function to get raca data for our region and extract the dataframe
+  select(upedonid, SOCstock30)%>% #select relevant columns
+  mutate(
+    SOCstock30 = SOCstock30*0.4461, #convert metric to imperial
+    plot_type = "raca", #adding this variable allows for binding to main dataset and faceting the graph below
+    Stocks_Indicator = "org_c_stocks") #adding this helps later behavior when I filter based on carbon pool 
+
+raca_summary<-reg_baseline(border)[[2]] #create an object that holds the raca summary values (mean, CI, and ecoregion)
+
+```
+
+``` {r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
 asis_output(
 
 paste0("The following graph shows soil organic carbon stocks stored in the study area compared to other rangeland and cropland sites in your ecoregion: ", 
@@ -336,16 +352,7 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
 
 }
 ```
-```{r, RACA baselines, warning=FALSE, message=FALSE, include=FALSE}
-raca_data<-reg_baseline(border)[[1]]%>% #use Lisa's function to get raca data for our region and extract the dataframe
-  select(upedonid, SOCstock30)%>% #select relevant columns
-  mutate(
-    SOCstock30 = SOCstock30*0.4461, #convert metric to imperial
-    plot_type = "raca", #adding this variable allows for binding to main dataset and faceting the graph below
-    Stocks_Indicator = "org_c_stocks") #adding this helps later behavior when I filter based on carbon pool 
 
-raca_summary<-reg_baseline(border)[[2]] #create an object that holds the raca summary values (mean, CI, and ecoregion)
-```
 ```{r, formatting stocks data}
 stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
   pivot_longer(
@@ -576,7 +583,7 @@ TT.plot(
     filter(plot_type == "T") #CHECK! This won't work right now until lisa adds this column to PointLevel
     
     texture_C <- PointLevel %>% 
-    rename(SAND=Sand, SILT=Silt, CLAY=Clay) %>%
+    rename(SAND=sand, SILT=silt, CLAY=clay) %>%
     filter(!is.na(CLAY)) %>%
     filter(!is.na(SAND)) %>%
     filter(!is.na(SILT)) %>%
