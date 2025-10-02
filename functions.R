@@ -158,7 +158,7 @@ clean_tap_df <- function(agc_data_entry_path){
   #Make sure that all rows that have NA for volume have no Vol or Depth data
   na_rows <- tap_clean[is.na(tap_clean$vol_cm3),] %>%
     filter(if_all(c(Volume1_mL:Depth4_cm), ~ !is.na(.))) %>%
-    select(SampleID)
+    select(PointID)
   if(nrow(na_rows) > 0) {
     message("Sample IDs with vol/depth input but no calculated volume:", paste(na_rows$Sample.ID))
   }
