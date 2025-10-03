@@ -1,9 +1,11 @@
 ---
 title: |
-  <img src="ReportRef/Images/PBLogo.png" style="width: 300px;">  
-  <img src="ReportRef/Images/AgCLogo.png" style="width: 500px;">  
+  <div style="display: flex; align-items: center; gap: 150px;">
+    <img src="ReportRef/Images/PBLogo.png" style="width: 300px;">
+    <img src="ReportRef/Images/AgCLogo.svg" style="width: 300px;">
+  </div>
   Land Steward Report
-author: "Avalon Cook and Lisa Eash"
+author: "Avalon Cook, Lisa Eash, Greg Richardson, Ryan DiGaudio, Erika Foster, Chloe Latt, and Kees Hood"
 date: "`r format(Sys.Date(), '%B %d %Y')`"
 output:
   bookdown::html_document2:
@@ -14,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: STAN
+  project_name: JPBO
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -50,8 +52,6 @@ depth_sentence <- function(depths.string) {
   ) |>
     sub(", ([^,]*)$", " and \\1", x = _)
   }
-
-#gs4_auth_configure(api_key = 'AIzaSyBEULjhG3_r_ZX6F7ZKDEUQ5yOgUbKVh6o') #this auth key is linked to Avalon's account and should prevent from the user needing to manually authorize each time, like in the line below
 ```
 ```{r, project.summary}
 #pulling in spatial data
@@ -114,41 +114,38 @@ proj.title <- paste0(proj.propertyname, ": ", proj.implementationyear, proj.prac
 #### Conservation practice(s): `r proj.practicetype` {.unlisted .unnumbered}
 
 ## Background
-Thank you for participating in the Agricultural Carbon Monitoring Program. Ag-C was developed to help practitioners conduct transparent, fit-for-purpose monitoring of aboveground and belowground carbon in response to common conservation practices. At the same time that it supports management efforts at the farm scale, Ag-C is designed to evaluate management effects on carbon at regional scales when data is aggregated network-wide in the secure Point Blue Science Cloud. The collected information, from management history to field measurements, will support greater understanding of commonly incentivized practice impact on ecosystem carbon. 
+Thank you for participating in the Agricultural Conservation “Ag-C” Monitoring Program, developed to evaluate ecosystem impacts of common conservation practices on farms and ranches. The Ag-C program supports transparent, fit-for-purpose monitoring of multiple indicators, focuses on carbon as a primary indicator of ecosystem health. Ag-C monitoring tracks management impacts at the farm scale and also aggregates data to evaluate management effects at regional scales. With specified data-sharing permission, the collected information, from management history to field measurements, can support greater understanding of commonly incentivized practice impact on ecosystem carbon.
 
-The Agricultural Carbon ("Ag-C") Monitoring Program was developed by the Soils Team at Point Blue Conservation Science to help practitioners conduct transparent, fit-for-purpose monitoring of carbon dynamics in response to rangeland and cropland management. This report reviews the initial measurement for the baseline carbon indicators measured at your agricultural site. Continued use of the Ag-C protocols over time can assess the impact of your conservation effort. 
-
-This report reviews monitoring efforts to date for the carbon indicators measured at your agricultural site. Continued use of the Ag-C protocols over time can assess the long-term impact of your conservation effort. Find additional information and funding updates for continued use of the Ag-C Monitoring Program on [our landing page](https://www.pointblue.org/ag-c/). 
+This report reviews the values for the carbon indicators measured at your agricultural site. Over time, continued use of the Ag-C protocols will allow assessment of your conservation management impacts. Find additional information and updates the Ag-C Monitoring Program on [our landing page](https://www.pointblue.org/ag-c/) or sign up for important email updates [here](https://forms.office.com/r/TANxB68bAb). 
 
 ## Project Design
-The Ag-C program offers a flexible approach to designing a monitoring program. This includes the option to select carbon indicators of interest, tailor methods to your goals and resources, and match project design elements to your context. Ag-C is made of two major components: Range-C to accommodate monitoring in rangeland systems and Crop-C to accommodate monitoring in cropland systems. At your site, `r proj.protocol` was used as the guiding framework for developing a monitoring plan.^[To learn more about designing a monitoring program with `r proj.protocol`, consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`)]
+The Ag-C program offers a flexible monitoring approach, with options to select indicators of interest, tailor methods to your goals and resources, and match project design elements to your context. Ag-C is made of two major protocols: Range-C to accommodate monitoring in rangeland systems and Crop-C to accommodate monitoring in cropland systems. At your site, `r proj.protocol` was used to create a monitoring plan.^[To learn more about designing a monitoring program with `r proj.protocol`, consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`)]
 
-To support interpretability and comparability, `r proj.protocol` assigns each monitoring project an “inference score” which reflects how decisions made in the project design process impact the overall rigor and reliability of the resulting data. Inference scores range from 40 to 100, where a higher score generally reflects greater confidence in the project's findings or a more holistic characterization of carbon dynamics in the study site. Nonetheless, all `r proj.protocol` projects represent a minimum standard of rigor and reliability. 
+To support interpretability and comparability, `r proj.protocol` assigns each monitoring project an “inference score” which reflects how decisions made in the project design process impact the overall rigor and reliability of the resulting data. Inference scores range from 40 to 100, where the lowest score meets rigor and reliability standards to achieve target outcomes and the highest score reflects academic, research-level confidence in the project’s findings and/or a more holistic characterization of carbon dynamics. 
 
 ### Your inference score
 
 The monitoring plan developed for the `r paste0(proj.implementationyear, " ", proj.practicetype)` practice at `r proj.propertyname ` results in a `r proj.protocol` inference score of `r proj.inscore`. In addition to the indicators measured, their sampling densities, and the selected methods, the following design factors contributed to the score: 
 
 ```{r Dynamic text Baseline and Control, results='asis'}
-if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site.", "<br><br>"))}
+if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==2){cat(paste0("- This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site.^[The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results.]", "<br>"))}
 
-if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented, but did not include parallel monitoring at an untreated control site.", "<br><br>"))}
+if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==1){cat(paste0("- This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented, but did not include parallel monitoring at an untreated control site.^[The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results.]", "<br>"))}
 
-if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==2){cat(paste0("This ", proj.protocol, " project includes parallel monitoring at an untreated control site, but did not capture baseline conditions before practice implementation.", "<br><br>"))}
+if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==2){cat(paste0("- This ", proj.protocol, " project includes parallel monitoring at an untreated control site, but did not capture baseline conditions before practice implementation.^[The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results.]", "<br>"))}
   
-if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==1){cat(paste0("This ", proj.protocol, " project did not capture baseline conditions before practice implementation and was not able to compare current conditions to an untreated control site. While we are still able to characterize current conditions now and into the future, the results will have limited interpretability for understanding the full scope of practice impact.", "<br><br>"))}
+if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==1){cat(paste0("- This ", proj.protocol, " project did not capture baseline conditions before practice implementation and was not able to compare current conditions to an untreated control site. While we are still able to characterize current conditions now and into the future, the results will have limited interpretability for understanding the full scope of practice impact.^[The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results.]", "<br>"))}
 ```
-The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results. 
   
 ```{r, max depth and selection method, results = 'asis'}
 depths.inches<-unique(PointLevel$target_depth)%>%convert_depths()
 max.depth.inches <- max(as.numeric(sub(".*-", "", depths.inches)))
 
-cat(paste0("Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches. ", "<br><br>" ))
+cat(paste0("- Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches.\n\n"))
 
 if (ProjectDesign$point_generation_method=="GIS"){
-  cat("Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
-}else{cat("Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
+  cat("- Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
+}else{cat("- Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
 ```
 
 
@@ -180,6 +177,30 @@ Table1<-kbl(ind.table.kbl,
       vline = "|",
       linesep = "\\addlinespace",
       align= c('llll'))
+
+if ("BD" %in% ind.table.kbl$Acronym) {
+  # Add a footnote marker to BD row (in Acronym column)
+  ind.table.kbl$Description <- ifelse(
+    ind.table.kbl$Acronym == "BD",
+    paste0(ind.table.kbl$Description, footnote_marker_symbol(1)),
+    ind.table.kbl$Acronym
+  )
+  
+  # Rebuild the table with updated Acronym column
+  Table1 <- kbl(
+    ind.table.kbl,
+    caption = "Description of carbon indicators",
+    col.names = gsub("[.]", " ", x = names(ind.table.kbl)), 
+    row.names = FALSE,
+    vline = "|",
+    linesep = "\\addlinespace",
+    align = c('llll'),
+    escape = FALSE
+  ) %>%
+    footnote(
+      symbol  = "Bulk density values are calculated without subtracting rock volume so they can more accurately be used for carbon stock calculations. This may lead to lower “hybrid” BD values than are commonly presented."
+    )
+}
 
 Table1 %>% 
   kable_styling(position='center', full_width = T) %>%
@@ -257,7 +278,7 @@ if (identical(allpoints.list, proj.indicator.table)==FALSE){ #only proceed if so
   if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))){ #returns TRUE if all subset indicators were measured at the same sampling points
     subset_points <- PointLevel$sample_id[complete.cases(PointLevel[subset.inds])]
     subset.inds.name<-proj.indicator.table$Indicator[proj.indicator.table$CheckCol %in% subset.inds]
-    cat(paste0("The following indicators were measured at ", format_list(subset_points), ": ", format_list(subset.inds.name),"<br><br>"))
+    cat(paste0("The following indicators were measured at points ", format_list(substr(subset_points, 6, 7)), ": ", format_list(subset.inds.name),"<br><br>")) #CHECK! change substring values when point codes are standardized
   }
   
   #CHECK Here is where we go back to generating the table for when not all subset inds were measured at the same point. Not relevant for current report deadline. Model based on pilot reports code when ready
@@ -461,7 +482,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
 #Placeholder
 ```
 ### All soil properties
-The following table summarizes average values across the study area for all soil metric(s) included in your project. 
+The following table summarizes average values across the study area for all soil metrics included in your project. 
 ```{r Summarize non-stocks soil means} 
 
 Project.Means <- PointLevel %>%
@@ -504,7 +525,7 @@ Means.Pivot<-Means.Pivot1%>%
           
 my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
 
-Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder columns
+Soil.Means <- Means.Pivot %>% select(Acronym, everything(),Units)%>% #reorder columns
               mutate( #all the rest allows me to specify an order for the first few Ag-C metrics, and leave the rest alone
                   order_helper = match(Acronym, my_order),
                   original_order = row_number()
@@ -516,17 +537,17 @@ Soil.Means <- Means.Pivot %>% select(Acronym, Units, everything())%>% #reorder c
 #Create plot summary table
   if (length(unique(border$plot_type))==1) { # Use this table format if there's only a treatment site
     SummaryTable <- Soil.Means %>% filter(Units!='tons/acre')%>% #dont include stocks here
-      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Treatment"))
+      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Treatment", "Unit"))
   } 
   if (length(unique(border$plot_type))==2) { # Use this table format if there's a treatment and control site
     SummaryTable <- Soil.Means %>% filter(Units!='tons/acre')%>% #dont include stocks here
-      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Unit", "Control", "Treatment"))
+      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Control", "Treatment", "Unit"))
   }
 
 
 SummaryTable %>%
-  kable_styling(position='center', full_width = F)%>%
-  collapse_rows(columns = 2, valign = "middle") #merges adjacent cells with identical values
+  kable_styling(position='center', full_width = F)#%>%
+  #collapse_rows(columns = 2, valign = "middle") #merges adjacent cells with identical values
 
 #Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
 ```
@@ -652,7 +673,7 @@ grid.arrange(imgT, imgC, ncol = 2)
 
 ### Dynamic map: all measured values
 
-The previous tables and figures report results averaged across the study area. Use the interactive map below to explore results at each sampling point. Hover over the layers symbol to select from included metrics -- click on a sampling point to see all measured values at that point. 
+The previous tables and figures report results averaged across the study area. Use the interactive map below to explore results at each sampling point. Hover over the layers symbol to select from included metrics -- select one layer at a time for best visibility. Click on a sampling point to see all measured values at that point. 
 
 ```{r Dynamic map}
 
@@ -788,6 +809,7 @@ pal <- colorFactor(c("white","black"), c("T", "C"))
 DynamicMap
 
 ```
+This report displays the data and offers no specific interpretations, as management context and land use history also play a role at this site. Contact science staff if further interpretation and conclusions are needed. 
 
 ## Frequently Asked Questions
 
