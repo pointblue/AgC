@@ -14,7 +14,8 @@ source('functions.R')
 data_dir<-("Z:/Soils Team/AgC Data/")
 
 # Define path for Ag C data entry spreadsheet - you should have sharepoint synced to your onedrive so that it can be accessed on remote desktop
-agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx"
+#agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for lisa
+agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
 
 ## ---- Import/clean lab and tap field data ----
 
@@ -23,6 +24,14 @@ agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shar
 lab_clean <- clean_lab_df(data_path = data_dir, 
                           lab = "Ward", #Options: "Cquester", "Ward"
                           file_name = "Ward_data_20250409.csv")  #optional- can specify if you know the file name and/or are not working with the most recent lab data
+  #AC Addition...if i want to clean multiple lab datasheets at once:
+  lab_clean1<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20240418.csv") #general mills
+  lab_clean2<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250313.csv") #general mills
+  lab_clean3<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250318.csv") #general mills
+  lab_clean4<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250520.csv") #general mills
+  lab_clean5<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250521.csv") #general mills
+  lab_clean6<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250409.csv") #JPV
+  lab_clean<-rbind(lab_clean1, lab_clean2, lab_clean3, lab_clean4, lab_clean5, lab_clean6)
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
