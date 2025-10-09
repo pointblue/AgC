@@ -5,7 +5,7 @@ title: |
     <img src="ReportRef/Images/AgCLogo.svg" style="width: 300px;">
   </div>
   Land Steward Report
-author: "Avalon Cook, Lisa Eash, Greg Richardson, Ryan DiGaudio, Erika Foster, Chloe Latt, and Kees Hood"
+author: "Avalon Cook, Lisa Eash, Greg Richardson, Cathryn Mong, and Erika Foster"
 date: "`r format(Sys.Date(), '%B %d %Y')`"
 output:
   bookdown::html_document2:
@@ -16,7 +16,10 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: JPBO
+  project_name: KERN.25.LI
+  raca_filter:
+    - crop
+    - range
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -183,7 +186,7 @@ if ("BD" %in% ind.table.kbl$Acronym) {
   ind.table.kbl$Description <- ifelse(
     ind.table.kbl$Acronym == "BD",
     paste0(ind.table.kbl$Description, footnote_marker_symbol(1)),
-    ind.table.kbl$Acronym
+    ind.table.kbl$Description
   )
   
   # Rebuild the table with updated Acronym column
@@ -262,12 +265,17 @@ allpoints.list <- proj.indicator.table$CheckCol[
 allpoints.table <- proj.indicator.table %>%
   filter(CheckCol %in% allpoints.list)
 
-if (length(allpoints.list)>0){
-cat("The following indicators were measured at every sampling point:", paste(allpoints.table$Indicator, collapse = ", "), "<br><br>")}
 ```
 ```{r Dynamic text generation 2, indicator.legend, results='asis'}
+if (identical(allpoints.list, proj.indicator.table$CheckCol)){ #all indicators measured at every point
+  cat("All indicators listed in Table 1 were measured at each sampling point shown in the map.")
+}
 
-if (identical(allpoints.list, proj.indicator.table)==FALSE){ #only proceed if some indicators were not measured at every point
+
+if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){ #only proceed if some indicators were not measured at every point
+  
+  #start by listing the indicators that were measured everywhere
+  cat("The following indicators were measured at every sampling point:", paste(allpoints.table$Indicator, collapse = ", "), "<br><br>")
   
   #identifying indicators that were measured at a subset of points
   subset.inds <- proj.indicator.table$CheckCol[ 
@@ -278,7 +286,7 @@ if (identical(allpoints.list, proj.indicator.table)==FALSE){ #only proceed if so
   if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))){ #returns TRUE if all subset indicators were measured at the same sampling points
     subset_points <- PointLevel$sample_id[complete.cases(PointLevel[subset.inds])]
     subset.inds.name<-proj.indicator.table$Indicator[proj.indicator.table$CheckCol %in% subset.inds]
-    cat(paste0("The following indicators were measured at points ", format_list(substr(subset_points, 6, 7)), ": ", format_list(subset.inds.name),"<br><br>")) #CHECK! change substring values when point codes are standardized
+    cat(paste0("The following indicators were measured at points ", format_list(substr(subset_points, 12, 15)), ": ", format_list(subset.inds.name),"<br><br>"))
   }
   
   #CHECK Here is where we go back to generating the table for when not all subset inds were measured at the same point. Not relevant for current report deadline. Model based on pilot reports code when ready
@@ -320,7 +328,7 @@ if ("Tx" %in% proj.indicators==TRUE) {
 } else {proj.indicators.SSC <- proj.indicator.table$CheckCol}
 
 PointLevel<-PointLevel%>% 
-  mutate(plot_type = "T")#substr(sample_id, 6, 6)) #CHECK! should be temporary (will get built into PointLevel)
+  mutate(plot_type = substr(sample_id, 12, 12))
 
 ```
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
@@ -330,11 +338,16 @@ asis_output("### Soil carbon stocks\\n") #CONDITIONAL HEADER
 
 ``` {r, RACA baselines, warning=FALSE, message=FALSE, include=FALSE}
 raca_data<-reg_baseline(border)[[1]]%>% #use Lisa's function to get raca data for our region and extract the dataframe
-  select(upedonid, SOCstock30)%>% #select relevant columns
+  #select(upedonid, SOCstock30, LU)%>% #select relevant columns
   mutate(
     SOCstock30 = SOCstock30*0.4461, #convert metric to imperial
-    plot_type = "raca", #adding this variable allows for binding to main dataset and faceting the graph below
-    Stocks_Indicator = "org_c_stocks") #adding this helps later behavior when I filter based on carbon pool 
+    LU = case_when( #adding this variable allows for binding to main dataset and faceting the graph below
+      LU == "R" ~ "range",
+      LU == "C" ~ "crop"
+    ),
+    plot_type = 'raca',
+    Stocks_Indicator = "org_c_stocks")%>% #adding this helps later behavior when I filter based on carbon pool 
+  select(upedonid, SOCstock30, plot_type, Stocks_Indicator, LU)
 
 raca_summary<-reg_baseline(border)[[2]] #create an object that holds the raca summary values (mean, CI, and ecoregion)
 
@@ -343,7 +356,7 @@ raca_summary<-reg_baseline(border)[[2]] #create an object that holds the raca su
 ``` {r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
 asis_output(
 
-paste0("The following graph shows soil organic carbon stocks stored in the study area compared to other rangeland and cropland sites in your ecoregion: ", 
+paste0("The following graph shows **soil organic carbon stocks** stored in the study area compared to other agricultural sites in your ecoregion: ", 
        raca_summary$ecoregion,
        ". These comparison values are from the [USDA’s Rapid Carbon Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other agricultural sites in comparable climates. As you continue implementing conservation practices, your soil organic carbon (SOC) stocks have the potential to increase, moving closer to the higher end of SOC stocks seen in your region.")
 
@@ -364,7 +377,7 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
   PointLevel <- PointLevel %>%
   mutate(
     all_stocks = rowSums(
-      select(., ends_with("_stocks"), -maoc_stocks, -poc_stocks), #create a column for all pools combined, but make sure you're not double-counting poc and maoc, since org_c should cover that
+      select(., ends_with("_stocks"), -any_of(c("maoc_stocks", "poc_stocks"))), #create a column for all pools combined, but make sure you're not double-counting poc and maoc, since org_c should cover that
       na.rm = TRUE
     )
   )
@@ -381,6 +394,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
     names_to = "Stocks_Indicator",          # Name for the new column
     values_to = "Tons.Acre"              # values to populate the new column
   ) %>%
+  mutate(LU="AgC")%>%
   bind_rows( #bind project stocks df to the raca dataset
   raca_data %>%
     mutate(
@@ -388,6 +402,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
       Tons.Acre = SOCstock30,
       plot_type = plot_type,
       Stocks_Indicator = Stocks_Indicator,
+      LU=LU,
       .keep = "none"   # keep only these renamed columns
     )
   )
@@ -395,27 +410,54 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
 ```
 
 
-```{r fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Black dots in the background show individual sampling point values."}
+```{r fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values."}
 if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
 #SOC stocks graphic comparing to RaCa baselines
-    SOC_stocks_df<-stocks_df%>%filter(Stocks_Indicator=="org_c_stocks") #filter the stocks df for only SOC (including raca)
+    SOC_stocks_df<-stocks_df%>%
+      filter(Stocks_Indicator=="org_c_stocks", #filter the stocks df for only SOC (including raca)
+             LU %in% c("AgC",   params$raca_filter) #this includes raca values from whatever LU types were included in the render function
+             ) 
     
     #Define the desired order of x-axis values
     SOC_stocks_df$plot_type <- factor(SOC_stocks_df$plot_type, levels = c("T", "C", "raca"))
     
     #Define custom palette
     cbbPalette <- c("T" = "#384F8Dff", 
-                    "C" = "#384F8D80", 
-                    "raca"= "#db7821",  
+                    "C" = "#9BA7C6", 
+                    "raca" = "#D26A4A",
                     "Sampling point values" = "black") 
+    
+    palette_plot_type <- c("T" = "#384F8Dff",
+                       "C" = "#9BA7C6",
+                       "raca" = "#D26A4A")
+
+    palette_LU <- c(
+      "AgC" = "gray60",   # corresponds to LU == NA
+      "range"   = "#9FBF88",
+      "crop"   = "#BFAF91"
+    )
+    
+    #some more colors to grab if desired
+    "#BFAF91"
+    "#C9971A"
+    "#5B6FAE"
+    "#C8D3EB"
+    "#2C6E6F"
+    "#7E804E"
+    "#D26A4A"
+    "#A67FA4"
+    "#B7C5A9"
+    "#5B6FAE"
+    "#9FBF88"
+    
     
     #Begin graph
     ggplot(SOC_stocks_df, aes(x = plot_type, y = Tons.Acre)) +
       
       # Jittered black points
-      geom_point(aes(color = "Sampling point values"),
-        alpha = 0.5,
+      geom_point(aes(color = LU),
+        alpha = 0.8,
         size = 3,
         position = position_jitter(width = 0.2, height = 0)
       ) +
@@ -444,14 +486,28 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         x = "",
         y = "Soil Organic Carbon Stored (tons/acre)",
       ) +
-      scale_color_manual(values = cbbPalette,
-                         breaks = c("C", "T", "raca", "Sampling point values"),
-                         labels = c(str_wrap("Control site average", width=21), 
-                                    str_wrap("Treated site average", width=21),
-                                    str_wrap(paste0(raca_summary$ecoregion, " average"), width=21),
-                                    "Sampling point values"),
-                         name = "" #don't need a label over the legend
-      ) +
+     # scale_color_manual(values = cbbPalette,
+    #                     breaks = c("C", "T", "raca", "Sampling point values"),
+    #                     labels = c(str_wrap("Control site average", width=21), 
+    #                                str_wrap("Treated site average", width=21),
+    #                                str_wrap(paste0(raca_summary$ecoregion, " average"), width=21),
+    #                                "Sampling point values"),
+    #                     name = "" #don't need a label over the legend
+    #  ) +
+      
+      scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU),
+    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    labels = c(
+      str_wrap("Treated site average", width = 21),
+      str_wrap("Control site average", width = 21),
+      str_wrap(paste0(raca_summary$ecoregion, " average"), width = 21),
+      "AgC project sampling point",
+      "RaCA rangeland sampling point",
+      "RaCA cropland sampling point"
+    )
+  ) +
       
       # Custom x-axis labels
       scale_x_discrete(labels = c(
@@ -478,8 +534,73 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
 }
 ```
+``` {r, results='asis', eval = unique(stocks_df$Stocks_Indicator)>1}
+asis_output(
+#CHECK this sentence sucks
+"The following graph shows **all other pools of carbon** measured in this project compared to a final value showing the sum of all average stocks pools in the study area."
+)
+```
 ```{r, Stocks figure for all other pools, fig.cap=""}
-#Placeholder
+
+#get rid of raca values for this graph
+stocks_df_forallpools<-stocks_df%>%filter(!plot_type %in% "raca")
+
+#Define the desired order of indicators
+stocks_df_forallpools$Stocks_Indicator <- factor(stocks_df_forallpools$Stocks_Indicator, levels = c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
+
+#define labels for the facets (stocks indicators)
+indicator_labels <- c(
+  "org_c_stocks" = "Soil organic carbon",
+  "inorg_c_stocks" = "Soil inorganic carbon",
+  "maoc_stocks"  = "Mineral-assocaited organic carbon",
+  "poc_stocks"   = "Particulate organic carbon",
+  "all_stocks" = "All measured carbon pools"
+)
+
+ggplot(stocks_df_forallpools, aes(x = plot_type, y = Tons.Acre)) +
+          # Jittered black points
+      geom_point(color="black",
+        alpha = 0.3,
+        size = 3,
+        position = position_jitter(width = 0.2, height = 0)
+      ) +
+        # Mean + 95% CI (colored by plot_type)
+  stat_summary(
+        fun.data = function(x) {
+          mean_x <- mean(x, na.rm = TRUE)
+          se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+          ci <- 1.96 * se_x
+          data.frame(
+            y = mean_x,
+            ymin = mean_x - ci,
+            ymax = mean_x + ci
+          )
+        },
+        geom = "pointrange",
+        aes(color = plot_type),
+        size = 1.5, #size of dot
+        linewidth = 1.5, #thickness of CI line
+        shape = 16
+      ) +
+        # Text labels for means
+      stat_summary(
+        fun = mean,
+        geom = "shadowtext", #requires package shadowtext
+        bg.color = "black", #text outline color
+        bg.r = 0.15,  #thickness of outline
+        aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
+        color = "#FFD700", #text color
+        hjust = -0.5,
+        vjust = 0.2,
+        fontface = "bold",
+        size = 4
+      )+
+  #remove x axis labels (they look silly repeated and are denoted by color)
+  theme(axis.title.x=element_blank())+
+  facet_wrap(~Stocks_Indicator, labeller = labeller(Stocks_Indicator = indicator_labels))#+
+  #theme_minimal()
+
+
 ```
 ### All soil properties
 The following table summarizes average values across the study area for all soil metrics included in your project. 
