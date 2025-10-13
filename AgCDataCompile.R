@@ -22,8 +22,8 @@ agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs -
 # Lab soils data
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
-                          lab = "Ward", #Options: "Cquester", "Ward"
-                          file_name = "Ward_data_20250409.csv")  #optional- can specify if you know the file name and/or are not working with the most recent lab data
+                          lab = "OSU", #Options: "Cquester", "Ward", "OSU
+                          file_name = "OSU_data_20221102.xlsx")  #optional- can specify if you know the file name and/or are not working with the most recent lab data
   #AC Addition...if i want to clean multiple lab datasheets at once:
   lab_clean1<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20240418.csv") #general mills
   lab_clean2<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250313.csv") #general mills

@@ -27,10 +27,28 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
   }else{
     df_name<-paste(data_path,"Raw Data","Lab Data", file_name, sep="/")
   }
-  lab_raw<-read.csv(df_name)
+  if(lab %in% c("Ward","Cquester")){
+    lab_raw<-read.csv(df_name)
+  }
+  if(lab == "OSU"){
+    lab_raw <- read_excel(df_name, sheet="Data", col_names=FALSE,
+                          na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+    lab_raw <- lab_raw %>%
+      slice(-1) %>%                                # Remove the first row
+      rename_with(~ as.character(lab_raw[2, ])) %>%  # Set column names from second row
+      slice(-1) %>%
+      select(-c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated")) %>%
+      as.data.frame
+  }
 
   # Rename columns
   col_map <- read.csv("lab_column_names.csv")
+  if(lab == "OSU"){
+    rename_vec <- setNames(as.character(col_map$OSU), col_map$Column.Name)
+    rename_vec <- gsub("\\.", "", rename_vec)
+    lab_clean <- lab_raw %>%
+      rename(!!!rename_vec[rename_vec %in% colnames(.)])
+  }
   if(lab == "Cquester"){
     rename_vec <- setNames(as.character(col_map$Cquester), col_map$Column.Name)
     rename_vec <- gsub("\\.", "", rename_vec)
