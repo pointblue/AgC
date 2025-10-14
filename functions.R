@@ -1,9 +1,9 @@
 # Title: functions.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20250924
+# Date updated: 20251013
 # Purpose: Define Ag-C data cleaning functions used in AgCDataCompile.R to:
-#   1) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester)
+#   1) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester, OSU)
 #   2) clean_tap_df: Renames columns and removes extra columns in TAP df
 #   3) coord_extract: Extracts coordinates for sampling points from projects of interest
 #   4) out_of_range: verify required columns and check for data outside expected ranges
@@ -16,7 +16,7 @@
 ## ---- clean_lab_df function ----
 
 clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC Data)
-                         lab, #as of now, can be "Cquester" or "Ward"
+                         lab, #as of now, can be "Cquester" or "Ward" or "OSU"
                          file_name #optional- can specify if you know the file name and/or are not working with the most recent lab data
                          ){
   # Import latest csv
