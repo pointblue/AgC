@@ -16,10 +16,9 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: KERN.25.LI
+  project_name: JPNV.14.SC
   raca_filter:
     - crop
-    - range
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -358,7 +357,7 @@ asis_output(
 
 paste0("The following graph shows **soil organic carbon stocks** stored in the study area compared to other agricultural sites in your ecoregion: ", 
        raca_summary$ecoregion,
-       ". These comparison values are from the [USDA’s Rapid Carbon Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other agricultural sites in comparable climates. As you continue implementing conservation practices, your soil organic carbon (SOC) stocks have the potential to increase, moving closer to the higher end of SOC stocks seen in your region.")
+       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other agricultural sites in comparable climates. As you continue implementing conservation practices, your soil organic carbon (SOC) stocks have the potential to increase, moving closer to the higher end of SOC stocks seen in your region.")
 
 )
 ```
@@ -530,17 +529,18 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         size = 4
       )+
       
-      theme_minimal()
+      theme_minimal() +
+      expand_limits(y=0)
 
 }
 ```
-``` {r, results='asis', eval = unique(stocks_df$Stocks_Indicator)>1}
+``` {r, results='asis', eval = unique(stocks_df$Stocks_Indicator)>1, include=FALSE}
 asis_output(
 #CHECK this sentence sucks
 "The following graph shows **all other pools of carbon** measured in this project compared to a final value showing the sum of all average stocks pools in the study area."
 )
 ```
-```{r, Stocks figure for all other pools, fig.cap=""}
+```{r, Stocks figure for all other pools, fig.cap="", include=FALSE}
 
 #get rid of raca values for this graph
 stocks_df_forallpools<-stocks_df%>%filter(!plot_type %in% "raca")

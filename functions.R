@@ -416,3 +416,5 @@ render_html_report <- function(projects, raca_filter){ #when projects is a proje
     render_one_html(project, raca_filter)
   }
 }
+
+
