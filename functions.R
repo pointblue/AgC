@@ -399,9 +399,9 @@ format_list <- function(x) {
 }
 
 ## ---- Render HTML Reports ----
-#Reports will write to
-#Z:\Soils Team\AgC Data\RenderedReports
 render_one_html <- function(project, raca_filter) {
+  #Reports will write to Z:\Soils Team\AgC Data\RenderedReports
+  
   rmarkdown::render(
     input = 'LandStewardReports.Rmd', #identify the markdown file that will be used to render the report
     output_file = paste0(project, '_Report_', Sys.Date(), '.html'), #ID the file path and naming pattern
@@ -417,4 +417,115 @@ render_html_report <- function(projects, raca_filter){ #when projects is a proje
   }
 }
 
+## ---- Read GIS data to R ----
+read_spatial <- function(dir, file_name) {
+  #Read a GIS file into R, even if it's zipped
+  #File extension on file_name is required
+  
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  
+  if (grepl("\\.(zip|kmz)$", file_name, ignore.case = TRUE)) { #if it's a zipped shapefile for kmz, some extra steps are needed
+    temp_folder1 <- tempfile()
+    unzip(file.path(dir, file_name), exdir = temp_folder1)
+    shp_temppath1<-list.files(temp_folder1, pattern = "(\\.shp$|\\.kml$)", full.names = TRUE)
+    border<- read_sf(shp_temppath1)
+    on.exit(unlink(temp_folder1, recursive = TRUE), add = TRUE) #wipe the temp folder for clean repeat use
+  }else { #otherwise, just read in the file as an sf object
+    border<- read_sf(file.path(dir, file_name))
+  }
+  
+  return(st_make_valid(st_zm(border))) #remove z values and ensure valid geometry to avoid errors in processing
+}
 
+## ---- Write sf object to zipped shapefile ----
+
+write_zipped_shp <- function (sfobj, dir, file_name, crs=4326){
+  #Write an sf object to a zipped shapefile with no loose component parts
+  #DO NOT ADD FILE EXTENSIONS TO file_name
+  #You can specify a crs, but we default to 4326 for Ag-C storage
+  
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  if (!require(zip)) {
+    stop("Package 'zip' is required for this function.")
+  }
+  
+  # Export sf object to dir; insure intended crs
+  write_sf(st_transform(sfobj, crs), paste0(file.path(dir, file_name), '.shp')) #get sfobj in intended crs before writing
+  
+  #zip components to intended directory
+  exts <- c("shp", "shx", "dbf", "prj") 
+  components <- file.path(dir, paste0(file_name, ".", exts))
+  zip::zip(file.path(dir, paste0(file_name, ".zip")), components)
+  
+  #delete the components
+  for (each in components){
+    unlink(each)}
+  
+}
+
+## ---- Get soil taxonomy data ----
+#This function allows you to look at soil taxonomy data at the taxonomic level of your choosing
+#takes in an sf object polygon
+
+soil_types <- function (polygon, level="series", collapse_series=TRUE, plot=TRUE) {
+  #get soil types within a polygon at the desired level of taxonomy
+  #level options: "series", "taxorder", "taxclname", "taxsuborder", "taxgrtgroup", "taxsubgrp"
+  #polygon is an sf object, polygon or multipolygon should work
+  #if level="series", you have the option to collapse data by removing slope distinctions - default true
+  #running the function returns a dataframe and plots a map, but you can turn the plotting function off
+  
+  areasoils_spatial<-SDA_spatialQuery(border, geomIntersection = TRUE, geomAcres = TRUE, db="SSURGO", what=c('mupolygon')) #load in a dataframe with mukeys and polygon geometry
+  
+  if (level=="series"){
+    areasoils_names<-SDA_spatialQuery(border, geomIntersection = TRUE, geomAcres = TRUE, db="SSURGO", what=c('mukey')) #Load in a dataframe that shows mukeys and names that intersect with our border polygon
+    areasoils<- areasoils_spatial %>%
+      left_join(areasoils_names, #join the names and spatial data by the mukey column
+                by="mukey")
+    
+    if (collapse_series) {
+      #if user designates, we can greatly simplify these maps by removing map units separated by slope categories or rockiness
+      areasoils <- areasoils%>%
+        filter(mukey!="459902") %>% #if present, remove the water class
+        mutate(series_name = str_extract(muname, "^[^,]+"))%>% #extract the name of the series
+        group_by(series_name)%>%
+        dplyr::summarize(
+          area_ac = sum(area_ac),
+          series_name = first(series_name),
+          geometry = st_union(geom), #merge all polygons that have the same series name
+        )%>%
+        st_make_valid()#avoid errors due to invalid geometry
+      
+      plot_col<-"series_name"}else{plot_col<-"muname"}
+    
+    if (plot) {
+      areasoils[[plot_col]]<-str_wrap(areasoils[[plot_col]], 20) #
+      plot(areasoils[plot_col], main = "Soil Series", key.pos = 1)
+    }
+    
+  }
+  
+  if (level!="series"){
+    areasoils_spatial <- areasoils_spatial%>%
+      st_collection_extract() #extract geometry collections
+    taxdata <- get_SDA_property(property=level, 
+                                method = "Dominant Component (Category)", 
+                                mukeys=as.numeric(areasoils_spatial$mukey)) 
+    
+    areasoils <- left_join(areasoils_spatial, taxdata, by="mukey") %>%
+      group_by(.data[[level]]) %>%
+      dplyr::summarize(
+        area_ac = sum(area_ac),
+        geometry = st_union(geom),
+        .groups = 'drop') %>% st_as_sf() %>%
+      st_make_valid
+    if(plot){
+      plot(areasoils[, level, drop = FALSE], main = "Soil taxonomy", key.pos = 1)
+    }
+  }
+  return(areasoils)
+  
+}
