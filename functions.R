@@ -529,3 +529,59 @@ soil_types <- function (polygon, level="series", collapse_series=TRUE, plot=TRUE
   return(areasoils)
   
 }
+
+## ---- GRTS Sampling Design (not stratified) ----
+AgC_GRTS <- function (polygon, proj_name, sdensity, osdensity, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
+#polygon is an sf object
+#proj_name is the project code. Required
+#sdensity=sampling density (doubled for T+C)
+#osdensity=oversample point density (doubled for T+C)
+#plot_type_col = column name in polygon that identifies plot types. If none, treatment is assumed.
+#buffer is in meters. How far inside the polygon do you want to buffer?
+#mindis = minimum distance between sampling points
+#maxtry = how many times do you want GRTS to try to accomplish the mindis? larger distances require more tries, especially when polygon is small
+    
+  if(is.null(polygon[[plot_type_col]]) || 
+     sum(!is.na(polygon[[plot_type_col]])) < 2) {
+    GRTS_out<-polygon%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
+      st_buffer(dist=-buffer)%>%
+      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
+    
+    GRTS_out$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out$sites_base)))
+    GRTS_out$sites_over$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out$sites_over)))
+    
+    SamplingDesign<-rbind(GRTS_out$sites_base, GRTS_out$sites_over)%>%
+      mutate(proj_name = !!proj_name,
+             plot_type = "T"
+      )%>%
+      select(name, plot_type, proj_name)
+  }
+  
+  if(length(unique(polygon[[plot_type_col]]))==2){
+    polygonT<-polygon%>%filter(.data[[plot_type_col]]=="T")
+    polygonC<-polygon%>%filter(.data[[plot_type_col]]=="C")
+    
+    GRTS_out_T <-polygonT%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
+      st_buffer(dist=-buffer)%>%
+      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
+    GRTS_out_T$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out_T$sites_base)))
+    GRTS_out_T$sites_over$name <- paste0(proj_name, ".T.", "OS", sprintf("%02d", 1:nrow(GRTS_out_T$sites_over)))
+    
+    
+    GRTS_out_C <-polygonC%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
+      st_buffer(dist=-buffer)%>%
+      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
+    GRTS_out_C$sites_base$name <- paste0(proj_name, ".C.", sprintf("%02d", 1:nrow(GRTS_out_C$sites_base)))
+    GRTS_out_C$sites_over$name <- paste0(proj_name, ".C.", "OS", sprintf("%02d", 1:nrow(GRTS_out_C$sites_over)))
+    
+    SamplingDesign<-rbind(GRTS_out_T$sites_base, GRTS_out_T$sites_over, GRTS_out_C$sites_base, GRTS_out_C$sites_over)%>%
+      mutate(proj_name = !!proj_name,
+             plot_type = substr(name, 12, 12)
+      )%>%
+      select(name, plot_type, proj_name)
+    
+  }
+  
+  return(SamplingDesign)
+  
+}
