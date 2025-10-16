@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20251013
+# Date updated: 20251016
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -22,8 +22,8 @@ agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs -
 # Lab soils data
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
-                          lab = "OSU", #Options: "Cquester", "Ward", "OSU
-                          file_name = "OSU_data_20221102.xlsx")  #optional- can specify if you know the file name and/or are not working with the most recent lab data
+                          lab = "Ward", #Options: "Cquester", "Ward", "OSU
+                          file_name = NA)  #optional- can specify if you know the file name and/or are not working with the most recent lab data
   #AC Addition...if i want to clean multiple lab datasheets at once:
   lab_clean1<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20240418.csv") #general mills
   lab_clean2<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250313.csv") #general mills
@@ -78,7 +78,7 @@ df <- df[,!names(df) %in% c("long","lat")] %>%
 
 # Store target depths and measured depths
 df <- df %>%
-  mutate(target_depth = paste(b_depth, e_depth, sep="_")) %>%
+  mutate(target_depth = paste(b_depth, e_depth, sep="-")) %>%
   select(-c(b_depth,e_depth)) %>%
   rename(b_depth = b_depth_meas,
          e_depth = e_depth_meas)
@@ -141,6 +141,9 @@ master_df <- rbind(df_current, df)
 
 # Change NA values to empty cells
 master_df[is.na(master_df)] <- ""
+
+# Convert sample_date to timestamp for compatibility with FarmOS
+master_df$sample_date <- as.POSIXct(paste(master_df$sample_date, "12:00:00"), tz = "UTC")
 
 # Save
 write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
