@@ -548,7 +548,7 @@ AgC_GRTS <- function (polygon, proj_name, sdensity, osdensity, plot_type_col="pl
       grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
     
     GRTS_out$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out$sites_base)))
-    GRTS_out$sites_over$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out$sites_over)))
+    GRTS_out$sites_over$name <- paste0(proj_name, ".T.", "OS", sprintf("%02d", 1:nrow(GRTS_out$sites_over)))
     
     SamplingDesign<-rbind(GRTS_out$sites_base, GRTS_out$sites_over)%>%
       mutate(proj_name = !!proj_name,
