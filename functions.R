@@ -1,7 +1,7 @@
 # Title: functions.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20251013
+# Date updated: 20251023
 # Purpose: Define Ag-C data cleaning functions used in AgCDataCompile.R to:
 #   1) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester, OSU)
 #   2) clean_tap_df: Renames columns and removes extra columns in TAP df
@@ -530,58 +530,180 @@ soil_types <- function (polygon, level="series", collapse_series=TRUE, plot=TRUE
   
 }
 
-## ---- GRTS Sampling Design (not stratified) ----
-AgC_GRTS <- function (polygon, proj_name, sdensity, osdensity, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
-#polygon is an sf object
-#proj_name is the project code. Required
-#sdensity=sampling density (doubled for T+C)
-#osdensity=oversample point density (doubled for T+C)
-#plot_type_col = column name in polygon that identifies plot types. If none, treatment is assumed.
-#buffer is in meters. How far inside the polygon do you want to buffer?
-#mindis = minimum distance between sampling points
-#maxtry = how many times do you want GRTS to try to accomplish the mindis? larger distances require more tries, especially when polygon is small
-    
-  if(is.null(polygon[[plot_type_col]]) || 
-     sum(!is.na(polygon[[plot_type_col]])) < 2) {
-    GRTS_out<-polygon%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
-      st_buffer(dist=-buffer)%>%
-      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
-    
-    GRTS_out$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out$sites_base)))
-    GRTS_out$sites_over$name <- paste0(proj_name, ".T.", "OS", sprintf("%02d", 1:nrow(GRTS_out$sites_over)))
-    
-    SamplingDesign<-rbind(GRTS_out$sites_base, GRTS_out$sites_over)%>%
-      mutate(proj_name = !!proj_name,
-             plot_type = "T"
-      )%>%
-      select(name, plot_type, proj_name)
+## ---- Allocate sampling points to strata ----
+#This function is used in the AgC_GRTS_strat()
+#It is meant to solve the problem where rounded proportions do not always add up to the intended value
+#Based on the "Hamilton method" or "Largest Remainder Method" with small modification to ensure no strata is empty
+#heavily relied on chatgpt for this
+#https://en.wikipedia.org/wiki/Quota_method
+#https://stackoverflow.com/questions/13483430/how-to-make-rounded-percentages-add-up-to-100
+
+strat_alloc <- function(x, target) {
+  # scale to target
+  scaled <- x / sum(x) * target
+  
+  # take floors, but ensure minimum of 1
+  floored <- pmax(floor(scaled), 1)
+  
+  # calculate how many units we currently have
+  current_sum <- sum(floored)
+  diff <- round(target - current_sum)
+  
+  remainder <- scaled - floor(scaled)
+  
+  # If total < target: add to those with largest remainders
+  if (diff > 0) {
+    add_index <- order(remainder, decreasing = TRUE)[seq_len(diff)]
+    floored[add_index] <- floored[add_index] + 1
+  }
+  # If total > target: subtract from those with smallest remainders,
+  # but only where value > 1 to avoid zeros
+  else if (diff < 0) {
+    candidates <- which(floored > 1)
+    sub_index <- candidates[order(remainder[candidates], decreasing = FALSE)[seq_len(abs(diff))]]
+    floored[sub_index] <- floored[sub_index] - 1
   }
   
-  if(length(unique(polygon[[plot_type_col]]))==2){
-    polygonT<-polygon%>%filter(.data[[plot_type_col]]=="T")
-    polygonC<-polygon%>%filter(.data[[plot_type_col]]=="C")
+  floored
+}
+
+## ---- GRTS Sampling Design STRATIFIED ----
+AgC_GRTS_strat <- function (polygon, soils, proj_name, sdensity, osdensity=NULL, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
+  #polygon is an sf object
+  #soils is an output from soil_types
+  #proj_name is the project code. Required
+  #sdensity=sampling density (doubled for T+C)
+  #osdensity=oversample point density (doubled for T+C)
+  #plot_type_col = column name in polygon that identifies plot types. If none, treatment is assumed.
+  #buffer is in meters. How far inside the polygon do you want to buffer?
+  #mindis = minimum distance between sampling points
+  #maxtry = how many times do you want GRTS to try to accomplish the mindis? larger distances require more tries, especially when polygon is small
+  
+  if (!require(dplyr)) {
+    stop("Package 'dplyr' is required for this function.")
+  }
+  if (!require(stringr)) {
+    stop("Package 'stringr' is required for this function.")
+  }
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  if (!require(purrr)) {
+    stop("Package 'purrr' is required for this function.")
+  }
+  if (!require(spsurvey)) {
+    stop("Package 'spsurvey' is required for this function.")
+  }
+  
+  
+  #Step1: Prep data
+  
+  polygon <- polygon %>%
+    st_transform(5070) %>%
+    group_by(.data[[plot_type_col]]) %>%
+    summarise(proj_name = first(proj_name),
+              .groups = "drop")
+  
+  strat_border <- st_transform(soils, 5070) %>% 
+    st_intersection(polygon) %>% #intersect polygon and soils ensuring a projected CRS
+    mutate(area_ac = as.numeric(st_area(geometry)/4046.856)) %>% #recalculate area
+    group_by(.data[[plot_type_col]])%>%
+    mutate(
+      perc_area = as.numeric(area_ac/sum(area_ac)*100) #get percent area per strata
+    )
+  
+  #This bit merges polygons that are very small <5% area
+  small_polys <- strat_border %>% filter(perc_area < 5)
+  large_polys <- strat_border %>% filter(perc_area >= 5)
+  if (nrow(small_polys) > 0) {
+    message("A soil type polygon covering <5% area was detected. It has been merged with the nearest larger polygon")
+    nearest_idx <- st_nearest_feature(small_polys, large_polys)
     
-    GRTS_out_T <-polygonT%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
-      st_buffer(dist=-buffer)%>%
-      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
-    GRTS_out_T$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out_T$sites_base)))
-    GRTS_out_T$sites_over$name <- paste0(proj_name, ".T.", "OS", sprintf("%02d", 1:nrow(GRTS_out_T$sites_over)))
+    merged <- map2_dfr(seq_len(nrow(small_polys)), nearest_idx, function(i, j) {
+      st_union(small_polys[i, ], large_polys[j, ]) %>%
+        mutate(
+          !!plot_type_col := large_polys[[plot_type_col]][j]
+        )
+    })
     
     
-    GRTS_out_C <-polygonC%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
-      st_buffer(dist=-buffer)%>%
-      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
-    GRTS_out_C$sites_base$name <- paste0(proj_name, ".C.", sprintf("%02d", 1:nrow(GRTS_out_C$sites_base)))
-    GRTS_out_C$sites_over$name <- paste0(proj_name, ".C.", "OS", sprintf("%02d", 1:nrow(GRTS_out_C$sites_over)))
+    # Drop the polygons that got merged and add the merged ones back
+    strat_border <- bind_rows(
+      large_polys[-nearest_idx, ],
+      merged
+    )
     
-    SamplingDesign<-rbind(GRTS_out_T$sites_base, GRTS_out_T$sites_over, GRTS_out_C$sites_base, GRTS_out_C$sites_over)%>%
-      mutate(proj_name = !!proj_name,
-             plot_type = substr(name, 12, 12)
-      )%>%
-      select(name, plot_type, proj_name)
+    # Recalculate area and perc_area after merging
+    strat_border <- strat_border %>%
+      mutate(area_ac = as.numeric(st_area(geometry) / 4046.856)) %>%
+      group_by(.data[[plot_type_col]]) %>%
+      mutate(perc_area = area_ac / sum(area_ac) * 100) %>%
+      ungroup() %>%
+      select(area_ac, proj_name, plot_type, geometry, perc_area)
+  }
+  
+  if (any(dplyr::count(strat_border, .data[[plot_type_col]])$n > 3)){
+    message("Warning: This polygon contains more than 3 strata, which increases the chances that smaller strata
+            are undersampled if sdensity isn't sufficiently large. It also increases the chances that rounding
+            errors in the sampling point allocation process will lead to a sum near, but unequal to, sdensity")
+  }
+  
+  #Step2: Set up GRTS loop for T and T/C
+  
+  #setting up an empty dataframe to append rows to in the loop
+  SamplingDesign <- st_sf( 
+    name = character(),
+    Lat = integer(),          
+    Lon = character(),        
+    geometry = st_sfc(crs=5070)
+  )
+  
+  # ptype<-unique(strat_border[[plot_type_col]])[1] #troubleshooting line
+  for (ptype in unique(strat_border[[plot_type_col]])) {
+    
+    #Isolate the current plot type
+    strat_border.i<-strat_border%>%filter(.data[[plot_type_col]] == ptype)
+    
+    alloc.s<-strat_border.i$perc_area*sdensity/100
+    alloc.os<-strat_border.i$perc_area*osdensity/100
+    strat_border.i$sdens<-strat_alloc(alloc.s, target=sdensity)
+    strat_border.i$osdens<-strat_alloc(alloc.os, target=osdensity)
+    
+    current_count_b<-0
+    current_count_o<-0
+    
+    for (i in 1:nrow(strat_border.i)){
+      
+      #Isolate the current plot type
+      stratum<-strat_border.i[i,]
+      
+      #call sampling density for the current stratum
+      sdensity.i<-strat_border.i$sdens[i]
+      osdensity.i<-strat_border.i$osdens[i]
+      
+      GRTS_out<-stratum%>%
+        st_buffer(dist=-buffer)%>%
+        grts(n_base=sdensity.i, n_over=osdensity.i, mindis = mindis, maxtry=maxtry)
+      
+      GRTS_out$sites_base$name<-paste0(proj_name, ".",ptype ,".", sprintf("%02d", (current_count_b+1):(current_count_b+nrow(GRTS_out$sites_base))))
+      GRTS_out$sites_over$name<-paste0(proj_name, ".",ptype ,".", "OS", sprintf("%02d", (current_count_o+1):(current_count_o+nrow(GRTS_out$sites_over))))
+      
+      current_count_b <- as.numeric(str_sub(GRTS_out$sites_base$name[length(GRTS_out$sites_base$name)], -2, -1))
+      current_count_o <- as.numeric(str_sub(GRTS_out$sites_base$name[length(GRTS_out$sites_base$name)], -2, -1))
+      
+      SamplingDesign.i<-rbind(GRTS_out$sites_base, GRTS_out$sites_over)%>%
+        mutate(proj_name = !!proj_name,
+               plot_type = ptype
+        )%>%
+        select(name, plot_type, proj_name)
+      
+      SamplingDesign<-rbind(SamplingDesign, SamplingDesign.i)%>%arrange(name)
+      
+    }
     
   }
   
-  return(SamplingDesign)
+  
+  return(SamplingDesign%>%st_transform(4326))
   
 }
