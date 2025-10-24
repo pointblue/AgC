@@ -467,6 +467,71 @@ write_zipped_shp <- function (sfobj, dir, file_name, crs=4326){
   
 }
 
+## ---- Write SF object to GPX ----
+write_gpx <- function(sdesign, dir, file_name)
+{
+  st_write(sdesign, 
+           paste0(dir, "/", file_name, ".GPX"), 
+           driver = "GPX", 
+           dataset_options="GPX_USE_EXTENSIONS=yes")
+}
+
+## ---- GRTS Sampling Design (not stratified) ----
+AgC_GRTS <- function (polygon, proj_name, sdensity, osdensity, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
+  #polygon is an sf object
+  #proj_name is the project code. Required
+  #sdensity=sampling density (doubled for T+C)
+  #osdensity=oversample point density (doubled for T+C)
+  #plot_type_col = column name in polygon that identifies plot types. If none, treatment is assumed.
+  #buffer is in meters. How far inside the polygon do you want to buffer?
+  #mindis = minimum distance between sampling points
+  #maxtry = how many times do you want GRTS to try to accomplish the mindis? larger distances require more tries, especially when polygon is small
+  
+  if(is.null(polygon[[plot_type_col]]) || 
+     sum(!is.na(polygon[[plot_type_col]])) < 2) {
+    GRTS_out<-polygon%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
+      st_buffer(dist=-buffer)%>%
+      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
+    
+    GRTS_out$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out$sites_base)))
+    GRTS_out$sites_over$name <- paste0(proj_name, ".T.", "OS", sprintf("%02d", 1:nrow(GRTS_out$sites_over)))
+    
+    SamplingDesign<-rbind(GRTS_out$sites_base, GRTS_out$sites_over)%>%
+      mutate(proj_name = !!proj_name,
+             plot_type = "T"
+      )%>%
+      select(name, plot_type, proj_name)
+  }
+  
+  if(length(unique(polygon[[plot_type_col]]))==2){
+    polygonT<-polygon%>%filter(.data[[plot_type_col]]=="T")
+    polygonC<-polygon%>%filter(.data[[plot_type_col]]=="C")
+    
+    GRTS_out_T <-polygonT%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
+      st_buffer(dist=-buffer)%>%
+      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
+    GRTS_out_T$sites_base$name <- paste0(proj_name, ".T.", sprintf("%02d", 1:nrow(GRTS_out_T$sites_base)))
+    GRTS_out_T$sites_over$name <- paste0(proj_name, ".T.", "OS", sprintf("%02d", 1:nrow(GRTS_out_T$sites_over)))
+    
+    
+    GRTS_out_C <-polygonC%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
+      st_buffer(dist=-buffer)%>%
+      grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
+    GRTS_out_C$sites_base$name <- paste0(proj_name, ".C.", sprintf("%02d", 1:nrow(GRTS_out_C$sites_base)))
+    GRTS_out_C$sites_over$name <- paste0(proj_name, ".C.", "OS", sprintf("%02d", 1:nrow(GRTS_out_C$sites_over)))
+    
+    SamplingDesign<-rbind(GRTS_out_T$sites_base, GRTS_out_T$sites_over, GRTS_out_C$sites_base, GRTS_out_C$sites_over)%>%
+      mutate(proj_name = !!proj_name,
+             plot_type = substr(name, 12, 12)
+      )%>%
+      select(name, plot_type, proj_name)%>%st_transform(4326)
+    
+  }
+  
+  return(SamplingDesign%>%st_transform(4326))
+  
+}
+
 ## ---- Get soil taxonomy data ----
 #This function allows you to look at soil taxonomy data at the taxonomic level of your choosing
 #takes in an sf object polygon
@@ -705,5 +770,92 @@ AgC_GRTS_strat <- function (polygon, soils, proj_name, sdensity, osdensity=NULL,
   
   
   return(SamplingDesign%>%st_transform(4326))
+  
+}
+
+## ---- Create PDF map of sampling design ----
+design_map <- function(sdesign, border, proj_name, dir, outname, title="Monitoring Design -- Initial", subtitle="Spatially balanced sampling", plot_type_col="plot_type"){
+  
+  if (!require(dplyr)) {
+    stop("Package 'dplyr' is required for this function.")
+  }
+  if (!require(stringr)) {
+    stop("Package 'stringr' is required for this function.")
+  }
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  if (!require(ggspatial)) {
+    stop("Package 'ggspatial' is required for this function.")
+  }
+  if (!require(ggmap)) {
+    stop("Package 'ggmap' is required for this function.")
+  }
+  
+  
+  #getting all the geometry formats in order to call the proper basemap...probably a simpler way to do this but idk lol
+  Lat.range <- c(min(as.data.frame((st_coordinates(border)))$Y), max(as.data.frame((st_coordinates(border)))$Y))
+  Lon.range <- c(min(as.data.frame((st_coordinates(border)))$X), max(as.data.frame((st_coordinates(border)))$X))
+  proj.centroid <- st_coordinates(st_centroid(st_union(border)))
+  
+  #calibrating custom zoom levels for the basemap; cutoffs were trial and error, refine as needed
+  width <- max(Lon.range)-min(Lon.range)
+  length <- max(Lat.range)-min(Lat.range)
+  square.size <- max(width, length)
+  pract_zoom <- if (square.size <= 0.003) {17
+  } else if (0.003 < square.size & square.size <= 0.005) {17
+  } else if (0.005 < square.size & square.size <= 0.01) {16
+  } else if (0.01 < square.size & square.size <= 0.03) {15
+  } else if (0.03 < square.size & square.size <= 0.05) {14
+  } else {13}
+  
+  register_google(key = 'AIzaSyBflHq-_kS39K0tVQdw0y55nwJjC3L_arM') #This is Avalon's Google API key
+  plot.base <- get_googlemap(center= proj.centroid, zoom = pract_zoom, maptype = 'satellite') #calls basemap from google database
+  sdesign <- sdesign %>%
+    mutate(pointtype = ifelse(grepl(".OS", name, fixed = TRUE), "oversample", "base"))
+  labels<- str_sub(sdesign$name, start = nchar(sdesign$name) - 1, end = nchar(sdesign$name))
+  sdesign$labels<-labels
+  
+  #defining more exact map boundaries for when the zoom level cutoffs aren't quite right; some trial and error in those adjusting coefficients
+  lat.lim.adjusted<- c(proj.centroid[2]-(square.size/2)*1.0, proj.centroid[2]+(square.size/2)*1.0)
+  lon.lim.adjusted<- c(proj.centroid[1]-(square.size/2)*1.0, proj.centroid[1]+(square.size/2)*1.0)
+  
+  pdf(paste0(dir, "/", outname, ".pdf"), paper="letter", width=7.5, height=10) #calling in pdf command to start the plot
+  
+  if (length(unique(border[[plot_type_col]]))>1){
+    print(
+      ggmap(plot.base, extent = 'device')+
+        geom_sf(data=border, aes(color = .data[[plot_type_col]]), fill=NA, linewidth = .8, inherit.aes = FALSE) + 
+        scale_color_manual(name='Plot Type', values=c("C"="white","T"="red"), labels=c("C"='Control', "T"='Treatment'))+
+        geom_sf_label(data=sdesign, aes(label=labels, fill=pointtype), fontface = "bold", label.padding = unit(.1, "lines"), size = 3, inherit.aes = FALSE)+
+        scale_fill_manual(name='Sampling Locations', values = c('yellow','white'), labels=c('Base Point', 'Oversample'))+
+        theme(legend.position='bottom', 
+              legend.box = "vertical", 
+              legend.background = element_rect(fill = "#f5f5f2", color = 'black'),
+              plot.title = element_text(hjust = 0.5))+
+        annotation_scale(unit_category='imperial', location = 'tl')+
+        annotation_north_arrow(location = "br", height = unit(0.3, "in"), width = unit(0.3, "in"), pad_y = unit(0.2, 'in'), style=north_arrow_orienteering())+
+        ggtitle(paste0(proj_name, " ", title), subtitle=subtitle)+
+        scale_x_continuous(limits = lon.lim.adjusted)+ #these parameters help with the default zoom level is too far out
+        scale_y_continuous(limits = lat.lim.adjusted)
+    )
+  } else {
+    print(
+    ggmap(plot.base, extent = 'device')+
+        geom_sf(data=border, color = "white", fill=NA, linewidth = .8, inherit.aes = FALSE) + 
+          geom_sf_label(data=sdesign, aes(label=labels, fill=pointtype), fontface = "bold", label.padding = unit(.1, "lines"), size = 3, inherit.aes = FALSE)+
+          scale_fill_manual(name='Sampling Locations', values = c('yellow','white'), labels=c('Base Point', 'Oversample'))+
+          theme(legend.position='bottom', 
+                legend.box = "vertical", 
+                legend.background = element_rect(fill = "#f5f5f2", color = 'black'),
+                plot.title = element_text(hjust = 0.5))+
+          annotation_scale(unit_category='imperial', location = 'tl')+
+          annotation_north_arrow(location = "br", height = unit(0.3, "in"), width = unit(0.3, "in"), pad_y = unit(0.2, 'in'), style=north_arrow_orienteering())+
+          ggtitle(paste0(proj_name, " ", title), subtitle=subtitle)
+    )
+  }
+  
+  dev.off() #creates the file
+  
   
 }
