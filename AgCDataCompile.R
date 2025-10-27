@@ -143,6 +143,7 @@ master_df <- rbind(df_current, df)
 master_df[is.na(master_df)] <- ""
 
 # Convert sample_date to timestamp for compatibility with FarmOS
+master_df<-master_df[!is.na(master_df$sample_date),]
 master_df$sample_date <- as.POSIXct(paste(master_df$sample_date, "12:00:00"), tz = "UTC")
 
 # Save
