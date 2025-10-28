@@ -30,8 +30,9 @@ lab_clean <- clean_lab_df(data_path = data_dir,
   lab_clean3<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250318.csv") #general mills
   lab_clean4<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250520.csv") #general mills
   lab_clean5<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250521.csv") #general mills
-  lab_clean6<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250409.csv") #JPV
-  lab_clean<-rbind(lab_clean1, lab_clean2, lab_clean3, lab_clean4, lab_clean5, lab_clean6)
+  lab_clean6<-clean_lab_df(data_path = data_dir, lab = "OSU", file_name = "OSU_data_20250815.xlsx") #general mills
+  lab_clean7<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250409.csv") #JPV
+  lab_clean<-rbind(lab_clean1, lab_clean2, lab_clean3, lab_clean4, lab_clean5, lab_clean6, lab_clean7)
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
