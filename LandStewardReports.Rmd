@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: KERN.25.LI
+  project_name: MERC.24.LI
   raca_filter:
     - crop
 ---
@@ -256,9 +256,15 @@ leaflet() %>%
 ```{r Dynamic text generation 1, results='asis'}
 #this section states which, if any, indicators were measured at every sampling point and removes them from the following legend table
 
+#Start with a filtering step so we're only comparing among the first timepoint, otherwise things will get weird as we often don't measure certain indicators more than once
+PointLevel_firstT<- PointLevel %>%
+  mutate(time_suffix = as.numeric(str_sub(timepoint, -1))) %>%
+  filter(time_suffix == min(time_suffix, na.rm = TRUE)) %>%
+  select(-time_suffix)
+
 allpoints.list <- proj.indicator.table$CheckCol[
-  proj.indicator.table$CheckCol %in% names(PointLevel) &    # must exist
-    sapply(proj.indicator.table$CheckCol, function(col) all(!is.na(PointLevel[[col]])))
+  proj.indicator.table$CheckCol %in% names(PointLevel_firstT) &    # must exist
+    sapply(proj.indicator.table$CheckCol, function(col) all(!is.na(PointLevel_firstT[[col]])))
 ]
 
 allpoints.table <- proj.indicator.table %>%
@@ -321,7 +327,7 @@ if (depth.increments.no>1){
 ```
 ## Results
 ```{r, baseline only statement, results='asis'}
-if (unique(PointLevel$timepoint)=="T0"){
+if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
   cat("Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
 }
 ```
@@ -369,7 +375,7 @@ paste0("The following graph shows **soil organic carbon stocks** stored in the s
 ```{r, Calculating stocks}
 #Calculating stocks on qualifying soil metrics
 if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be different when we get plant projects cause someone could have SOC% only but also have measured plants
-stocks.inds <- c("total_c", "total_n", "org_c", "inorg_c", "maoc", "poc", "pon") #these are the columns that can be turned into stocks (CHECK hard coding these in for now. Not sure if there's a better solution)
+stocks.inds <- c("total_c", "org_c", "inorg_c", "maoc", "poc") #these are the columns that can be turned into stocks (CHECK hard coding these in for now. Not sure if there's a better solution)
 for(col in intersect(proj.indicators.SSC, stocks.inds)) {
   new_col <- paste0(col, "_stocks")  # new column name
   PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4461 #calculating stocks in US tons / acre (percent to decimal cancels out) 
@@ -405,6 +411,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
       sample_id = upedonid,
       Tons.Acre = SOCstock30,
       plot_type = plot_type,
+      timepoint = "Reference",
       Stocks_Indicator = Stocks_Indicator,
       LU=LU,
       .keep = "none"   # keep only these renamed columns
@@ -457,7 +464,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
     
     
     #Begin graph
-    ggplot(SOC_stocks_df, aes(x = plot_type, y = Tons.Acre)) +
+    ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
       
       # Jittered black points
       geom_point(aes(color = LU),
@@ -465,6 +472,9 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         size = 3,
         position = position_jitter(width = 0.2, height = 0)
       ) +
+      
+      # Optional: connect repeated measurements if you have a sample ID
+   #geom_line(aes(group = sample_id), alpha = 0.4, linetype = "dashed") +
       
       # Mean + 95% CI (colored by plot_type)
       stat_summary(
@@ -490,15 +500,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         x = "",
         y = "Soil Organic Carbon Stored (tons/acre)",
       ) +
-     # scale_color_manual(values = cbbPalette,
-    #                     breaks = c("C", "T", "raca", "Sampling point values"),
-    #                     labels = c(str_wrap("Control site average", width=21), 
-    #                                str_wrap("Treated site average", width=21),
-    #                                str_wrap(paste0(raca_summary$ecoregion, " average"), width=21),
-    #                                "Sampling point values"),
-    #                     name = "" #don't need a label over the legend
-    #  ) +
-      
+
       scale_color_manual(
     name = "",
     values = c(palette_plot_type, palette_LU),
@@ -514,11 +516,12 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
   ) +
       
       # Custom x-axis labels
-      scale_x_discrete(labels = c(
-        "T" = "Treated site",
-        "C" = "Control site",
-        "raca" = str_wrap(paste0(raca_summary$ecoregion, " ag-lands"), width=28)
-      )) +
+  scale_x_discrete(labels = c(
+    "T0" = "Baseline",
+    "T1" = "T1",
+    "T2" = "T2",
+    "Reference" = "Reference"
+  )) +
       
       # Text labels for means
       stat_summary(
@@ -528,13 +531,18 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         bg.r = 0.15,  #thickness of outline
         aes(label = sprintf("%.1f", after_stat(y))), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
-        hjust = -0.5,
-        vjust = 0.2,
+        hjust = -0.3,
+        vjust = 0.4,
         fontface = "bold",
         size = 4
       )+
       
-      theme_minimal() +
+        # Facet by plot type
+  facet_wrap(~plot_type, scales="free_x") +
+            theme_minimal() +
+
+      theme(strip.text = element_blank())+
+      
       expand_limits(y=0)
 
 }
@@ -566,12 +574,23 @@ indicator_labels <- c(
   "all_stocks" = "Carbon pools combined"
 )
 
-ggplot(stocks_df_forallpools, aes(x = plot_type, y = Tons.Acre)) +
+stocks_df_forallpools <- stocks_df_forallpools %>%
+  mutate(
+    # Replace NA with a string so interaction works
+    timepoint_label = ifelse(is.na(timepoint), "Reference", timepoint),
+    # Create interaction for x-axis
+    plot_time = interaction(plot_type, timepoint_label, sep = " | ")
+  )%>%  mutate(
+    plot_time = fct_reorder(plot_time, as.numeric(factor(plot_type)))
+  )
+
+
+ggplot(stocks_df_forallpools, aes(x = plot_time, y = Tons.Acre)) +
           # Jittered black points
       geom_point(aes(color = LU),
         alpha = 0.8,
         size = 3,
-        position = position_jitter(width = 0.2, height = 0)
+        position = position_jitter(width = 0.1, height = 0)
       ) +
         # Mean + 95% CI (colored by plot_type)
   stat_summary(
@@ -599,8 +618,8 @@ ggplot(stocks_df_forallpools, aes(x = plot_type, y = Tons.Acre)) +
         bg.r = 0.15,  #thickness of outline
         aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
-        hjust = -0.4,
-        vjust = 0.2,
+        hjust = 0,
+        vjust = -1,
         fontface = "bold",
         size = 4
       )+
@@ -621,14 +640,17 @@ ggplot(stocks_df_forallpools, aes(x = plot_type, y = Tons.Acre)) +
       "RaCA cropland sampling point"
     )
   ) +
-    # Custom x-axis labels
-  #remove x axis labels (they look silly repeated and are denoted by color)
+        # Custom x-axis labels
+  scale_x_discrete(labels = c(
+    "C | T0" = "T0",
+    "C | T1" = "T1",
+    "T | T0" = "T0",
+    "T | T1" = "T1"
+  )) +
 theme_minimal()+
-  theme(
-  axis.title.x = element_blank(),
-  axis.text.x  = element_blank(),
-  axis.ticks.x = element_blank()
-)+
+    theme(
+    legend.position = "bottom"
+  )+
   facet_wrap(~Stocks_Indicator, labeller = labeller(Stocks_Indicator = indicator_labels))
 
 
@@ -639,11 +661,15 @@ The following table summarizes average values across the study area for all metr
 ```{r Summarize non-stocks soil means} 
 
 Project.Means <- PointLevel %>%
-                    dplyr::group_by(plot_type) %>%
+                    dplyr::group_by(plot_type, timepoint) %>%
                     dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
 
 Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>%
-          pivot_wider(names_from = c("plot_type"), values_from = value)%>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
+          pivot_wider(
+    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
+    values_from = value,
+    names_sep = " | "                           # optional separator
+  ) %>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
            left_join( #add the units column (CHECK,)
     proj.indicator.table %>% select(CheckCol, UnitsTable),
     by = c("Indicator" = "CheckCol")
@@ -672,35 +698,55 @@ Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.st
       TRUE ~ Acronym                                # default mapping
     )
   ) 
-
-Means.Pivot<-Means.Pivot1%>%
-  select(-Indicator_base, -Indicator)
-          
 my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
 
-Soil.Means <- Means.Pivot %>% select(Acronym, everything(),Units)%>% #reorder columns
-              mutate( #all the rest allows me to specify an order for the first few Ag-C metrics, and leave the rest alone
-                  order_helper = match(Acronym, my_order),
-                  original_order = row_number()
-                ) %>%
-                arrange(is.na(order_helper), order_helper, original_order) %>%
-                select(-order_helper, -original_order)
-```
-```{r}
-#Create plot summary table
-  if (length(unique(border$plot_type))==1) { # Use this table format if there's only a treatment site
-    SummaryTable <- Soil.Means %>% filter(Units!='tons/acre')%>% #dont include stocks here
-      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Treatment", "Unit"))
-  } 
-  if (length(unique(border$plot_type))==2) { # Use this table format if there's a treatment and control site
-    SummaryTable <- Soil.Means %>% filter(Units!='tons/acre')%>% #dont include stocks here
-      kbl(caption = "Soil Metrics", digits = 2, col.names = c("Indicator", "Control", "Treatment", "Unit"))
-  }
+Means.Pivot <- Means.Pivot1 %>%
+  select(-Indicator_base, -Indicator) %>%
+  select(Acronym, everything(), Units) %>%
+  mutate(
+    order_helper = match(Acronym, my_order),
+    original_order = row_number()
+  ) %>%
+  arrange(is.na(order_helper), order_helper, original_order) %>%
+  select(-order_helper, -original_order)
 
+# --- clean up NaN values ---
+Means.Pivot[is.nan(as.matrix(Means.Pivot))] <- NA
 
-SummaryTable %>%
-  kable_styling(position='center', full_width = F)#%>%
-  #collapse_rows(columns = 2, valign = "middle") #merges adjacent cells with identical values
+# --- dynamic header construction ---
+timepoints <- unique(Project.Means$timepoint)
+plot_types <- unique(Project.Means$plot_type)
+
+# Build expected column names to match order (timepoint | plot_type)
+value_columns <- as.vector(outer(timepoints, plot_types, paste, sep = " | "))
+
+# Reorder columns to match that structure
+Means.Pivot <- Means.Pivot %>%
+  select(Acronym, all_of(value_columns), Units)
+
+# Lower header (flat_colnames) — show plot types only
+flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Unit")
+
+# Upper header (timepoints)
+header_above <- c(" " = 1)  # blank for Indicator
+for (tp in timepoints) {
+  header_above <- c(header_above, setNames(length(plot_types), tp))
+}
+header_above <- c(header_above, " " = 1)  # blank for Unit
+
+# --- create table ---
+SummaryTable <- Means.Pivot %>%
+  kbl(
+    caption = "Soil Metrics",
+    digits = 2,
+    col.names = flat_colnames
+  ) %>%
+  add_header_above(header_above) %>%
+  kable_styling(position = "center", full_width = FALSE)
+
+SummaryTable
+
+#CHECK super close but theres something wrong with SIC and NaN to NA didn't work
 
 #Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
 ```
