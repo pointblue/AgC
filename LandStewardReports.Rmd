@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: JPNV.14.SC
+  project_name: KERN.25.LI
   raca_filter:
     - crop
 ---
@@ -39,7 +39,7 @@ knitr::opts_chunk$set(
 	error=FALSE)
 
 convert_depths <- function(x) {
-  sapply(strsplit(x, "_"), function(parts) {
+  sapply(strsplit(x, "-"), function(parts) {
     nums <- as.numeric(parts)
     nums <- round(nums * 0.393701)
     paste(nums, collapse = "-")
@@ -320,6 +320,11 @@ if (depth.increments.no>1){
 }
 ```
 ## Results
+```{r, baseline only statement, results='asis'}
+if (unique(PointLevel$timepoint)=="T0"){
+  cat("Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
+}
+```
 ```{r}
 #creating a vector of value names that match the names in PointLevel
 if ("Tx" %in% proj.indicators==TRUE) {
@@ -331,7 +336,7 @@ PointLevel<-PointLevel%>%
 
 ```
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC}
-asis_output("### Soil carbon stocks\\n") #CONDITIONAL HEADER
+asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
 
 ```
 
@@ -521,7 +526,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         geom = "shadowtext", #requires package shadowtext
         bg.color = "black", #text outline color
         bg.r = 0.15,  #thickness of outline
-        aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
+        aes(label = sprintf("%.1f", after_stat(y))), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
         hjust = -0.5,
         vjust = 0.2,
@@ -534,19 +539,23 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
 }
 ```
-``` {r, results='asis', eval = unique(stocks_df$Stocks_Indicator)>1, include=FALSE}
+```{r results='asis', eval = unique(stocks_df$Stocks_Indicator)>1}
+asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
+
+```
+``` {r, results='asis', eval = unique(stocks_df$Stocks_Indicator)>1}
 asis_output(
 #CHECK this sentence sucks
 "The following graph shows **all other pools of carbon** measured in this project compared to a final value showing the sum of all average stocks pools in the study area."
 )
 ```
-```{r, Stocks figure for all other pools, fig.cap="", include=FALSE}
+```{r, Stocks figure for all other pools, fig.cap=""}
 
 #get rid of raca values for this graph
 stocks_df_forallpools<-stocks_df%>%filter(!plot_type %in% "raca")
 
 #Define the desired order of indicators
-stocks_df_forallpools$Stocks_Indicator <- factor(stocks_df_forallpools$Stocks_Indicator, levels = c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
+stocks_df_forallpools$Stocks_Indicator <- factor(stocks_df_forallpools$Stocks_Indicator, levels = c("org_c_stocks", "inorg_c_stocks", "maoc_stocks", "poc_stocks", "all_stocks"))
 
 #define labels for the facets (stocks indicators)
 indicator_labels <- c(
@@ -554,13 +563,13 @@ indicator_labels <- c(
   "inorg_c_stocks" = "Soil inorganic carbon",
   "maoc_stocks"  = "Mineral-assocaited organic carbon",
   "poc_stocks"   = "Particulate organic carbon",
-  "all_stocks" = "All measured carbon pools"
+  "all_stocks" = "Carbon pools combined"
 )
 
 ggplot(stocks_df_forallpools, aes(x = plot_type, y = Tons.Acre)) +
           # Jittered black points
-      geom_point(color="black",
-        alpha = 0.3,
+      geom_point(aes(color = LU),
+        alpha = 0.8,
         size = 3,
         position = position_jitter(width = 0.2, height = 0)
       ) +
@@ -590,20 +599,43 @@ ggplot(stocks_df_forallpools, aes(x = plot_type, y = Tons.Acre)) +
         bg.r = 0.15,  #thickness of outline
         aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
-        hjust = -0.5,
+        hjust = -0.4,
         vjust = 0.2,
         fontface = "bold",
         size = 4
       )+
+    labs(
+    x = "",
+    y = "Carbon Stored (tons/acre)",
+  ) +
+    scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU),
+    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    labels = c(
+      str_wrap("Treated site average", width = 21),
+      str_wrap("Control site average", width = 21),
+      str_wrap(paste0(raca_summary$ecoregion, " average"), width = 21),
+      "AgC project sampling point",
+      "RaCA rangeland sampling point",
+      "RaCA cropland sampling point"
+    )
+  ) +
+    # Custom x-axis labels
   #remove x axis labels (they look silly repeated and are denoted by color)
-  theme(axis.title.x=element_blank())+
-  facet_wrap(~Stocks_Indicator, labeller = labeller(Stocks_Indicator = indicator_labels))#+
-  #theme_minimal()
+theme_minimal()+
+  theme(
+  axis.title.x = element_blank(),
+  axis.text.x  = element_blank(),
+  axis.ticks.x = element_blank()
+)+
+  facet_wrap(~Stocks_Indicator, labeller = labeller(Stocks_Indicator = indicator_labels))
 
 
 ```
-### All soil properties
-The following table summarizes average values across the study area for all soil metrics included in your project. 
+
+### Other measured properties
+The following table summarizes average values across the study area for all metrics included in your project. 
 ```{r Summarize non-stocks soil means} 
 
 Project.Means <- PointLevel %>%
@@ -674,7 +706,7 @@ SummaryTable %>%
 ```
 
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
-asis_output("#### Soil texture\\n") #CONDITIONAL HEADER
+asis_output("### Soil texture\\n") #CONDITIONAL HEADER
 ```
 ```{r results='asis'}
 if ("Tx" %in% proj.indicators){cat("The graphic below represents where each soil sample falls in a texture triangle, indicating the percentage of clay-sized, silt-sized, and sand-sized particles. The corresponding USDA texture categories are named inside the triangle. In general, we expect clays to store more SOC than sands.")}
