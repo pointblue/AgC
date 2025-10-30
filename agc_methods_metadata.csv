@@ -1,0 +1,18 @@
+﻿indicator,indicator_label,tier,method,method_label
+soc,Soil organic carbon,1,dry_comb_frac,Dry combustion + size fractionation
+soc,Soil organic carbon,2,dry_comb,Dry combustion
+sic,Soil inorganic carbon,1,press_calc,Pressure calcimeter
+sic,Soil inorganic carbon,2,dry_comb,Dry Combustion with acid pre-treatment 
+ahb,Aboveground herbaceous biomass,1,harv,Harvest
+ahb,Aboveground herbaceous biomass,2,vis_est,Visual estimation
+awb,Woody biomass,1,dia_hei,Diameter plus height
+awb,Woody biomass,2,dia,Diameter only
+bd,Soil bulk density,1,esm_millet,ESM + millet method
+bd,Soil bulk density,1,esm_slide,ESM + slide hammer method
+bd,Soil bulk density,2,slide,Slide hammer
+bd,Soil bulk density,2,millet,Millet method
+bd,Soil bulk density,3,ruler,Ruler
+tx,Soil texture,1,hydrometer,Hydrometer
+tx,Soil texture,2,feel,By feel
+ph,Soil pH,1,lab_cacl2,Electrode in CaCl2
+ph,Soil pH,2,field_h2o,Portable meter in H2O
