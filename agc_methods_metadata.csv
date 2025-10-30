@@ -1,4 +1,11 @@
 ﻿indicator,indicator_label,tier,method,method_label
+point_generation,Point selection,1,gis,GIS Software
+point_generation,Point selection,2,prps,Pace-referenced point selection
+stratify,Stratification,,grts,Space (spatially balanced)
+stratify,Stratification,,soil,Soil type
+stratify,Stratification,,slope,Slope/aspect
+stratify,Stratification,,catenal,Catenal position
+stratify,Stratification,,veg,Proximity to woody vegetation (e.g. beneath canopy and interspaces)
 soc,Soil organic carbon,1,dry_comb_frac,Dry combustion + size fractionation
 soc,Soil organic carbon,2,dry_comb,Dry combustion
 sic,Soil inorganic carbon,1,press_calc,Pressure calcimeter
