@@ -6,6 +6,8 @@ stratify,Stratification,,soil,Soil type
 stratify,Stratification,,slope,Slope/aspect
 stratify,Stratification,,catenal,Catenal position
 stratify,Stratification,,veg,Proximity to woody vegetation (e.g. beneath canopy and interspaces)
+sampling_density,Sampling density,,lookup_table,Ag-C lookup tables
+sampling_density,Sampling density,,power_analysis,Power analysis
 soc,Soil organic carbon,1,dry_comb_frac,Dry combustion + size fractionation
 soc,Soil organic carbon,2,dry_comb,Dry combustion
 sic,Soil inorganic carbon,1,press_calc,Pressure calcimeter
