@@ -1,37 +1,38 @@
-﻿column_name,description
-project_id,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
-ranch_name,Full name of ranch or farm
-ranch_code,First 4 letters of ranch name
-proj_practice_year,Conservation practice implementation year
-conservation_practice,List of conservation practices implemented within project; see options in practice_abbreviations.csv
-indicators,List of indicators measured
-control_site,Control site included (TRUE or FALSE)
-control_baseline,Baseline sampling occurred before practice implementation (TRUE or FALSE)
-point_generation_method,Method for point selection; see options in agc_methods_metadata.csv
-stratify,Points selected using stratification (TRUE or FALSE)
-stratify_method,Stratification method; see options in agc_methods_metadata.csv
-sampling_density_method,Method for determining sampling density; see options in agc_methods_metadata.csv
-variability,"Field variability (low, medium or high)"
-certainty_level,"Certainty level desired (low, medium, or high)"
-composite,Composite sampling occurred (TRUE or FALSE)
-composite_n,Number of composite samples per point
-composite_dist,Distance of composite subsamples from center point (meters)
-soc_method,Method for soil organic carbon analysis; see options in agc_methods_metadata.csv
-sic_method,Method for soil inorganic carbon analysis; see options in agc_methods_metadata.csv
-bd_method,Method for bulk density analysis; see options in agc_methods_metadata.csv
-tx_method,Method for texture analysis; see options in agc_methods_metadata.csv
-ph_method,Method for pH analysis; see options in agc_methods_metadata.csv
-ahb_method,Method for aboveground herbaceous biomass; see options in agc_methods_metadata.csv
-awb_method,Method for aboveground woody biomass; see options in agc_methods_metadata.csv
-soc_num_samples,Number of samples taken for soil organic carbon analysis
-sic_num_samples ,Number of samples taken for soil inorganic carbon analysis
-bd_num_samples,Number of samples taken for bulk density analysis
-hrb_num_samples,Number of samples taken for herbaceous root biomass analysis
-wrb_num_samples,Number of samples taken for woody root biomass analysis
-ahb_num_samples,Number of samples taken for herbaceous aboveground biomass analysis
-awb_num_samples,Number of samples taken for aboveground woody biomass analysis
-ph_num_samples,Number of samples taken for pH analysis
-tx_num_samples,Number of samples taken for soil texture analysis
-sampling_depth,Max sampling depth
-depth_increments,Number of depth increments
-inference_score,Inference score calculated using Crop-C or Range-C protocol
+﻿column_name,label,description
+project_id,Project ID,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
+ranch_name,Ranch name,Full name of ranch or farm
+ranch_code,Ranch code,First 4 letters of ranch name
+proj_practice_year,Year of practice implementation,Conservation practice implementation year
+conservation_practice,Conservation practice(s),List of conservation practices implemented within project; see options in practice_abbreviations.csv
+indicators,Indicators measured,List of indicators measured
+control_site,Control site included (Y/N),Control site included (TRUE or FALSE)
+control_baseline,Baseline sampling (Y/N),Baseline sampling occurred before practice implementation (TRUE or FALSE)
+notes_1,Notes,Identification of control site if it does not match project ID of treatment
+point_generation_method,Point selection method,Method for point selection; see options in agc_methods_metadata.csv
+stratify,Stratified sampling (Y/N),Points selected using stratification (TRUE or FALSE)
+stratify_method,Stratification method,Stratification method; see options in agc_methods_metadata.csv
+sampling_density_method,Sample density method,Method for determining sampling density; see options in agc_methods_metadata.csv
+variability,Field variability,"Field variability (low, medium or high)"
+certainty_level,Certainty level,"Certainty level desired (low, medium, or high)"
+composite,Composite sampling (Y/N),Composite sampling occurred (TRUE or FALSE)
+composite_n,Number of composite samples,Number of composite samples per point
+composite_dist,Distance of composite samples from center point,Distance of composite subsamples from center point (meters)
+soc_method,Soil organic carbon method,Method for soil organic carbon analysis; see options in agc_methods_metadata.csv
+sic_method,Soil inorganic carbon method,Method for soil inorganic carbon analysis; see options in agc_methods_metadata.csv
+bd_method,Bulk density method,Method for bulk density analysis; see options in agc_methods_metadata.csv
+tx_method,Texture method,Method for texture analysis; see options in agc_methods_metadata.csv
+ph_method,pH method,Method for pH analysis; see options in agc_methods_metadata.csv
+ahb_method,Aboveground herbaceous biomass method,Method for aboveground herbaceous biomass; see options in agc_methods_metadata.csv
+awb_method,Aboveground woody biomass method,Method for aboveground woody biomass; see options in agc_methods_metadata.csv
+soc_num_samples,Number of SOC samples,Number of samples taken for soil organic carbon analysis
+sic_num_samples ,Number of SIC samples,Number of samples taken for soil inorganic carbon analysis
+bd_num_samples,Number of bulk density samples,Number of samples taken for bulk density analysis
+hrb_num_samples,Number of herbaceous root biomass samples,Number of samples taken for herbaceous root biomass analysis
+wrb_num_samples,Number of woody root biomass samples,Number of samples taken for woody root biomass analysis
+ahb_num_samples,Number of aboveground herbaceous biomass samples,Number of samples taken for herbaceous aboveground biomass analysis
+awb_num_samples,Number of aboveground woody biomass samples,Number of samples taken for aboveground woody biomass analysis
+ph_num_samples,Number of pH samples,Number of samples taken for pH analysis
+tx_num_samples,Number of texture samples,Number of samples taken for soil texture analysis
+soc_sampling_depth,SOC sampling depth,Max sampling depth
+soc_depth_increments,SOC depth increments,Number of depth increments
+inference_score,Ag-C inference score,Inference score calculated using Crop-C or Range-C protocol
