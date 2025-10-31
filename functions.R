@@ -774,7 +774,7 @@ AgC_GRTS_strat <- function (polygon, soils, proj_name, sdensity, osdensity=NULL,
 }
 
 ## ---- Create PDF map of sampling design ----
-design_map <- function(sdesign, border, proj_name, dir, outname, title="Monitoring Design -- Initial", subtitle="Spatially balanced sampling", plot_type_col="plot_type"){
+design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Monitoring Design -- Initial", subtitle="Spatially balanced sampling", plot_type_col="plot_type"){
   
   if (!require(dplyr)) {
     stop("Package 'dplyr' is required for this function.")
@@ -809,7 +809,8 @@ design_map <- function(sdesign, border, proj_name, dir, outname, title="Monitori
   } else if (0.03 < square.size & square.size <= 0.05) {14
   } else {13}
   
-  register_google(key = 'AIzaSyBflHq-_kS39K0tVQdw0y55nwJjC3L_arM') #This is Avalon's Google API key
+  
+  register_google(key = key) #will populate with defined Google API key
   plot.base <- get_googlemap(center= proj.centroid, zoom = pract_zoom, maptype = 'satellite') #calls basemap from google database
   sdesign <- sdesign %>%
     mutate(pointtype = ifelse(grepl(".OS", name, fixed = TRUE), "oversample", "base"))
