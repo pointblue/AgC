@@ -315,7 +315,7 @@ if (ProjectDesign$composite==TRUE){
 ```
 ```{r, depth increments, results='asis'}
 #Do some conversions for a statement about max depth and depth increments
-depth.increments.no <- ProjectDesign$depth_increments
+depth.increments.no <- ProjectDesign$soc_depth_increments
 
 
 if (depth.increments.no>1){
@@ -517,7 +517,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
       
       # Custom x-axis labels
   scale_x_discrete(labels = c(
-    "T0" = "Baseline",
+    "T0" = "T0",
     "T1" = "T1",
     "T2" = "T2",
     "Reference" = "Reference"
@@ -576,12 +576,15 @@ indicator_labels <- c(
 
 stocks_df_forallpools <- stocks_df_forallpools %>%
   mutate(
-    # Replace NA with a string so interaction works
     timepoint_label = ifelse(is.na(timepoint), "Reference", timepoint),
-    # Create interaction for x-axis
     plot_time = interaction(plot_type, timepoint_label, sep = " | ")
-  )%>%  mutate(
-    plot_time = fct_reorder(plot_time, as.numeric(factor(plot_type)))
+  ) %>%
+  mutate(
+    # convert to factor with desired order based on plot_type
+    plot_time = factor(
+      plot_time,
+      levels = unique(plot_time[order(plot_type, timepoint_label)])
+    )
   )
 
 
@@ -616,7 +619,7 @@ ggplot(stocks_df_forallpools, aes(x = plot_time, y = Tons.Acre)) +
         geom = "shadowtext", #requires package shadowtext
         bg.color = "black", #text outline color
         bg.r = 0.15,  #thickness of outline
-        aes(label = sprintf("%.1f", ..y..)), #change decimal places printed by altering the digit
+        aes(label = sprintf("%.1f", after_stat(y))), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
         hjust = 0,
         vjust = -1,
@@ -664,7 +667,7 @@ Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type, timepoint) %>%
                     dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
 
-Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>%
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>% arrange(timepoint)%>%
           pivot_wider(
     names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
     values_from = value,
@@ -697,7 +700,8 @@ Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.st
       Indicator_base == "clay" ~ "Clay",
       TRUE ~ Acronym                                # default mapping
     )
-  ) 
+  )
+
 my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
 
 Means.Pivot <- Means.Pivot1 %>%
@@ -708,23 +712,20 @@ Means.Pivot <- Means.Pivot1 %>%
     original_order = row_number()
   ) %>%
   arrange(is.na(order_helper), order_helper, original_order) %>%
-  select(-order_helper, -original_order)
+  select(-order_helper, -original_order)%>%mutate(across(where(is.numeric), ~ ifelse(is.nan(.), NA, .)))
 
-# --- clean up NaN values ---
-Means.Pivot[is.nan(as.matrix(Means.Pivot))] <- NA
-
-# --- dynamic header construction ---
+# setup dynamic headers
 timepoints <- unique(Project.Means$timepoint)
 plot_types <- unique(Project.Means$plot_type)
 
 # Build expected column names to match order (timepoint | plot_type)
-value_columns <- as.vector(outer(timepoints, plot_types, paste, sep = " | "))
+value_columns <- names(Means.Pivot1)[!names(Means.Pivot1) %in% c("Indicator", "Indicator_base", "Units", "Acronym")]
 
-# Reorder columns to match that structure
+# Reorder columns
 Means.Pivot <- Means.Pivot %>%
   select(Acronym, all_of(value_columns), Units)
 
-# Lower header (flat_colnames) — show plot types only
+# Lower header — show plot types only
 flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Unit")
 
 # Upper header (timepoints)
@@ -898,10 +899,11 @@ PointData.projDYNAMIC<-PointLevel%>%
   select(sample_id, plot_type, all_of(dynamicmap.inds))
 
 
-points<-points%>%
+points_map<-points%>%
   rename(sample_id=name)%>%
   select(sample_id, geometry)
-DataMap.proj<-left_join(points, PointData.projDYNAMIC, by="sample_id")
+
+DataMap.proj<-left_join(points_map, PointData.projDYNAMIC, by="sample_id")
 
 base_colors <- rainbow(length(dynamicmap.inds)) #create a rainbow palette from which to create color ramps
 
