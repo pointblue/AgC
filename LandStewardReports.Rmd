@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: MERC.24.LI
+  project_name: KERN.25.LI
   raca_filter:
     - crop
 ---
@@ -325,6 +325,21 @@ if (depth.increments.no>1){
   
 }
 ```
+### Timepoints
+```{r}
+timepoint_dates<-PointLevel %>%
+  group_by(timepoint) %>%
+  summarize(sample_date = first(sample_date), .groups = "drop")
+
+timepoint_sentence <- timepoint_dates %>%
+  arrange(timepoint) %>%  # optional: ensure proper order
+  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date), "%B %d, %Y"), ".")) %>%
+  pull(text) %>%          # get vector of strings
+  paste(collapse = " ")
+
+```
+This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
+
 ## Results
 ```{r, baseline only statement, results='asis'}
 if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
@@ -378,7 +393,7 @@ if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be 
 stocks.inds <- c("total_c", "org_c", "inorg_c", "maoc", "poc") #these are the columns that can be turned into stocks (CHECK hard coding these in for now. Not sure if there's a better solution)
 for(col in intersect(proj.indicators.SSC, stocks.inds)) {
   new_col <- paste0(col, "_stocks")  # new column name
-  PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4461 #calculating stocks in US tons / acre (percent to decimal cancels out) 
+  PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4462 #calculating stocks in US tons / acre (percent to decimal cancels out) 
 }
 proj.indicators.SSC.stocks<- c(proj.indicators.SSC, paste0(intersect(proj.indicators.SSC, stocks.inds), "_stocks")) #add those new column names to my list of indicator columns
 
@@ -421,7 +436,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
 ```
 
 
-```{r fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values."}
+```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values."}
 if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
 #SOC stocks graphic comparing to RaCa baselines
@@ -462,6 +477,8 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
     "#5B6FAE"
     "#9FBF88"
     
+       # Optional: connect repeated measurements if you have a sample ID
+   #geom_line(aes(group = sample_id), alpha = 0.4, linetype = "dashed") +
     
     #Begin graph
     ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
@@ -472,9 +489,15 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         size = 3,
         position = position_jitter(width = 0.2, height = 0)
       ) +
-      
-      # Optional: connect repeated measurements if you have a sample ID
-   #geom_line(aes(group = sample_id), alpha = 0.4, linetype = "dashed") +
+    
+      #lines connecting plot averages
+       stat_summary(
+          fun = mean,
+          geom = "line",
+          aes(group = plot_type), 
+          col="black",
+          linewidth = 1 
+        ) +
       
       # Mean + 95% CI (colored by plot_type)
       stat_summary(
@@ -531,10 +554,10 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         bg.r = 0.15,  #thickness of outline
         aes(label = sprintf("%.1f", after_stat(y))), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
-        hjust = -0.3,
-        vjust = 0.4,
+        hjust = 1.2,
+        vjust = -1.2,
         fontface = "bold",
-        size = 4
+        size = 3.5
       )+
       
         # Facet by plot type
@@ -557,7 +580,7 @@ asis_output(
 "The following graph shows **all other pools of carbon** measured in this project compared to a final value showing the sum of all average stocks pools in the study area."
 )
 ```
-```{r, Stocks figure for all other pools, fig.cap=""}
+```{r, fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
 
 #get rid of raca values for this graph
 stocks_df_forallpools<-stocks_df%>%filter(!plot_type %in% "raca")
@@ -589,13 +612,24 @@ stocks_df_forallpools <- stocks_df_forallpools %>%
 
 
 ggplot(stocks_df_forallpools, aes(x = plot_time, y = Tons.Acre)) +
-          # Jittered black points
-      geom_point(aes(color = LU),
-        alpha = 0.8,
-        size = 3,
-        position = position_jitter(width = 0.1, height = 0)
-      ) +
-        # Mean + 95% CI (colored by plot_type)
+  
+  # Jittered black points
+  geom_point(aes(color = LU),
+    alpha = 0.8,
+    size = 3,
+    position = position_jitter(width = 0.1, height = 0)
+  ) +
+  
+  #lines connecting plot averages
+ stat_summary(
+    fun = mean,
+    geom = "line",
+    aes(group = plot_type), 
+    col="black",
+    linewidth = 1 
+  ) +
+  
+  # Mean + 95% CI (colored by plot_type)
   stat_summary(
         fun.data = function(x) {
           mean_x <- mean(x, na.rm = TRUE)
@@ -621,10 +655,10 @@ ggplot(stocks_df_forallpools, aes(x = plot_time, y = Tons.Acre)) +
         bg.r = 0.15,  #thickness of outline
         aes(label = sprintf("%.1f", after_stat(y))), #change decimal places printed by altering the digit
         color = "#FFD700", #text color
-        hjust = 0,
-        vjust = -1,
+        hjust = 1.1,
+        vjust = -1.2,
         fontface = "bold",
-        size = 4
+        size = 3.54
       )+
     labs(
     x = "",
@@ -658,100 +692,6 @@ theme_minimal()+
 
 
 ```
-
-### Other measured properties
-The following table summarizes average values across the study area for all metrics included in your project. 
-```{r Summarize non-stocks soil means} 
-
-Project.Means <- PointLevel %>%
-                    dplyr::group_by(plot_type, timepoint) %>%
-                    dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
-
-Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>% arrange(timepoint)%>%
-          pivot_wider(
-    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
-    values_from = value,
-    names_sep = " | "                           # optional separator
-  ) %>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
-           left_join( #add the units column (CHECK,)
-    proj.indicator.table %>% select(CheckCol, UnitsTable),
-    by = c("Indicator" = "CheckCol")
-  ) %>%
-  mutate(
-    Units = case_when(
-      Indicator %in% c("sand", "silt", "clay") ~ "%",           # special values
-      str_ends(Indicator, "_stocks") ~ "tons/acre",             # ends with _stocks
-      TRUE ~ UnitsTable                                          # default mapping
-    )
-  ) %>%
-  select(-UnitsTable)%>% #clunky way of fixing units...not worth chasing down rn
-  mutate(
-    # remove _stocks for matching if present
-    Indicator_base = str_remove(Indicator, "_stocks$")
-  ) %>%
-  left_join(
-    proj.indicator.table %>% select(Acronym, CheckCol),
-    by = c("Indicator_base" = "CheckCol")
-  ) %>%
-  mutate(
-    Acronym = case_when(
-      Indicator_base == "sand" ~ "Sand",
-      Indicator_base == "silt" ~ "Silt",
-      Indicator_base == "clay" ~ "Clay",
-      TRUE ~ Acronym                                # default mapping
-    )
-  )
-
-my_order <- c("SOC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
-
-Means.Pivot <- Means.Pivot1 %>%
-  select(-Indicator_base, -Indicator) %>%
-  select(Acronym, everything(), Units) %>%
-  mutate(
-    order_helper = match(Acronym, my_order),
-    original_order = row_number()
-  ) %>%
-  arrange(is.na(order_helper), order_helper, original_order) %>%
-  select(-order_helper, -original_order)%>%mutate(across(where(is.numeric), ~ ifelse(is.nan(.), NA, .)))
-
-# setup dynamic headers
-timepoints <- unique(Project.Means$timepoint)
-plot_types <- unique(Project.Means$plot_type)
-
-# Build expected column names to match order (timepoint | plot_type)
-value_columns <- names(Means.Pivot1)[!names(Means.Pivot1) %in% c("Indicator", "Indicator_base", "Units", "Acronym")]
-
-# Reorder columns
-Means.Pivot <- Means.Pivot %>%
-  select(Acronym, all_of(value_columns), Units)
-
-# Lower header — show plot types only
-flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Unit")
-
-# Upper header (timepoints)
-header_above <- c(" " = 1)  # blank for Indicator
-for (tp in timepoints) {
-  header_above <- c(header_above, setNames(length(plot_types), tp))
-}
-header_above <- c(header_above, " " = 1)  # blank for Unit
-
-# --- create table ---
-SummaryTable <- Means.Pivot %>%
-  kbl(
-    caption = "Soil Metrics",
-    digits = 2,
-    col.names = flat_colnames
-  ) %>%
-  add_header_above(header_above) %>%
-  kable_styling(position = "center", full_width = FALSE)
-
-SummaryTable
-
-#CHECK super close but theres something wrong with SIC and NaN to NA didn't work
-
-#Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
-```
-
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
 asis_output("### Soil texture\\n") #CONDITIONAL HEADER
 ```
@@ -870,145 +810,255 @@ grid.arrange(imgT, imgC, ncol = 2)
 ```
 
 
+### Other measured properties
+The following table summarizes average values across the study area for all metrics included in your project. 
+```{r} 
+
+Project.Means <- PointLevel %>%
+                    dplyr::group_by(plot_type, timepoint) %>%
+                    dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
+
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>% arrange(timepoint)%>%
+          pivot_wider(
+    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
+    values_from = value,
+    names_sep = " | "                           # optional separator
+  ) %>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
+           left_join( #add the units column (CHECK,)
+    proj.indicator.table %>% select(CheckCol, UnitsTable),
+    by = c("Indicator" = "CheckCol")
+  ) %>%
+  mutate(
+    Units = case_when(
+      Indicator %in% c("sand", "silt", "clay") ~ "%",           # special values
+      str_ends(Indicator, "_stocks") ~ "tons/acre",             # ends with _stocks
+      TRUE ~ UnitsTable                                          # default mapping
+    )
+  ) %>%
+  select(-UnitsTable)%>% #clunky way of fixing units...not worth chasing down rn
+  mutate(
+    # remove _stocks for matching if present
+    Indicator_base = str_remove(Indicator, "_stocks$")
+  ) %>%
+  left_join(
+    proj.indicator.table %>% select(Acronym, CheckCol),
+    by = c("Indicator_base" = "CheckCol")
+  ) %>%
+  mutate(
+    Acronym = case_when(
+      Indicator_base == "sand" ~ "Sand",
+      Indicator_base == "silt" ~ "Silt",
+      Indicator_base == "clay" ~ "Clay",
+      TRUE ~ Acronym                                # default mapping
+    )
+  )
+
+my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
+
+Means.Pivot <- Means.Pivot1 %>%
+  select(-Indicator_base, -Indicator) %>%
+  select(Acronym, everything(), Units) %>%
+  mutate(
+    order_helper = match(Acronym, my_order),
+    original_order = row_number()
+  ) %>%
+  arrange(is.na(order_helper), order_helper, original_order) %>%
+  select(-order_helper, -original_order)%>%mutate(across(where(is.numeric), ~ ifelse(is.nan(.), NA, .)))
+
+# setup dynamic headers
+timepoints <- unique(Project.Means$timepoint)
+plot_types <- unique(Project.Means$plot_type)
+
+# Build expected column names to match order (timepoint | plot_type)
+value_columns <- names(Means.Pivot1)[!names(Means.Pivot1) %in% c("Indicator", "Indicator_base", "Units", "Acronym")]
+
+# Reorder columns
+Means.Pivot <- Means.Pivot %>%
+  select(Acronym, all_of(value_columns), Units)
+
+# Lower header — show plot types only
+flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Unit")
+
+# Upper header (timepoints)
+header_above <- c(" " = 1)  # blank for Indicator
+for (tp in timepoints) {
+  header_above <- c(header_above, setNames(length(plot_types), tp))
+}
+header_above <- c(header_above, " " = 1)  # blank for Unit
+
+# --- create table ---
+SummaryTable <- Means.Pivot %>%
+  kbl(
+    caption = "Plot means for all measured values",
+    digits = 2,
+    col.names = flat_colnames
+  ) %>%
+  add_header_above(header_above) %>%
+  kable_styling(position = "center", full_width = FALSE)
+
+SummaryTable
+
+#CHECK super close but theres something wrong with SIC and NaN to NA didn't work
+
+#Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
+```
+
+
+
+
 
 ### Dynamic map: all measured values
 
 The previous tables and figures report results averaged across the study area. Use the interactive map below to explore results at each sampling point. Hover over the layers symbol to select from included metrics -- select one layer at a time for best visibility. Click on a sampling point to see all measured values at that point. 
 
 ```{r Dynamic map}
+#Start by creating the leaflet map for the plot borders
 
+  pal <- colorFactor(c("white","black"), c("T", "C")) #define color palette for plot borders
+  
+  DynamicMap<-leaflet()%>% 
+    #establishing the basemap first
+    addProviderTiles(providers$Esri.WorldImagery) %>%
+    #adding the border layer
+    addPolygons(data = st_zm(border),
+            fillOpacity = 0,
+            color = ~ pal(plot_type),
+            opacity=1)%>%
+    addLegend(
+    pal = pal, #defined above
+    values = border$plot_type,
+    title = "Plot Type",
+    position = "bottomleft",
+    labFormat = function(type, cuts, p) { 
+    c("Treatment", "Control")[match(cuts, c("T", "C"))]
+        })
+
+
+#Gather the names of the stocks columns
 if ("bulk_density" %in% proj.indicators.SSC.stocks){
-stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
+stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) 
 }
 
-proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
+#Gather all indicators except biomass -- this will be important later when we need to accomodate depth increments
+proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")]
 
-if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector 
+#Gather up all indicators that should be included in the map
+if ("bulk_density" %in% proj.indicators.SSC.stocks) { 
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
 } else {
   dynamicmap.inds <- proj.indicators.nonbiomass
 }
 
+#define an order for the relevant layers to appear on the map
 fixed_order <- c("org_c", "maoc", "poc", "inorg_c", "org_c_stocks", "maoc_stocks", "poc_stocks", "inorg_c_stocks", "bulk_density", "ph", "sand", "silt", "clay") #
 dynamicmap.inds <- c(
-  intersect(fixed_order, dynamicmap.inds),           # fixed values in order
-  setdiff(dynamicmap.inds, fixed_order)             # remaining values
-) #getting values in the desired display order
+  intersect(fixed_order, dynamicmap.inds),     # fixed values in order
+  setdiff(dynamicmap.inds, fixed_order)        # remaining values
+)
 
-PointData.projDYNAMIC<-PointLevel%>%
-  select(sample_id, plot_type, all_of(dynamicmap.inds))
+#define rainbow colors for the map layers -- one color per value in dynamicmap.inds
+base_colors <- rainbow(length(dynamicmap.inds))
 
-
-points_map<-points%>%
-  rename(sample_id=name)%>%
-  select(sample_id, geometry)
-
-DataMap.proj<-left_join(points_map, PointData.projDYNAMIC, by="sample_id")
-
-base_colors <- rainbow(length(dynamicmap.inds)) #create a rainbow palette from which to create color ramps
-
-#define labels for legend and popups
-Means.Pivot1<-Means.Pivot1%>%
+#Prep labels for legend and popups using one of the dfs we made in the summary table process
+MapLegendRef<-Means.Pivot1%>%
   mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
-legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator)
+legends_names <- setNames(MapLegendRef$legend, MapLegendRef$Indicator)
 legends_names["sample_id"]<-"Sample ID" #forcing in value for sample ID
 
+#####################This is where things need to loop according to timepoints#####################
+#Prep main dataframe for map
+DataMap.proj<-PointLevel%>%
+  #Grab relevant columns from PointLevel
+  select(sample_id, plot_type, timepoint, all_of(dynamicmap.inds))%>% 
+  #join with spatial data
+  left_join( 
+    (points%>%
+      rename(sample_id=name)%>%
+      select(sample_id, geometry)), 
+  by="sample_id")%>%
+  #Ensure we're only looking at the first available timepoint
+  arrange(timepoint)%>%
+  filter(timepoint == first(timepoint))%>%
+  st_as_sf()
+
 #create dataframe for point popups
-    #used chat gpt for a lot of this cause I couldn't figure how to generate the tables row-wise so we're not stuck with a ton of NAs
-    df_forpopup <- DataMap.proj %>%
-        mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
-      rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))#%>%
-    
-    # Helper function to build HTML for a single row (GPT)
-    build_popup_html <- function(row, cols) {
-      vals <- row[cols]                   # select the relevant columns
-      vals <- vals[!is.na(vals)]          # remove NAs
-      vals <- lapply(vals, as.character)  # convert all to character
-      if(length(vals) == 0) return("")    # in case all values are NA
-      paste0(
-        "<table>",
-        paste0("<tr><td><b>", names(vals), "</b></td><td>", vals, "</td></tr>", collapse=""),
-        "</table>"
-      )
-    }
-    
-    popupcols<-setdiff(names(df_forpopup), c("sample_id", "geometry", "plot_type", "plot_type")) #define column to be included in the popups
-    
-    # Apply row-wise
-    df_forpopup$popup_html <- apply(
-      df_forpopup, 1, 
-      function(r) build_popup_html(r, popupcols)
+  #I used chat gpt for a lot of this cause I couldn't figure how to generate the tables row-wise so we're not stuck with a ton of NAs
+  df_forpopup <- DataMap.proj %>%
+      mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
+    rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))#%>%
+  
+  #Define helper function to build HTML for a single row (from ChatGPT)
+  build_popup_html <- function(row, cols) {
+    vals <- row[cols]                   # select the relevant columns
+    vals <- vals[!is.na(vals)]          # remove NAs
+    vals <- lapply(vals, as.character)  # convert all to character
+    if(length(vals) == 0) return("")    # in case all values are NA
+    paste0(
+      "<table>",
+      paste0("<tr><td><b>", names(vals), "</b></td><td>", vals, "</td></tr>", collapse=""),
+      "</table>"
     )
-
-
-#color palette for plot borders
-pal <- colorFactor(c("white","black"), c("T", "C"))
-  
-#create the leaflet map for plot borders
-    DynamicMap<-leaflet()%>% #establishing the basemap first
-      addProviderTiles(providers$Esri.WorldImagery) %>%
-      addPolygons(data = st_zm(border),
-              fillOpacity = 0,
-              color = ~ pal(plot_type),
-              opacity=1)%>%
-      addLegend(
-      pal = pal, 
-      values = border$plot_type,
-      title = "Plot Type",
-      position = "bottomleft",
-      labFormat = function(type, cuts, p) { 
-      c("Treatment", "Control")[match(cuts, c("T", "C"))]
-    })
-  
-    overlay_groups <- c()
-
-  #start formatting legend values for the points
-  for (i in seq_along(dynamicmap.inds)) {
-    legend_name <- ifelse(dynamicmap.inds[i] %in% names(legends_names), 
-                          legends_names[dynamicmap.inds[i]], 
-                          dynamicmap.inds[i])
-    
-    #this prevents errors from being thrown when there are NAs 
-    if (all(is.na(DataMap.proj[[dynamicmap.inds[i]]]))){domainz=c(0,1)
-    }else{domainz=DataMap.proj[[dynamicmap.inds[i]]]}
-    
-    #establish color palette for points for different indicators -- a different raindbow color will be selected for each indicator
-    pal<- colorNumeric(palette = colorRampPalette(c("white", base_colors[i]))(100), domain =domainz)
-
-  #pipe the points into the map created for the plot borders
-   DynamicMap<-  DynamicMap %>%
-          addProviderTiles(providers$Esri.WorldImagery) %>%  # Add satellite imagery as the basemap
-          addCircleMarkers(
-            data = DataMap.proj,
-            color = ~pal(get(dynamicmap.inds[i])),   # Apply the color scale to the SOC field
-            opacity = 1,
-            radius = 3,
-            group = legend_name,
-            label = DataMap.proj$sample_id,
-            popup=df_forpopup$popup_html#popupTable(df_forpopup, 
-                  #           zcol=popupcols, 
-                  #           row.numbers = FALSE, 
-                  #           feature.id = FALSE)
-              )%>%
-       addLegend(
-            pal = pal, 
-            values = DataMap.proj[[dynamicmap.inds[i]]],
-            title = legend_name,
-            group = legend_name
-          )
-   
-   overlay_groups <- c(overlay_groups, legend_name)
   }
+  
+  #Create a vector of column names for the popup
+  popupcols<-setdiff(names(df_forpopup), c("sample_id", "geometry", "plot_type", "plot_type")) #define column to be included in the popups
+  
+  # Apply the function row-wise to create the popup table in raw HTML formatting
+  df_forpopup$popup_html <- apply(
+    df_forpopup, 1, 
+    function(r) build_popup_html(r, popupcols)
+  )
+
+#To add points related to different indicators dynamically, this loop creates a layer for every value in dynamicmap.inds
+overlay_groups <- c() #create empty vector for loop
+#seq_along(dynamicmap.inds)[i]
+for (i in seq_along(dynamicmap.inds)) {
+  
+  #Define the layer / legend name based on the named vector created above
+  legend_name <- ifelse(dynamicmap.inds[i] %in% names(legends_names), 
+                        legends_names[dynamicmap.inds[i]], 
+                        dynamicmap.inds[i]) #if a readable legend name wasn't created, just use the raw column name
+  
+  #this prevents errors from being thrown in the next step when there are NAs 
+  if (all(is.na(DataMap.proj[[dynamicmap.inds[i]]]))){domainz=c(0,1)
+  }else{domainz=DataMap.proj[[dynamicmap.inds[i]]]}
     
- DynamicMap <- DynamicMap %>%
+  #establish color ramp for the current indicator based on the current rainbow base color
+  pal<- colorNumeric(palette = colorRampPalette(c("white", base_colors[i]))(100), domain =domainz)
+
+  #pipe the current indicator's point map into the plot border map
+   DynamicMap <- DynamicMap %>%
+     addProviderTiles(providers$Esri.WorldImagery) %>%  # Add satellite imagery as the basemap
+     addCircleMarkers(
+        data = DataMap.proj,
+        color = ~pal(get(dynamicmap.inds[i])),   # Apply the color scale to the SOC field
+        opacity = 1,
+        radius = 3,
+        group = legend_name,
+        label = DataMap.proj$sample_id,
+        popup=df_forpopup$popup_html
+      )%>%
+     addLegend(
+        pal = pal, 
+        values = DataMap.proj[[dynamicmap.inds[i]]],
+        title = legend_name,
+        group = legend_name
+      )
+   
+   overlay_groups <- c(overlay_groups, legend_name) #append the legend layer to the vector defining groups
+  } #end loop creating layers
+
+#Final map call    
+DynamicMap %>%
   addLayersControl(
     overlayGroups = overlay_groups, # Groups to toggle
     options = layersControlOptions(collapsed = TRUE)
-  )%>%hideGroup(setdiff(overlay_groups, "SOC %"))
+  )%>%hideGroup(setdiff(overlay_groups, "SOC %")) #hides all but the first layer to start
    
-    
-DynamicMap
 
+#########################End timepoint loop#####################
+
+    
 ```
 This report displays the data and offers no specific interpretations, as management context and land use history also play a role at this site. Contact science staff if further interpretation and conclusions are needed. 
 
