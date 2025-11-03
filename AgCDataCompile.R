@@ -63,11 +63,9 @@ df[is.na(df$project_id),]
 
 # Bulk density
 df <- df %>%
-  mutate(bulk_density = if_else( 
-    is.na(bulk_density),   
-    dry_soil_g / vol_cm3, # If NA, calculate as Dry.Mass / Volume
-    bulk_density
-  ))
+  mutate(bulk_density =   
+    dry_soil_g / vol_cm3 # Calculate as Dry.Mass / Volume
+  )
 
 ## ---- Fill in all identifying columns ----
 
