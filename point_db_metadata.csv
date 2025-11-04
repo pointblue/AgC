@@ -22,7 +22,7 @@ maom,Mineral Associated Organic Matter,percent,55.69,Mineral-associated organic 
 maoc,Mineral Associated Organic C,percent,0.15,Concentration of mineral-associated organic C in sample
 maon,Mineral Associate Organic N,percent,1.12,Concentration of mineral-associated organic N in sample
 co2_resp_ppm,CO2 Respiration,ppm,80,CO2-C emitted following soil rewetting CO2 respiration test
-microbial_c,Microbial biomass C,ug biomass/g dry soil,,Microbial biomass C calculated from chloroform fumigation
+microbial_c,Microbial biomass C,ug biomass/g dry soil,1086.199183,Microbial biomass C calculated from chloroform fumigation
 texture_name,Texture Name,,Silt loam,Texture class observed either in-field or texture by feel in lab. One of 11 USDA texture classes
 sand,Sand Content,percent,35,Sand content of sample measured in lab
 silt,Silt Content,percent,30,Silt content of sample measured in lab
