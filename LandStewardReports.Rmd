@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: KERN.25.LI
+  project_name: MERC.24.LI
   raca_filter:
     - crop
 ---
@@ -333,7 +333,7 @@ timepoint_dates<-PointLevel %>%
 
 timepoint_sentence <- timepoint_dates %>%
   arrange(timepoint) %>%  # optional: ensure proper order
-  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date), "%B %d, %Y"), ".")) %>%
+  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date, format = "%m/%d/%Y"), "%B %d, %Y"), ".")) %>%
   pull(text) %>%          # get vector of strings
   paste(collapse = " ")
 
@@ -911,154 +911,109 @@ SummaryTable
 
 The previous tables and figures report results averaged across the study area. Use the interactive map below to explore results at each sampling point. Hover over the layers symbol to select from included metrics -- select one layer at a time for best visibility. Click on a sampling point to see all measured values at that point. 
 
-```{r Dynamic map}
-#Start by creating the leaflet map for the plot borders
+```{r leaflet_maps_by_timepoint, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
+library(htmltools)  # Needed for tagList()
 
-  pal <- colorFactor(c("white","black"), c("T", "C")) #define color palette for plot borders
-  
-  DynamicMap<-leaflet()%>% 
-    #establishing the basemap first
-    addProviderTiles(providers$Esri.WorldImagery) %>%
-    #adding the border layer
-    addPolygons(data = st_zm(border),
-            fillOpacity = 0,
-            color = ~ pal(plot_type),
-            opacity=1)%>%
-    addLegend(
-    pal = pal, #defined above
+# Define base map for borders
+pal <- colorFactor(c("white", "black"), c("T", "C"))
+
+BaseMap <- leaflet() %>%
+  addProviderTiles(providers$Esri.WorldImagery) %>%
+  addPolygons(
+    data = st_zm(border),
+    fillOpacity = 0,
+    color = ~pal(plot_type),
+    opacity = 1
+  ) %>%
+  addLegend(
+    pal = pal,
     values = border$plot_type,
     title = "Plot Type",
     position = "bottomleft",
-    labFormat = function(type, cuts, p) { 
-    c("Treatment", "Control")[match(cuts, c("T", "C"))]
-        })
-
-
-#Gather the names of the stocks columns
-if ("bulk_density" %in% proj.indicators.SSC.stocks){
-stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) 
-}
-
-#Gather all indicators except biomass -- this will be important later when we need to accomodate depth increments
-proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")]
-
-#Gather up all indicators that should be included in the map
-if ("bulk_density" %in% proj.indicators.SSC.stocks) { 
-  dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
-} else {
-  dynamicmap.inds <- proj.indicators.nonbiomass
-}
-
-#define an order for the relevant layers to appear on the map
-fixed_order <- c("org_c", "maoc", "poc", "inorg_c", "org_c_stocks", "maoc_stocks", "poc_stocks", "inorg_c_stocks", "bulk_density", "ph", "sand", "silt", "clay") #
-dynamicmap.inds <- c(
-  intersect(fixed_order, dynamicmap.inds),     # fixed values in order
-  setdiff(dynamicmap.inds, fixed_order)        # remaining values
-)
-
-#define rainbow colors for the map layers -- one color per value in dynamicmap.inds
-base_colors <- rainbow(length(dynamicmap.inds))
-
-#Prep labels for legend and popups using one of the dfs we made in the summary table process
-MapLegendRef<-Means.Pivot1%>%
-  mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
-legends_names <- setNames(MapLegendRef$legend, MapLegendRef$Indicator)
-legends_names["sample_id"]<-"Sample ID" #forcing in value for sample ID
-
-#####################This is where things need to loop according to timepoints#####################
-#Prep main dataframe for map
-DataMap.proj<-PointLevel%>%
-  #Grab relevant columns from PointLevel
-  select(sample_id, plot_type, timepoint, all_of(dynamicmap.inds))%>% 
-  #join with spatial data
-  left_join( 
-    (points%>%
-      rename(sample_id=name)%>%
-      select(sample_id, geometry)), 
-  by="sample_id")%>%
-  #Ensure we're only looking at the first available timepoint
-  arrange(timepoint)%>%
-  filter(timepoint == first(timepoint))%>%
-  st_as_sf()
-
-#create dataframe for point popups
-  #I used chat gpt for a lot of this cause I couldn't figure how to generate the tables row-wise so we're not stuck with a ton of NAs
-  df_forpopup <- DataMap.proj %>%
-      mutate(across(any_of(dynamicmap.inds), ~round(.x,2)))%>%
-    rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))#%>%
-  
-  #Define helper function to build HTML for a single row (from ChatGPT)
-  build_popup_html <- function(row, cols) {
-    vals <- row[cols]                   # select the relevant columns
-    vals <- vals[!is.na(vals)]          # remove NAs
-    vals <- lapply(vals, as.character)  # convert all to character
-    if(length(vals) == 0) return("")    # in case all values are NA
-    paste0(
-      "<table>",
-      paste0("<tr><td><b>", names(vals), "</b></td><td>", vals, "</td></tr>", collapse=""),
-      "</table>"
-    )
-  }
-  
-  #Create a vector of column names for the popup
-  popupcols<-setdiff(names(df_forpopup), c("sample_id", "geometry", "plot_type", "plot_type")) #define column to be included in the popups
-  
-  # Apply the function row-wise to create the popup table in raw HTML formatting
-  df_forpopup$popup_html <- apply(
-    df_forpopup, 1, 
-    function(r) build_popup_html(r, popupcols)
+    labFormat = function(type, cuts, p) {
+      c("Treatment", "Control")[match(cuts, c("T", "C"))]
+    }
   )
 
-#To add points related to different indicators dynamically, this loop creates a layer for every value in dynamicmap.inds
-overlay_groups <- c() #create empty vector for loop
-#seq_along(dynamicmap.inds)[i]
-for (i in seq_along(dynamicmap.inds)) {
-  
-  #Define the layer / legend name based on the named vector created above
-  legend_name <- ifelse(dynamicmap.inds[i] %in% names(legends_names), 
-                        legends_names[dynamicmap.inds[i]], 
-                        dynamicmap.inds[i]) #if a readable legend name wasn't created, just use the raw column name
-  
-  #this prevents errors from being thrown in the next step when there are NAs 
-  if (all(is.na(DataMap.proj[[dynamicmap.inds[i]]]))){domainz=c(0,1)
-  }else{domainz=DataMap.proj[[dynamicmap.inds[i]]]}
-    
-  #establish color ramp for the current indicator based on the current rainbow base color
-  pal<- colorNumeric(palette = colorRampPalette(c("white", base_colors[i]))(100), domain =domainz)
+# Collect output in a list of HTML tags
+map_outputs <- list()
 
-  #pipe the current indicator's point map into the plot border map
-   DynamicMap <- DynamicMap %>%
-     addProviderTiles(providers$Esri.WorldImagery) %>%  # Add satellite imagery as the basemap
-     addCircleMarkers(
+for (tp in unique(PointLevel$timepoint)) {
+
+  # --- Header for the timepoint section ---
+  header_html <- tags$h4(paste("Timepoint:", tp))
+
+  # --- Prepare data for this timepoint ---
+  DataMap.proj <- PointLevel %>%
+    select(sample_id, plot_type, timepoint, all_of(dynamicmap.inds)) %>%
+    left_join(
+      points %>%
+        rename(sample_id = name) %>%
+        select(sample_id, geometry),
+      by = "sample_id"
+    ) %>%
+    filter(timepoint == tp) %>%
+    st_as_sf()
+
+  df_forpopup <- DataMap.proj %>%
+    mutate(across(any_of(dynamicmap.inds), ~round(.x, 2))) %>%
+    rename_with(~ legends_names[.x], .cols = any_of(names(legends_names)))
+
+  popupcols <- setdiff(names(df_forpopup), c("sample_id", "geometry", "plot_type"))
+  df_forpopup$popup_html <- apply(df_forpopup, 1, function(r)
+    build_popup_html(r, popupcols)
+  )
+
+  DynamicMap <- BaseMap
+  overlay_groups <- c()
+
+  for (i in seq_along(dynamicmap.inds)) {
+    indicator <- dynamicmap.inds[i]
+    legend_name <- ifelse(indicator %in% names(legends_names),
+                          legends_names[indicator],
+                          indicator)
+
+    domainz <- if (all(is.na(DataMap.proj[[indicator]]))) c(0, 1) else DataMap.proj[[indicator]]
+
+    pal_ind <- colorNumeric(
+      palette = colorRampPalette(c("white", base_colors[i]))(100),
+      domain = domainz
+    )
+
+    DynamicMap <- DynamicMap %>%
+      addCircleMarkers(
         data = DataMap.proj,
-        color = ~pal(get(dynamicmap.inds[i])),   # Apply the color scale to the SOC field
+        color = ~pal_ind(get(indicator)),
         opacity = 1,
         radius = 3,
         group = legend_name,
         label = DataMap.proj$sample_id,
-        popup=df_forpopup$popup_html
-      )%>%
-     addLegend(
-        pal = pal, 
-        values = DataMap.proj[[dynamicmap.inds[i]]],
+        popup = df_forpopup$popup_html
+      ) %>%
+      addLegend(
+        pal = pal_ind,
+        values = DataMap.proj[[indicator]],
         title = legend_name,
         group = legend_name
       )
-   
-   overlay_groups <- c(overlay_groups, legend_name) #append the legend layer to the vector defining groups
-  } #end loop creating layers
 
-#Final map call    
-DynamicMap %>%
-  addLayersControl(
-    overlayGroups = overlay_groups, # Groups to toggle
-    options = layersControlOptions(collapsed = TRUE)
-  )%>%hideGroup(setdiff(overlay_groups, "SOC %")) #hides all but the first layer to start
-   
+    overlay_groups <- c(overlay_groups, legend_name)
+  }
 
-#########################End timepoint loop#####################
+  DynamicMap <- DynamicMap %>%
+    addLayersControl(
+      overlayGroups = overlay_groups,
+      options = layersControlOptions(collapsed = TRUE)
+    ) %>%
+    hideGroup(setdiff(overlay_groups, "SOC %"))
 
-    
+  # Store header and map as a tag pair
+  map_outputs <- append(map_outputs, list(header_html, DynamicMap))
+}
+
+# Render all maps and headers together
+browsable(tagList(map_outputs))
+
 ```
 This report displays the data and offers no specific interpretations, as management context and land use history also play a role at this site. Contact science staff if further interpretation and conclusions are needed. 
 
