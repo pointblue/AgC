@@ -448,7 +448,6 @@ read_spatial <- function(dir, file_name) {
 }
 
 ## ---- Write sf object to zipped shapefile ----
-
 write_zipped_shp <- function (sfobj, dir, file_name, crs=4326){
   #Write an sf object to a zipped shapefile with no loose component parts
   #DO NOT ADD FILE EXTENSIONS TO file_name
@@ -466,11 +465,12 @@ write_zipped_shp <- function (sfobj, dir, file_name, crs=4326){
   
   #zip components to intended directory
   exts <- c("shp", "shx", "dbf", "prj") 
-  components <- file.path(dir, paste0(file_name, ".", exts))
-  zip::zip(file.path(dir, paste0(file_name, ".zip")), components)
+  components_relative <- paste0(file_name, ".", exts)
+  zip::zip(file.path(dir, paste0(file_name, ".zip")), components_relative, root=dir)
   
   #delete the components
-  for (each in components){
+  components_aboslute<-file.path(dir, paste0(file_name, ".", exts))
+  for (each in components_aboslute){
     unlink(each)}
   
 }
