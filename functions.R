@@ -427,7 +427,7 @@ read_spatial <- function(dir, file_name) {
   }
   
   if (!dir.exists(dir)) {
-    stop(paste("Input directory does not exist:", input_dir))
+    stop(paste("Input directory does not exist:", dir))
   }
   
   if (!file.exists(file.path(dir, file_name))){
