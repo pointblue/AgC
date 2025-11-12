@@ -799,7 +799,7 @@ AgC_GRTS_strat <- function (polygon, soils, sdensity, osdensity=NULL, proj_name 
       GRTS_out$sites_over$name<-paste0(proj_name, ".",ptype ,".", "OS", sprintf("%02d", (current_count_o+1):(current_count_o+nrow(GRTS_out$sites_over))))
       
       current_count_b <- as.numeric(str_sub(GRTS_out$sites_base$name[length(GRTS_out$sites_base$name)], -2, -1))
-      current_count_o <- as.numeric(str_sub(GRTS_out$sites_base$name[length(GRTS_out$sites_base$name)], -2, -1))
+      current_count_o <- as.numeric(str_sub(GRTS_out$sites_over$name[length(GRTS_out$sites_over$name)], -2, -1))
       
       SamplingDesign.i<-rbind(GRTS_out$sites_base, GRTS_out$sites_over)%>%
         mutate(proj_name = !!proj_name,
