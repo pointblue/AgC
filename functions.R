@@ -837,6 +837,8 @@ design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced s
     stop("Package 'ggmap' is required for this function.")
   }
   
+  proj_name <- substr(sdesign$name[1], 1, 10)
+  
   #this bit determines whether we're dealing with an intial or final design based on whether any oversample points are present
   if(any(str_detect(sdesign$name, fixed("T.OS")))){
     title <- "Monitoring Design -- Initial"
@@ -846,7 +848,6 @@ design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced s
     outname <- paste0(proj_name, "_finaldesignmap")
   }
   
-  proj_name <- substr(sdesign$name[1], 1, 10)
   
   #Define the center of the project extent for calling the basemap (this works out better than using st_centroid()!)
   bb <- st_bbox(border)
