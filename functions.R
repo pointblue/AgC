@@ -967,7 +967,7 @@ Finalize_Spatial <- function(initialdesign, nochange=FALSE, sharepoint_path=NA, 
     }
     
     #When entering manually
-  if (identical(rejected, NA) & identical(replaced, NA) & !is.na(sharepoint_path)) {
+  if(identical(!is.na(rejected))&identical(!is.na(replaced))&is.na(sharepoint_path)){
     bprej<-paste0(proj_id, ".", rejected)
     osused<-paste0(proj_id, ".", replaced)
     osunused<-setdiff(initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name, osused)
