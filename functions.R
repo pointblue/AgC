@@ -703,7 +703,7 @@ AgC_GRTS_strat <- function (polygon, soils, sdensity, osdensity=NULL, proj_name 
   }
   
   if (is.na(proj_name)){
-    proj_name <- polyon$proj_name[1]
+    proj_name <- polygon$proj_name[1]
   } else proj_name<-proj_name
   
   #Step1: Prep data
