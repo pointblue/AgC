@@ -801,12 +801,17 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
   }
   
   
-  #getting all the geometry formats in order to call the proper basemap...probably a simpler way to do this but idk lol
+  #Define the center of the project extent for calling the basemap (this works out better than using st_centroid()!)
+  bb <- st_bbox(border)
+  proj.center <- matrix(
+    c(mean(c(bb["xmin"], bb["xmax"])), mean(c(bb["ymin"], bb["ymax"]))),
+    nrow = 1,
+    dimnames = list(NULL, c("X", "Y"))
+  )
+  
+  #calibrating custom zoom levels for the basemap; cutoffs were determined by trial and error -- I think it's dialed in now
   Lat.range <- c(min(as.data.frame((st_coordinates(border)))$Y), max(as.data.frame((st_coordinates(border)))$Y))
   Lon.range <- c(min(as.data.frame((st_coordinates(border)))$X), max(as.data.frame((st_coordinates(border)))$X))
-  proj.centroid <- st_coordinates(st_centroid(st_union(border)))
-  
-  #calibrating custom zoom levels for the basemap; cutoffs were trial and error, refine as needed
   width <- max(Lon.range)-min(Lon.range)
   length <- max(Lat.range)-min(Lat.range)
   square.size <- max(width, length)
@@ -819,15 +824,16 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
   
   
   register_google(key = key) #will populate with defined Google API key
-  plot.base <- get_googlemap(center= proj.centroid, zoom = pract_zoom, maptype = 'satellite') #calls basemap from google database
+  plot.base <- get_googlemap(center= proj.center, zoom = pract_zoom, maptype = 'satellite') #calls basemap from google database
   sdesign <- sdesign %>%
     mutate(pointtype = ifelse(grepl(".OS", name, fixed = TRUE), "oversample", "base"))
   labels<- str_sub(sdesign$name, start = nchar(sdesign$name) - 1, end = nchar(sdesign$name))
   sdesign$labels<-labels
   
   #defining more exact map boundaries for when the zoom level cutoffs aren't quite right; some trial and error in those adjusting coefficients
-  lat.lim.adjusted<- c(proj.centroid[2]-(square.size/2)*1.0, proj.centroid[2]+(square.size/2)*1.0)
-  lon.lim.adjusted<- c(proj.centroid[1]-(square.size/2)*1.0, proj.centroid[1]+(square.size/2)*1.0)
+  #Not in use when coefficients = 1
+  lat.lim.adjusted<- c(proj.center[2]-(square.size/2)*1.0, proj.center[2]+(square.size/2)*1.0)
+  lon.lim.adjusted<- c(proj.center[1]-(square.size/2)*1.0, proj.center[1]+(square.size/2)*1.0)
   
   pdf(paste0(dir, "/", outname, ".pdf"), paper="letter", width=7.5, height=10) #calling in pdf command to start the plot
   
@@ -850,23 +856,22 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
     )
   } else {
     print(
-    ggmap(plot.base, extent = 'device')+
+      ggmap(plot.base, extent = 'device')+
         geom_sf(data=border, color = "white", fill=NA, linewidth = .8, inherit.aes = FALSE) + 
-          geom_sf_label(data=sdesign, aes(label=labels, fill=pointtype), fontface = "bold", label.padding = unit(.1, "lines"), size = 3, inherit.aes = FALSE)+
-          scale_fill_manual(name='Sampling Locations', values = c('yellow','white'), labels=c('Base Point', 'Oversample'))+
-          theme(legend.position='bottom', 
-                legend.box = "vertical", 
-                legend.background = element_rect(fill = "#f5f5f2", color = 'black'),
-                plot.title = element_text(hjust = 0.5))+
-          annotation_scale(unit_category='imperial', location = 'tl')+
-          annotation_north_arrow(location = "br", height = unit(0.3, "in"), width = unit(0.3, "in"), pad_y = unit(0.2, 'in'), style=north_arrow_orienteering())+
-          ggtitle(paste0(proj_name, " ", title), subtitle=subtitle)
+        geom_sf_label(data=sdesign, aes(label=labels, fill=pointtype), fontface = "bold", label.padding = unit(.1, "lines"), size = 3, inherit.aes = FALSE)+
+        scale_fill_manual(name='Sampling Locations', values = c('yellow','white'), labels=c('Base Point', 'Oversample'))+
+        theme(legend.position='bottom', 
+              legend.box = "vertical", 
+              legend.background = element_rect(fill = "#f5f5f2", color = 'black'),
+              plot.title = element_text(hjust = 0.5))+
+        annotation_scale(unit_category='imperial', location = 'tl')+
+        annotation_north_arrow(location = "br", height = unit(0.3, "in"), width = unit(0.3, "in"), pad_y = unit(0.2, 'in'), style=north_arrow_orienteering())+
+        ggtitle(paste0(proj_name, " ", title), subtitle=subtitle)
     )
   }
   
   dev.off() #creates the file
-  
-  
+
 }
 
 ## ---- Finalize sampling design ----
