@@ -485,7 +485,7 @@ write_gpx <- function(sdesign, dir, file_name)
 }
 
 ## ---- GRTS Sampling Design (not stratified) ----
-AgC_GRTS <- function (polygon, proj_name, sdensity, osdensity, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
+AgC_GRTS <- function (polygon, proj_name = NA, sdensity, osdensity, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
   #polygon is an sf object
   #proj_name is the project code. Required
   #sdensity=sampling density (doubled for T+C)
@@ -494,6 +494,10 @@ AgC_GRTS <- function (polygon, proj_name, sdensity, osdensity, plot_type_col="pl
   #buffer is in meters. How far inside the polygon do you want to buffer?
   #mindis = minimum distance between sampling points
   #maxtry = how many times do you want GRTS to try to accomplish the mindis? larger distances require more tries, especially when polygon is small
+  
+  if (is.na(proj_name)){
+    proj_name <- polyon$proj_name[1]
+  } else proj_name<-proj_name
   
   if(is.null(polygon[[plot_type_col]]) || 
      sum(!is.na(polygon[[plot_type_col]])) < 2) {
@@ -641,7 +645,7 @@ strat_alloc <- function(x, target) {
 }
 
 ## ---- GRTS Sampling Design STRATIFIED ----
-AgC_GRTS_strat <- function (polygon, soils, proj_name, sdensity, osdensity=NULL, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
+AgC_GRTS_strat <- function (polygon, soils, sdensity, osdensity=NULL, proj_name = NA, plot_type_col="plot_type", buffer=5, mindis = 10, maxtry=20){
   #polygon is an sf object
   #soils is an output from soil_types
   #proj_name is the project code. Required
@@ -668,6 +672,9 @@ AgC_GRTS_strat <- function (polygon, soils, proj_name, sdensity, osdensity=NULL,
     stop("Package 'spsurvey' is required for this function.")
   }
   
+  if (is.na(proj_name)){
+    proj_name <- polyon$proj_name[1]
+  } else proj_name<-proj_name
   
   #Step1: Prep data
   
@@ -782,7 +789,7 @@ AgC_GRTS_strat <- function (polygon, soils, proj_name, sdensity, osdensity=NULL,
 }
 
 ## ---- Create PDF map of sampling design ----
-design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Monitoring Design -- Initial", subtitle="Spatially balanced sampling", plot_type_col="plot_type"){
+design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced sampling", plot_type_col="plot_type"){
   
   if (!require(dplyr)) {
     stop("Package 'dplyr' is required for this function.")
@@ -800,6 +807,16 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
     stop("Package 'ggmap' is required for this function.")
   }
   
+  #this bit determines whether we're dealing with an intial or final design based on whether any oversample points are present
+  if(any(str_detect(sdesign$name, fixed("T.OS")))){
+    title <- "Monitoring Design -- Initial"
+    outname <- paste0(proj_name, "_initialdesignmap")
+  } else {
+    title <- "Monitoring Design -- Final"
+    outname <- paste0(proj_name, "_finaldesignmap")
+  }
+  
+  proj_name <- substr(sdesign$name[1], 1, 10)
   
   #Define the center of the project extent for calling the basemap (this works out better than using st_centroid()!)
   bb <- st_bbox(border)
@@ -839,7 +856,7 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
   
   if (length(unique(border[[plot_type_col]]))>1){
     print(
-      ggmap(plot.base, extent = 'device')+
+      map<- ggmap(plot.base, extent = 'device')+
         geom_sf(data=border, aes(color = .data[[plot_type_col]]), fill=NA, linewidth = .8, inherit.aes = FALSE) + 
         scale_color_manual(name='Plot Type', values=c("C"="white","T"="red"), labels=c("C"='Control', "T"='Treatment'))+
         geom_sf_label(data=sdesign, aes(label=labels, fill=pointtype), fontface = "bold", label.padding = unit(.1, "lines"), size = 3, inherit.aes = FALSE)+
@@ -854,9 +871,11 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
         scale_x_continuous(limits = lon.lim.adjusted)+ #these parameters help with the default zoom level is too far out
         scale_y_continuous(limits = lat.lim.adjusted)
     )
+    
+    
   } else {
     print(
-      ggmap(plot.base, extent = 'device')+
+      map<- ggmap(plot.base, extent = 'device')+
         geom_sf(data=border, color = "white", fill=NA, linewidth = .8, inherit.aes = FALSE) + 
         geom_sf_label(data=sdesign, aes(label=labels, fill=pointtype), fontface = "bold", label.padding = unit(.1, "lines"), size = 3, inherit.aes = FALSE)+
         scale_fill_manual(name='Sampling Locations', values = c('yellow','white'), labels=c('Base Point', 'Oversample'))+
@@ -871,7 +890,7 @@ design_map <- function(sdesign, border, proj_name, dir, outname, key, title="Mon
   }
   
   dev.off() #creates the file
-
+  
 }
 
 ## ---- Finalize sampling design ----
