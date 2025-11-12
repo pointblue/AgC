@@ -495,6 +495,19 @@ AgC_GRTS <- function (polygon, proj_name = NA, sdensity, osdensity, plot_type_co
   #mindis = minimum distance between sampling points
   #maxtry = how many times do you want GRTS to try to accomplish the mindis? larger distances require more tries, especially when polygon is small
   
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  if (!require(spsurvey)) {
+    stop("Package 'spsurvey' is required for this function.")
+  }
+  if (!require(dplyr)) {
+    stop("Package 'dplyr' is required for this function.")
+  }
+  if (!require(stringr)) {
+    stop("Package 'stringr' is required for this function.")
+  }
+  
   if (is.na(proj_name)){
     proj_name <- polyon$proj_name[1]
   } else proj_name<-proj_name
@@ -554,6 +567,23 @@ soil_types <- function (polygon, level="series", collapse_series=TRUE, plot=TRUE
   #polygon is an sf object, polygon or multipolygon should work
   #if level="series", you have the option to collapse data by removing slope distinctions - default true
   #running the function returns a dataframe and plots a map, but you can turn the plotting function off
+  
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  if (!require(spsurvey)) {
+    stop("Package 'spsurvey' is required for this function.")
+  }
+  if (!require(dplyr)) {
+    stop("Package 'dplyr' is required for this function.")
+  }
+  if (!require(stringr)) {
+    stop("Package 'stringr' is required for this function.")
+  }
+  if (!require(soilDB)) {
+    stop("Package 'soilDB' is required for this function.")
+  }
+  
   
   areasoils_spatial<-SDA_spatialQuery(border, geomIntersection = TRUE, geomAcres = TRUE, db="SSURGO", what=c('mupolygon')) #load in a dataframe with mukeys and polygon geometry
   
