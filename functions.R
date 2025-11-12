@@ -949,7 +949,7 @@ Finalize_Spatial <- function(initialdesign, nochange=FALSE, sharepoint_path=NA, 
   
   #Establish point names in different categories
     #When reading in data from sharepoint
-    if(is.na(rejected)&is.na(replaced)&!is.na(sharepoint_path)){
+    if(identical(is.na(rejected))&identical(is.na(replaced))&!is.na(sharepoint_path)){
     
       #Read in AgCDataEntry.xlsx
       tap_data<-read_excel(sharepoint_path, sheet = "Soils")    
@@ -967,7 +967,7 @@ Finalize_Spatial <- function(initialdesign, nochange=FALSE, sharepoint_path=NA, 
     }
     
     #When entering manually
-    if(!is.na(rejected)&!is.na(replaced)&is.na(sharepoint_path)){
+  if (identical(rejected, NA) & identical(replaced, NA) & !is.na(sharepoint_path)) {
     bprej<-paste0(proj_id, ".", rejected)
     osused<-paste0(proj_id, ".", replaced)
     osunused<-setdiff(initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name, osused)
