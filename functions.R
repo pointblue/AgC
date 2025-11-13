@@ -939,39 +939,39 @@ Finalize_Spatial <- function(initialdesign, nochange=FALSE, sharepoint_path=NA, 
   
   #Simplest case: no oversamples were used
   if (nochange==TRUE){
-  bprej<-c()
-  osused<-c()
-  osunused <- initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name
+    bprej<-c()
+    osused<-c()
+    osunused <- initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name
   }
   
   #Establish the project id from the initial design
   proj_id<-substr(first(initialdesign$name), 1, 10)
   
   #Establish point names in different categories
-    #When reading in data from sharepoint
-    if(identical(is.na(rejected))&identical(is.na(replaced))&!is.na(sharepoint_path)){
+  #When reading in data from sharepoint
+  if (identical(rejected, NA) & identical(replaced, NA) & !is.na(sharepoint_path)) {
     
-      #Read in AgCDataEntry.xlsx
-      tap_data<-read_excel(sharepoint_path, sheet = "Soils")    
+    #Read in AgCDataEntry.xlsx
+    tap_data<-read_excel(sharepoint_path, sheet = "Soils")    
     
-      #Filter by project and which points need to be modified
-      df.rejected<- tap_data %>%  
-        filter(
-          ProjectID == proj_id,
-          Rejected == "y")
-      
-      #categorize
-      bprej<-df.rejected$PointID
-      osused<-paste0(substr(df.rejected$PointID, 1, 13), df.rejected$Replaced.with)
-      osunused <- setdiff(initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name, osused)
-    }
+    #Filter by project and which points need to be modified
+    df.rejected<- tap_data %>%  
+      filter(
+        ProjectID == proj_id,
+        Rejected == "y")
     
-    #When entering manually
-  if(identical(!is.na(rejected))&identical(!is.na(replaced))&is.na(sharepoint_path)){
+    #categorize
+    bprej<-df.rejected$PointID
+    osused<-paste0(substr(df.rejected$PointID, 1, 13), df.rejected$Replaced.with)
+    osunused <- setdiff(initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name, osused)
+  }
+  
+  #When entering manually
+  if (all(!is.na(rejected)) & all(!is.na(replaced)) & (is.na(sharepoint_path))) {
     bprej<-paste0(proj_id, ".", rejected)
     osused<-paste0(proj_id, ".", replaced)
     osunused<-setdiff(initialdesign[grepl(".OS\\d{2}", initialdesign$name), ]$name, osused)
-    }
+  }
   
   #Remove unused oversample points
   finaldesign <- initialdesign[!initialdesign$name %in% osunused, ]
@@ -982,10 +982,10 @@ Finalize_Spatial <- function(initialdesign, nochange=FALSE, sharepoint_path=NA, 
   #Rename used oversample points
   rename_mapping <-setNames(bprej, osused)
   finaldesign$name <- ifelse(finaldesign$name %in% names(rename_mapping),
-                                      rename_mapping[finaldesign$name],
+                             rename_mapping[finaldesign$name],
                              finaldesign$name)
   message("Success. Make sure final shapefiles are saved in the Z drive. You can use write_zipped_shp()")
   
   return(finaldesign)
-
+  
 }
