@@ -5,20 +5,21 @@ title: |
     <img src="ReportRef/Images/AgCLogo.svg" style="width: 300px;">
   </div>
   Land Steward Report
-author: "Avalon Cook, Lisa Eash, Greg Richardson, Cathryn Mong, and Erika Foster"
+author: "`r params$author`"
 date: "`r format(Sys.Date(), '%B %d %Y')`"
 output:
   bookdown::html_document2:
     number_sections: FALSE
     toc: true
     toc_float: true
-    toc_depth: 3  # Include up to level 2 headers
+    toc_depth: 3  # Include up to level 3 headers
     self_contained: true
 dev: png
 params:
   project_name: MERC.24.LI
   raca_filter:
     - crop
+  author: "Avalon Cook, Lisa Eash, and Erika Foster"
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -348,7 +349,7 @@ if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint)
 ```
 ```{r}
 #creating a vector of value names that match the names in PointLevel
-if ("Tx" %in% proj.indicators==TRUE) {
+if ("Tx" %in% proj.indicators) {
   proj.indicators.SSC<-c(proj.indicator.table$CheckCol, "sand", "silt")
 } else {proj.indicators.SSC <- proj.indicator.table$CheckCol}
 
@@ -513,7 +514,7 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
         },
         geom = "pointrange",
         aes(color = plot_type),
-        size = 1.5, #size of dot
+        size = 1.15, #size of dot
         linewidth = 1.5, #thickness of CI line
         shape = 16
       ) +
@@ -570,17 +571,25 @@ if ("bulk_density" %in% proj.indicators.SSC.stocks){
 
 }
 ```
-```{r results='asis', eval = unique(stocks_df$Stocks_Indicator)>1}
+```{r, SOC stats}
+#SOC STOCKS INTERPRETATION STATISICS
+```
+
+```{r results='asis', eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))}
+#Only generates if there is a stocks indicators other than SOC and SIC 
+
 asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
 
 ```
-``` {r, results='asis', eval = unique(stocks_df$Stocks_Indicator)>1}
+``` {r, results='asis', eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))}
+#Only generates if there is a stocks indicators other than SOC and SIC 
+
 asis_output(
 #CHECK this sentence sucks
-"The following graph shows **all other pools of carbon** measured in this project compared to a final value showing the sum of all average stocks pools in the study area."
+"The following graph shows **all other pools of carbon** measured in this project compared to the sum of all measured carbon pools in the study area."
 )
 ```
-```{r, fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
+```{r, eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks")),fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
 
 #get rid of raca values for this graph
 stocks_df_forallpools<-stocks_df%>%filter(!plot_type %in% "raca")
@@ -701,6 +710,12 @@ if ("Tx" %in% proj.indicators){cat("The graphic below represents where each soil
 ```
 ```{r Texture T and C, results='asis'}
 if ("Tx" %in% proj.indicators & length(unique(border$plot_type))==2){cat("Since this project includes a treated and control site, it's also important to note how well the texture values between plots 'match' one another - this helps us interpret differences in carbon dynamics between the sites. Two texture triangles are shown, one for the treated site, and one for the control site.")}
+
+```
+```{r texture timepoints, results='asis'}
+if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
+  cat("Note that soil texture is considered an inherent soil property -- we don't expect these values to change due to management intervention. For this reason, texture is **generally only measured at the first monitoring timepoint** to help contextualize results going forward.")
+}
 
 ```
 ```{r fig.height=6, fig.cap="Texture triangle(s) showing texture classifications for samples in the study area."}
@@ -912,7 +927,38 @@ SummaryTable
 The previous tables and figures report results averaged across the study area. Use the interactive map below to explore results at each sampling point. Hover over the layers symbol to select from included metrics -- select one layer at a time for best visibility. Click on a sampling point to see all measured values at that point. 
 
 ```{r leaflet_maps_by_timepoint, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
-library(htmltools)  # Needed for tagList()
+library(htmltools)  #for tagList(), needed if we're going to list multiple maps. 
+
+#this chunk lists 
+if ("bulk_density" %in% proj.indicators.SSC.stocks){
+stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
+}
+
+proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
+
+if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector 
+  dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
+} else {
+  dynamicmap.inds <- proj.indicators.nonbiomass
+}
+
+fixed_order <- c("org_c", "maoc", "poc", "inorg_c", "org_c_stocks", "maoc_stocks", "poc_stocks", "inorg_c_stocks", "bulk_density", "ph", "sand", "silt", "clay") #
+dynamicmap.inds <- c(
+  intersect(fixed_order, dynamicmap.inds),           # fixed values in order
+  setdiff(dynamicmap.inds, fixed_order)             # remaining values
+) #getting values in the desired display order
+
+
+#define labels for legend and popups
+Means.Pivot1<-Means.Pivot1%>%
+  mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
+legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator)
+legends_names["sample_id"]<-"Sample ID" #forcing in value for sample ID
+
+base_colors <- rainbow(length(dynamicmap.inds)) #create a rainbow palette from which to create color ramps
+
+#####
+
 
 # Define base map for borders
 pal <- colorFactor(c("white", "black"), c("T", "C"))
@@ -937,6 +983,19 @@ BaseMap <- leaflet() %>%
 
 # Collect output in a list of HTML tags
 map_outputs <- list()
+
+#helper function from chatgpt is a workaround so that the popup tables can take the exact format i want
+build_popup_html <- function(row, cols) {
+  vals <- row[cols]                   # select the relevant columns
+  vals <- vals[!is.na(vals)]          # remove NAs
+  vals <- lapply(vals, as.character)  # convert all to character
+  if(length(vals) == 0) return("")    # in case all values are NA
+  paste0(
+    "<table>",
+    paste0("<tr><td><b>", names(vals), "</b></td><td>", vals, "</td></tr>", collapse=""),
+    "</table>"
+  )
+}
 
 for (tp in unique(PointLevel$timepoint)) {
 
