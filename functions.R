@@ -405,21 +405,30 @@ format_list <- function(x) {
 }
 
 ## ---- Render HTML Reports ----
-render_one_html <- function(project, raca_filter) {
+render_one_html <- function(project, raca_filter, author = NULL) {
   #Reports will write to Z:\Soils Team\AgC Data\RenderedReports
+  
+  #making a list of parameters that will pass to the markdown
+  p <- list(
+    project_name = project, #"project_name" references the name of the parameter in the YAML header; "project" represents the current throughput of the loop
+    raca_filter = raca_filter
+  )
+  if (!missing(author)) {
+    p$author <- author #only include author if user actually provided it, otherwise default will be used (Avalon, Lisa, Erika)
+  }
   
   rmarkdown::render(
     input = 'LandStewardReports.Rmd', #identify the markdown file that will be used to render the report
     output_file = paste0(project, '_Report_', Sys.Date(), '.html'), #ID the file path and naming pattern
     output_dir = "Z:/Soils Team/AgC Data/RenderedReports",
-    params = list(project_name = project, raca_filter=raca_filter), #"project_name" references the name of the parameter in the YAML header; "project" represents the current throughput of the loop
+    params = p,
     envir = parent.frame()
   )
 }
 #layering that so you can pass a vector of project names to render many reports at once
-render_html_report <- function(projects, raca_filter){ #when projects is a project name or a vector of project names
+render_html_report <- function(projects, raca_filter, author = NULL){ #when projects is a project name or a vector of project names
   for(project in projects){
-    render_one_html(project, raca_filter)
+    render_one_html(project, raca_filter, author)
   }
 }
 
