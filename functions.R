@@ -216,7 +216,6 @@ clean_tap_df <- function(agc_data_entry_path){
     rename(project_id = ProjectID,
            plot_type = PlotType,
            sample_id = PointID,
-           #protocol = Protocol,
            timepoint = Timepoint,
            sample_date = SamplingDate,
            b_depth = BdepthTarget_cm,
@@ -228,7 +227,6 @@ clean_tap_df <- function(agc_data_entry_path){
            ph = pH_infield,
            rocks_g = RocksRemovedMass_g) %>%
     select(c(project_id,sample_id,plot_type,
-             #protocol, 
              timepoint, sample_date, b_depth, e_depth, 
              b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
              rocks_g, vol_cm3,sample_date_abh, abh_bio, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)) %>%
