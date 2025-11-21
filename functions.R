@@ -405,6 +405,59 @@ format_list <- function(x) {
   }
 }
 
+## ---- Get BD Thresholds from Texture ----
+#input a USDA texture class ABBREVIATION (usually from output of soiltexture::TT.points.in.classes)
+#get a list containing the full texture name and threshold values for restricted, affected, and ideal root growth
+get_texture_info <- function(abbrev) {
+  
+  # Abbreviation → Full USDA name (all separate)
+  abbrev_lookup <- c(
+    "Sa"     = "Sand",
+    "LoSa"   = "Loamy sand",
+    "SaLo"   = "Sandy loam",
+    "SaClLo" = "Sandy clay loam",
+    "SaCl"   = "Sandy clay",
+    "Lo"     = "Loam",
+    "SiLo"   = "Silt loam",
+    "Si"     = "Silt",
+    "ClLo"   = "Clay loam",
+    "SiClLo" = "Silty clay loam",
+    "SiCl"   = "Silty clay",
+    "Cl"     = "Clay"
+  )
+  
+  # Convert abbreviation → full name
+  full_class <- abbrev_lookup[[abbrev]]
+  if (is.null(full_class)) stop("Unknown texture abbreviation: ", abbrev)
+  
+  # NRCS BD thresholds (repeat values where applicable)
+  threshold_lookup <- list(
+    "Sand"             = list(ideal = 1.60, affect = 1.63, restrict = 1.80),
+    "Loamy sand"       = list(ideal = 1.60, affect = 1.63, restrict = 1.80),
+    
+    "Sandy loam"       = list(ideal = 1.40, affect = 1.63, restrict = 1.80),
+    "Loam"             = list(ideal = 1.40, affect = 1.63, restrict = 1.80),
+    
+    "Sandy clay loam"  = list(ideal = 1.40, affect = 1.60, restrict = 1.75),
+    "Clay loam"        = list(ideal = 1.40, affect = 1.60, restrict = 1.75),
+    "Silt loam"        = list(ideal = 1.40, affect = 1.60, restrict = 1.75),
+    "Silt"             = list(ideal = 1.40, affect = 1.60, restrict = 1.75),
+    
+    "Silty clay loam"  = list(ideal = 1.40, affect = 1.55, restrict = 1.65),
+    
+    "Sandy clay"       = list(ideal = 1.10, affect = 1.49, restrict = 1.58),
+    "Silty clay"       = list(ideal = 1.10, affect = 1.49, restrict = 1.58),
+    
+    "Clay"             = list(ideal = 1.10, affect = 1.39, restrict = 1.47)
+  )
+  
+  list(
+    abbreviation = abbrev,
+    full_name = full_class,
+    thresholds = threshold_lookup[[full_class]]
+  )
+}
+
 ## ---- Render HTML Reports ----
 render_one_html <- function(project, raca_filter, author = NULL) {
   #Reports will write to Z:\Soils Team\AgC Data\RenderedReports
