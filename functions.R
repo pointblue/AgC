@@ -366,7 +366,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
   RACA_coords <- RACA_coords[st_within(RACA_coords, region, sparse = FALSE), ] #select all points within ecoregion of interest
   RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% #Select only range and cropland points
     filter(LU %in% c("R","C")) %>%
-    select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1) %>%
+    select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1,Texture) %>%
     filter(rcasiteid %in% RACA_coords$RaCA_Id) %>%
     filter(TOP < depth) %>% 
     mutate(BOT = if_else(BOT > depth, depth, BOT)) %>%
@@ -375,7 +375,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
     group_by(rcasiteid) %>%
     summarise(BD = weighted.mean(Bulkdensity, sample_depth),
               SOC_perc = weighted.mean(SOC_pred1, sample_depth))
-  RACA_res <- merge(RACA_res,RACA_samples[!duplicated(RACA_samples$rcasiteid,RACA_samples$LU),c("rcasiteid","LU")], by="rcasiteid",all.x=TRUE, all.y=FALSE)
+  RACA_res <- merge(RACA_res,RACA_samples[!duplicated(RACA_samples$rcasiteid,RACA_samples$LU),c("rcasiteid","LU","Texture")], by="rcasiteid",all.x=TRUE, all.y=FALSE)
   #RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
   #  filter(rcasiteid %in% RACA_samples$rcasiteid)
   #Remove outliers
