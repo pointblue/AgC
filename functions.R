@@ -349,7 +349,8 @@ proj_design <- function(projects){
 }
 
 ## ---- Extract regional baseline for producer reports ----
-reg_baseline <- function(polygon #Specify polygon of project
+reg_baseline <- function(polygon, #Specify polygon of project
+                         depth #specify max depth of SOC sampling
                          ){
   # Find centroid of polygon
   cent <- st_centroid(polygon)[1,]
@@ -367,18 +368,23 @@ reg_baseline <- function(polygon #Specify polygon of project
   RACA_coords <- RACA_coords[st_within(RACA_coords, region, sparse = FALSE), ] #select all points within ecoregion of interest
   RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% #Select only range and cropland points
     filter(LU %in% c("R","C")) %>%
-    select(rcasiteid, sample.id, LU) %>%
-    filter(rcasiteid %in% RACA_coords$RaCA_Id)
-  RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
-    filter(rcasiteid %in% RACA_samples$rcasiteid)
+    select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1) %>%
+    filter(rcasiteid %in% RACA_coords$RaCA_Id) %>%
+    filter(TOP < depth) %>% 
+    mutate(BOT = if_else(BOT > depth, depth, BOT)) %>%
+    mutate(sample_depth = BOT - TOP) 
+  RACA_res <- RACA_samples %>%
+    group_by(rcasiteid) %>%
+    summarise(BD = weighted.mean(Bulkdensity, sample_depth),
+              SOC_perc = weighted.mean(SOC_pred1, sample_depth))
+  #RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
+  #  filter(rcasiteid %in% RACA_samples$rcasiteid)
   #Remove outliers
-  outliers <- boxplot.stats(RACA_soc$SOCstock30)$out
-  RACA_soc_no_out <- RACA_soc[!RACA_soc$SOCstock30 %in% outliers, ]
-  RACA_n <- nrow(RACA_soc_no_out) #defines number of sites for regional baseline
-  RACA_mean <- mean(RACA_soc_no_out$SOCstock30, na.rm=TRUE)
-  RACA_ci <- sd(RACA_soc_no_out$SOCstock30, na.rm=TRUE)/sqrt(RACA_n)*1.96 #creates 95% confidence interval
-  RACA_res <- data.frame(ecoregion = region_name, mean = RACA_mean, ci95 = RACA_ci, n = RACA_n)
-  return(list(data_points = RACA_soc_no_out, summary_stats = RACA_res))
+  BD_out <- boxplot.stats(RACA_res$BD)$out
+  SOC_out <- boxplot.stats(RACA_res$SOC_perc)$out
+  RACA_res[!RACA_res$BD %in% BD_out, ]$BD <-NA
+  RACA_res[!RACA_res$SOC_perc %in% SOC_out, ]$SOC_perc <-NA
+  return(RACA_res)
   }
 
 ## ---- format text function ----
