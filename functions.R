@@ -380,8 +380,8 @@ reg_baseline <- function(polygon, #Specify polygon of project
   #Remove outliers
   BD_out <- boxplot.stats(RACA_res$BD)$out
   SOC_out <- boxplot.stats(RACA_res$SOC_perc)$out
-  RACA_res[!RACA_res$BD %in% BD_out, ]$BD <-NA
-  RACA_res[!RACA_res$SOC_perc %in% SOC_out, ]$SOC_perc <-NA
+  RACA_res[RACA_res$BD %in% BD_out, ]$BD <-NA
+  RACA_res[RACA_res$SOC_perc %in% SOC_out, ]$SOC_perc <-NA
   return(RACA_res)
   }
 
