@@ -367,23 +367,37 @@ reg_baseline <- function(polygon, #Specify polygon of project
   RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% #Select only range and cropland points
     filter(LU %in% c("R","C")) %>%
     select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1,Texture) %>%
-    filter(rcasiteid %in% RACA_coords$RaCA_Id) %>%
+    filter(rcasiteid %in% RACA_coords$RaCA_Id)
+  RACA_res <- RACA_samples %>%
     filter(TOP < depth) %>% 
     mutate(BOT = if_else(BOT > depth, depth, BOT)) %>%
-    mutate(sample_depth = BOT - TOP) 
-  RACA_res <- RACA_samples %>%
+    mutate(sample_depth = BOT - TOP) %>%
     group_by(rcasiteid) %>%
     summarise(BD = weighted.mean(Bulkdensity, sample_depth),
               SOC_perc = weighted.mean(SOC_pred1, sample_depth))
   RACA_res <- merge(RACA_res,RACA_samples[!duplicated(RACA_samples$rcasiteid,RACA_samples$LU),c("rcasiteid","LU","Texture")], by="rcasiteid",all.x=TRUE, all.y=FALSE)
-  #RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
-  #  filter(rcasiteid %in% RACA_samples$rcasiteid)
+  RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
+    filter(rcasiteid %in% RACA_samples$rcasiteid) %>%
+    select(rcasiteid, SOCstock5, SOCstock30, SOCstock100) %>%
+    mutate(
+      SOCstock = case_when( #linear interpolation of SOC stocks between 5, 30 and 100 cm
+        depth <= 5  ~ SOCstock5 * (depth / 5),
+        depth <= 30 ~ SOCstock5 +
+          (SOCstock30 - SOCstock5) * ((depth - 5) / (30 - 5)),
+        depth <= 100 ~ SOCstock30 +
+          (SOCstock100 - SOCstock30) * ((depth - 30) / (100 - 30))
+      )
+    ) %>%
+    select(rcasiteid, SOCstock)
+  RACA_soc <- merge(RACA_soc,RACA_samples[!duplicated(RACA_samples$rcasiteid,RACA_samples$LU),c("rcasiteid","LU")], by="rcasiteid",all.x=TRUE, all.y=FALSE)
   #Remove outliers
   BD_out <- boxplot.stats(RACA_res$BD)$out
   SOC_out <- boxplot.stats(RACA_res$SOC_perc)$out
+  SOCstock_out <- boxplot.stats(RACA_soc$SOCstock)$out
+  RACA_soc <- RACA_soc[!RACA_soc$SOCstock %in% SOCstock_out,]
   RACA_res[RACA_res$BD %in% BD_out, ]$BD <-NA
   RACA_res[RACA_res$SOC_perc %in% SOC_out, ]$SOC_perc <-NA
-  return(list(RACA_res,region_name))
+  return(list(RACA_res, RACA_soc, region_name))
   }
 
 ## ---- format text function ----
