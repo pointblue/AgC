@@ -20,7 +20,7 @@ params:
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
-  stocks: FALSE
+  stocks: TRUE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -156,6 +156,7 @@ if (ProjectDesign$control_baseline=="FALSE" & length(unique(border$plot_type))==
 ```{r, max depth and selection method, results = 'asis'}
 depths.inches<-unique(PointLevel$target_depth)%>%convert_depths()
 max.depth.inches <- max(as.numeric(sub(".*-", "", depths.inches)))
+max.depth.cent <- max(as.numeric(sub(".*-", "", unique(PointLevel$target_depth))))
 
 cat(paste0("- Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches.\n\n"))
 
@@ -339,6 +340,13 @@ timepoint_sentence <- timepoint_dates %>%
   pull(text) %>%          # get vector of strings
   paste(collapse = " ")
 
+#setting up a table for ggplot labels
+tp_lookup<- timepoint_dates %>%
+  mutate(
+    sample_date = as.Date(sample_date),
+    year_label = format(sample_date, "%Y")
+  )
+
 ```
 This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
 
@@ -349,9 +357,10 @@ if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint)
 }
 ```
 ```{r, raca data prep}
-raca_call<-reg_baseline(border, 30)
-raca_data<-raca_call[[1]]
-ecoregion<-raca_call[[2]]
+raca_call<-reg_baseline(border, max.depth.cent)
+raca_data<-raca_call[[1]]%>%left_join(raca_call[[2]]%>%select(-LU), by="rcasiteid")
+ecoregion<-raca_call[[3]]
+
 
 raca_data$LU[raca_data$LU == "C"] <- "crop"
 raca_data$LU[raca_data$LU == "R"] <- "range"
@@ -360,12 +369,12 @@ raca_data$LU[raca_data$LU == "R"] <- "range"
 ```{r, color palette prep}
 #Define color palette for all ggplot figures
 cbbPalette <- c("T" = "#384F8Dff", 
-                "C" = "#9BA7C6", 
+                "C" = "#7783a1", 
                 "raca" = "#D26A4A",
                 "Sampling point values" = "black") 
 
 palette_plot_type <- c("T" = "#384F8Dff",
-                   "C" = "#9BA7C6",
+                   "C" = "#7783a1",
                    "raca" = "#D26A4A")
 
 palette_LU <- c(
@@ -375,6 +384,7 @@ palette_LU <- c(
 )
 
 #some more colors to grab if desired
+"#9BA7C6"
 "#BFAF91"
 "#C9971A"
 "#5B6FAE"
@@ -412,9 +422,9 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
       sample_id = rcasiteid,
       org_c = SOC_perc,
       plot_type = "raca",
-      timepoint = "Reference",
+      timepoint = "Reference (2010)",
       LU=LU,
-      .keep = "none"   # keep only these renamed columns
+      .keep = "none"   #drop all other columns
     )
   )%>%
   filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
@@ -422,6 +432,7 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
 
     #Define the desired order of x-axis values
     soc_df$plot_type <- factor(soc_df$plot_type, levels = c("T", "C", "raca"))
+    soc_df$timepoint <- factor(soc_df$timepoint, levels = c("T0","T1","T2","Reference (2010)"))
     
     #Begin graph
     ggplot(soc_df, aes(x = timepoint, y = org_c))+
@@ -437,7 +448,7 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
        stat_summary(
           fun = mean,
           geom = "line",
-          aes(group = plot_type), 
+          aes(color=plot_type, group=plot_type), 
           col="black",
           linewidth = 1 
         ) +
@@ -456,7 +467,7 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
         },
         geom = "pointrange",
         aes(color = plot_type),
-        size = 1.15, #size of dot
+        size = .7, #size of dot
         linewidth = 1.5, #thickness of CI line
         shape = 16
       ) +
@@ -481,13 +492,13 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
     )
   ) +
       
-      # Custom x-axis labels
-  scale_x_discrete(labels = c(
-    "T0" = "T0",
-    "T1" = "T1",
-    "T2" = "T2",
-    "Reference" = "Reference"
-  )) +
+    #Custom x-axis labels
+    scale_x_discrete(labels = c(
+      "T0" = "T0",
+      "T1" = "T1",
+      "T2" = "T2",
+      "Reference" = "Reference (2010)"
+      )) +
       
       # Text labels for means
       stat_summary(
@@ -564,7 +575,7 @@ bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the 
       sample_id = rcasiteid,
       bulk_density = BD,
       plot_type = "raca",
-      timepoint = "Reference",
+      timepoint = "Reference 2010",
       LU=LU,
       .keep = "none"   # keep only these renamed columns
     )
@@ -593,136 +604,138 @@ bd_bands <- data.frame(
   ), times = length(non_ref))
 )
 
-    #Define the desired order of x-axis values
-    bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
+#Define the desired order of facets (needs to be done for both datasets)
+bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
+bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
     
-    #Begin graph
-    ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
-      
-      #Facet by plot type
-      facet_wrap(~plot_type, scales="free_x") +
-          theme_minimal() +
-      
-      #USDA Bulk Density Targets by Texture
-      geom_rect(
-        data = bd_bands,
-        aes(
-          xmin = -Inf,
-          xmax = Inf,
-          ymin = ymin,
-          ymax = ymax,
-          fill = zone
-        ),
-        inherit.aes = FALSE,
-        alpha = 0.15
-      ) +
-      
-      #Jittered black points
-      geom_point(aes(color = LU),
-        alpha = 0.8,
-        size = 3,
-        position = position_jitter(width = 0.2, height = 0)
-      ) +
-    
-      #Lines connecting plot averages
-       stat_summary(
-          fun = mean,
-          geom = "line",
-          aes(group = plot_type), 
-          col="black",
-          linewidth = 1 
-        ) +
-      
-      #Mean + 95% CI (colored by plot_type)
-      stat_summary(
-        fun.data = function(x) {
-          mean_x <- mean(x, na.rm = TRUE)
-          se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
-          ci <- 1.96 * se_x
-          data.frame(
-            y = mean_x,
-            ymin = mean_x - ci,
-            ymax = mean_x + ci
-          )
-        },
-        geom = "pointrange",
-        aes(color = plot_type),
-        size = 1.15, #size of dot
-        linewidth = 1.5, #thickness of CI line
-        shape = 16
-      ) +
-      
-      #Text labels for means
-      stat_summary(
-        fun = mean,
-        geom = "shadowtext", #requires package shadowtext
-        bg.color = "black", #text outline color
-        bg.r = 0.15,  #thickness of outline
-        aes(
-          label = sprintf("%.1f", after_stat(y)), #change decimal places printed by altering the digit
-          group = timepoint
-          ), 
-        color = "#FFD700", #text color
-        hjust = 1.2,
-        vjust = -1.2,
-        fontface = "bold",
-        size = 3.5
-      )+
+#Begin graph
+ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
+  
+  #USDA Bulk Density Targets by Texture
+  geom_rect(
+    data = bd_bands,
+    aes(
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = ymin,
+      ymax = ymax,
+      fill = zone
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.15
+  ) +
+  
+  #Jittered black points
+  geom_point(aes(color = LU),
+    alpha = 0.8,
+    size = 3,
+    position = position_jitter(width = 0.2, height = 0)
+  ) +
 
-      #Legend settings for sampling points
-      scale_color_manual(
-        name = "",
-        values = c(palette_plot_type, palette_LU),
-        breaks = c("T", "C", "raca", "AgC", "range", "crop"),
-        labels = c(
-          str_wrap("Treated site average", width = 21),
-          str_wrap("Control site average", width = 21),
-          str_wrap(paste0(ecoregion, " average"), width = 21),
-          "AgC project sampling point",
-          "RaCA rangeland sampling point",
-          "RaCA cropland sampling point"
-        )
-      ) +
-      
-      #Legend settings for target bands
-      scale_fill_manual(
-        name = paste0("Target values for ", avg_tx_info$full_name, " soils"),
-        values = c(
-          "Ideal" = "#2C6E6F",
-          "May affect root growth" = "#C9971A",
-          "Restricts root growth" = "#D26A4A"
-        )) +
-      
-      #Change legend order    
-      guides(
-        color = guide_legend(order = 1),
-        fill  = guide_legend(order = 2)
-        )+
-      
-      #Labels, axes, theme
-      labs(
-        x = "",
-        y = "Soil Bulk Density (g/cm3)",
-      ) +
-      
-      #x-axis labels
-      scale_x_discrete(labels = c(
-        "T0" = "T0",
-        "T1" = "T1",
-        "T2" = "T2",
-        "Reference" = "Reference"
-      )) +
+  #Lines connecting plot averages
+   stat_summary(
+      fun = mean,
+      geom = "line",
+      aes(group = plot_type), 
+      col="black",
+      linewidth = 1 
+    ) +
+  
+  #Mean + 95% CI (colored by plot_type)
+  stat_summary(
+    fun.data = function(x) {
+      mean_x <- mean(x, na.rm = TRUE)
+      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+      ci <- 1.96 * se_x
+      data.frame(
+        y = mean_x,
+        ymin = mean_x - ci,
+        ymax = mean_x + ci
+      )
+    },
+    geom = "pointrange",
+    aes(color = plot_type),
+    size = .8, #size of dot
+    linewidth = 1.5, #thickness of CI line
+    shape = 16
+  ) +
+  
+  #Text labels for means
+  stat_summary(
+    fun = mean,
+    geom = "shadowtext", #requires package shadowtext
+    bg.color = "black", #text outline color
+    bg.r = 0.15,  #thickness of outline
+    aes(
+      label = sprintf("%.1f", after_stat(y)), #change decimal places printed by altering the digit
+      group = timepoint
+      ), 
+    color = "#FFD700", #text color
+    hjust = 1.2,
+    vjust = -1.2,
+    fontface = "bold",
+    size = 3.5
+  )+
 
-      #Remove facet strip labels
-      theme(strip.text = element_blank())+
-      
-      #Make sure the y-axis always shows 0
-      expand_limits(y=0)
+  #Legend settings for sampling points
+  scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU),
+    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    labels = c(
+      str_wrap("Treated site average", width = 21),
+      str_wrap("Control site average", width = 21),
+      str_wrap(paste0(ecoregion, " average"), width = 21),
+      "AgC project sampling point",
+      "RaCA rangeland sampling point",
+      "RaCA cropland sampling point"
+    )
+  ) +
+  
+  #Legend settings for target bands
+  scale_fill_manual(
+    name = paste0("Target values for ", avg_tx_info$full_name, " soils"),
+    values = c(
+      "Ideal" = "#2C6E6F",
+      "May affect root growth" = "#C9971A",
+      "Restricts root growth" = "#D26A4A"
+    )) +
+  
+  #Change legend order    
+  guides(
+    color = guide_legend(order = 1),
+    fill  = guide_legend(order = 2)
+    )+
+  
+  #Labels, axes, theme
+  labs(
+    x = "",
+    y = "Soil Bulk Density (g/cm3)",
+  ) +
+  
+  #x-axis labels
+  scale_x_discrete(labels = c(
+    "T0" = "T0",
+    "T1" = "T1",
+    "T2" = "T2",
+    "Reference (2010)" = "Reference (2010)"
+  )) +
+  
+  theme_minimal()+
+
+  #Remove facet strip labels
+  theme(strip.text = element_blank())+
+  
+  #Make sure the y-axis always shows 0
+  expand_limits(y=0) +
+  
+  #Facet by plot type
+  facet_wrap(~plot_type, scales="free_x")
 
 
 
 ```
-```{r results='asis', eval = FALSE}
+```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
@@ -730,7 +743,7 @@ bd_bands <- data.frame(
 asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
 ```
 
-``` {r, results='asis', eval = FALSE}
+``` {r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
@@ -738,7 +751,7 @@ asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
 asis_output(
 
 paste0("The following graph shows **soil organic carbon stocks** stored in the study area compared to other agricultural sites in your ecoregion: ", 
-       raca_summary$ecoregion,
+       ecoregion,
        ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other agricultural sites in comparable climates. As you continue implementing conservation practices, your soil organic carbon (SOC) stocks have the potential to increase, moving closer to the higher end of SOC stocks seen in your region.")
 
 )
@@ -748,14 +761,18 @@ paste0("The following graph shows **soil organic carbon stocks** stored in the s
 
 #Calculating stocks on qualifying soil metrics
 if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be different when we get plant projects cause someone could have SOC% only but also have measured plants
-stocks.inds <- c("total_c", "org_c", "inorg_c", "maoc", "poc") #these are the columns that can be turned into stocks (CHECK hard coding these in for now. Not sure if there's a better solution)
+stocks.inds <- c("total_c", "org_c", "inorg_c", "maoc", "poc") #these are the columns that can be turned into stocks
+#CHECK! how best to handle this when we have plant stocks?
+
+#calculating stocks on soil metrics
 for(col in intersect(proj.indicators.SSC, stocks.inds)) {
   new_col <- paste0(col, "_stocks")  # new column name
   PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4462 #calculating stocks in US tons / acre (percent to decimal cancels out) 
 }
+
 proj.indicators.SSC.stocks<- c(proj.indicators.SSC, paste0(intersect(proj.indicators.SSC, stocks.inds), "_stocks")) #add those new column names to my list of indicator columns
 
-if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 'maoc_stocks')))>1){ #if the number of stocks indicators (minus poc and maoc) are greater than one, create a summed all stocks column
+if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 'maoc_stocks')))>1){ #if the number of stocks indicators in this project (minus poc and maoc) are greater than one, create a summed all stocks column
   
   PointLevel <- PointLevel %>%
   mutate(
@@ -764,7 +781,7 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
       na.rm = TRUE
     )
   )
-  proj.indicators.SSC<-c(proj.indicators.SSC, "all_stocks")
+  proj.indicators.SSC<-c(proj.indicators.SSC, "all_stocks") #CHECK! I may have added this to the wrong vector previously. Need to see how this is used 
 }
 
 }
@@ -785,20 +802,21 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
   bind_rows( #bind project stocks df to the raca dataset
   raca_data %>%
     mutate(
-      sample_id = upedonid,
-      Tons.Acre = SOCstock30,
-      plot_type = plot_type,
-      timepoint = "Reference",
-      Stocks_Indicator = Stocks_Indicator,
+      sample_id = rcasiteid,
+      Tons.Acre = SOCstock*0.446092,
+      plot_type = "raca",
+      timepoint = "Reference (2010)",
+      Stocks_Indicator = "org_c_stocks",
       LU=LU,
       .keep = "none"   # keep only these renamed columns
     )
-  )
+  )%>%
+  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
 
 ```
 
 
-```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = FALSE}
+```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
@@ -850,7 +868,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
         },
         geom = "pointrange",
         aes(color = plot_type),
-        size = 1.15, #size of dot
+        size = 0.7, #size of dot
         linewidth = 1.5, #thickness of CI line
         shape = 16
       ) +
@@ -868,7 +886,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
     labels = c(
       str_wrap("Treated site average", width = 21),
       str_wrap("Control site average", width = 21),
-      str_wrap(paste0(raca_summary$ecoregion, " average"), width = 21),
+      str_wrap(paste0(ecoregion, " average"), width = 21),
       "AgC project sampling point",
       "RaCA rangeland sampling point",
       "RaCA cropland sampling point"
@@ -880,7 +898,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
     "T0" = "T0",
     "T1" = "T1",
     "T2" = "T2",
-    "Reference" = "Reference"
+    "Reference (2010)" = "Reference (2010)"
   )) +
       
       # Text labels for means
@@ -907,14 +925,14 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
 
 
 ```
-```{r results='asis', eval = FALSE}
+```{r results='asis', eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
 
 asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
 
 ```
-``` {r, results='asis', eval = FALSE}
+``` {r, results='asis', eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
 
@@ -987,7 +1005,7 @@ ggplot(stocks_df_forallpools, aes(x = plot_time, y = Tons.Acre)) +
         },
         geom = "pointrange",
         aes(color = plot_type),
-        size = 1.5, #size of dot
+        size = 0.7, #size of dot
         linewidth = 1.5, #thickness of CI line
         shape = 16
       ) +
@@ -1015,7 +1033,7 @@ ggplot(stocks_df_forallpools, aes(x = plot_time, y = Tons.Acre)) +
     labels = c(
       str_wrap("Treated site average", width = 21),
       str_wrap("Control site average", width = 21),
-      str_wrap(paste0(raca_summary$ecoregion, " average"), width = 21),
+      str_wrap(paste0(ecoregion, " average"), width = 21),
       "AgC project sampling point",
       "RaCA rangeland sampling point",
       "RaCA cropland sampling point"
@@ -1168,24 +1186,25 @@ Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type, timepoint) %>%
                     dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
 
+#pivot so that indicators are row names and plot type and depth increment combinations are column names
 Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>% arrange(timepoint)%>%
           pivot_wider(
     names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
     values_from = value,
-    names_sep = " | "                           # optional separator
-  ) %>%#pivot so that indicators are row names and plot type and depth increment combinations are column names
-           left_join( #add the units column (CHECK,)
+    names_sep = " | "                           #separator
+  ) %>%
+    left_join( #add the units column (CHECK,)
     proj.indicator.table %>% select(CheckCol, UnitsTable),
     by = c("Indicator" = "CheckCol")
   ) %>%
   mutate(
     Units = case_when(
-      Indicator %in% c("sand", "silt", "clay") ~ "%",           # special values
-      str_ends(Indicator, "_stocks") ~ "tons/acre",             # ends with _stocks
-      TRUE ~ UnitsTable                                          # default mapping
+      Indicator %in% c("sand", "silt", "clay") ~ "%",           #tx components will always be %
+      str_ends(Indicator, "_stocks") ~ "tons/acre",             #stocks inds will always be tons/acre
+      TRUE ~ UnitsTable                                         #the rest will be defined by the table
     )
   ) %>%
-  select(-UnitsTable)%>% #clunky way of fixing units...not worth chasing down rn
+  select(-UnitsTable)%>% 
   mutate(
     # remove _stocks for matching if present
     Indicator_base = str_remove(Indicator, "_stocks$")
@@ -1203,7 +1222,7 @@ Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.st
     )
   )
 
-my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay")
+my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay") #CHECK add plant metrics when present
 
 Means.Pivot <- Means.Pivot1 %>%
   select(-Indicator_base, -Indicator) %>%
@@ -1346,8 +1365,8 @@ for (tp in unique(PointLevel$timepoint)) {
         select(sample_id, geometry),
       by = "sample_id"
     ) %>%
-    filter(timepoint == tp) %>%
-    st_as_sf()
+    st_as_sf() %>%
+    filter(timepoint == tp) 
 
   df_forpopup <- DataMap.proj %>%
     mutate(across(any_of(dynamicmap.inds), ~round(.x, 2))) %>%
@@ -1409,6 +1428,28 @@ for (tp in unique(PointLevel$timepoint)) {
 browsable(tagList(map_outputs))
 
 ```
+
+```{r, eval= unique(PointLevel$timepoints)>1}
+#Chunk only runs if there's more than one timepoint
+
+#SETUP BASELINE AND CHANGEG DYNAMIC MAP
+
+#subset dataframes for the first and last timepoint sampled
+DataMap.proj_firstT<-DataMap.proj%>%
+  mutate(last_digit = as.numeric(substr(timepoint, nchar(timepoint), nchar(timepoint)))) %>%
+  filter(last_digit == min(last_digit))%>%
+  select(-last_digit)
+DataMap.proj_lastT<-DataMap.proj%>%
+  mutate(last_digit = as.numeric(substr(timepoint, nchar(timepoint), nchar(timepoint)))) %>%
+  filter(last_digit == max(last_digit))%>%
+  select(-last_digit)
+
+#For lastT, replace relevant columns with firstT-LastT to get a change value
+
+
+
+```
+
 This report displays the data and offers no specific interpretations, as management context and land use history also play a role at this site. Contact science staff if further interpretation and conclusions are needed. 
 
 ## Frequently Asked Questions
