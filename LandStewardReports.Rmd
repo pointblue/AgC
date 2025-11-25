@@ -20,7 +20,7 @@ params:
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
-  stocks: TRUE
+  stocks: FALSE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -119,7 +119,8 @@ indicator.db<-read.csv("ReportRef/indicator_descriptions.csv", check.names=FALSE
 proj.indicator.table<-indicator.db%>% 
   rowwise() %>%
   filter(!all(is.na(PointLevel[[CheckCol]])))%>%
-  filter(!Acronym %in% c("Sand", "Silt", "Clay"))
+  filter(!Acronym %in% c("Sand", "Silt", "Clay"))%>%
+  filter(Acronym!="N") #CHECK! Catie asked me to remove total N as producers will confuse with nitrates
 proj.indicators<-proj.indicator.table$Acronym #Get a vector of indicator acronyms for this project to use for further logic
 if ("Tx" %in% proj.indicators) { #create a vector of value names that match the names in PointLevel (replacing Tx with sand silt and clay)
   proj.indicators.SSC<-c(proj.indicator.table$CheckCol, "sand", "silt")
@@ -356,17 +357,15 @@ if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint)
   cat("Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
 }
 ```
-```{r, raca data prep}
+```{r, raca data prep, include = FALSE}
 raca_call<-reg_baseline(border, max.depth.cent)
 raca_data<-raca_call[[1]]%>%left_join(raca_call[[2]]%>%select(-LU), by="rcasiteid")
-ecoregion<-raca_call[[3]]
-
 
 raca_data$LU[raca_data$LU == "C"] <- "crop"
 raca_data$LU[raca_data$LU == "R"] <- "range"
 ```
 
-```{r, color palette prep}
+```{r, color palette prep, include = FALSE}
 #Define color palette for all ggplot figures
 cbbPalette <- c("T" = "#384F8Dff", 
                 "C" = "#7783a1", 
@@ -401,7 +400,7 @@ palette_LU <- c(
 
 ```{r results='asis', eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-asis_output("### Soil organic carbon percents\\n") #CONDITIONAL HEADER
+asis_output("### Soil organic carbon concentrations\\n") #CONDITIONAL HEADER
 ```
 ```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
@@ -531,13 +530,13 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
 asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
 ```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks, fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
+```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks}
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
 
 #INSERT BD STATS INTERPRETATION HERE
 
 ```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks}
+```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks, fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
 
 #prep NRCS categories based on texture class
@@ -781,13 +780,13 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
       na.rm = TRUE
     )
   )
-  proj.indicators.SSC<-c(proj.indicators.SSC, "all_stocks") #CHECK! I may have added this to the wrong vector previously. Need to see how this is used 
+  proj.indicators.SSC.stocks<-c(proj.indicators.SSC.stocks, "all_stocks") #CHECK! I may have added this to the wrong vector previously. Need to see how this is used 
 }
 
 }
 ```
 
-```{r, formatting stocks data, eval = FALSE}
+```{r, formatting stocks data, eval =  "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
@@ -925,14 +924,14 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
 
 
 ```
-```{r results='asis', eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))}
+```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
 
 asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
 
 ```
-``` {r, results='asis', eval = any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))}
+``` {r, results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
 
@@ -941,8 +940,8 @@ asis_output(
 "The following graph shows **all other pools of carbon** measured in this project compared to the sum of all measured carbon pools in the study area."
 )
 ```
-```{r, eval = FALSE,fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
-#CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
+```{r, eval = any(c("POC", "MAOC")%in%proj.indicators),fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
+#CHECK! for the eval statement, you'll have to add the acronyms for plant biomass for this to work properly
 
 #get rid of raca values for this graph
 stocks_df_forallpools<-stocks_df%>%filter(!plot_type %in% "raca")
@@ -1067,7 +1066,7 @@ if ("Tx" %in% proj.indicators & length(unique(border$plot_type))==2){cat("Since 
 ```
 ```{r texture timepoints, results='asis'}
 if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
-  cat("Note that soil texture is considered an inherent soil property -- we don't expect these values to change due to management intervention. For this reason, texture is **generally only measured at the first monitoring timepoint** to help contextualize results going forward.")
+  cat("Note that soil texture is considered an inherent soil property -- we don't expect these values to change due to management intervention. For this reason, texture is generally only measured at the first timepoint to help contextualize results going forward.")
 }
 
 ```
@@ -1180,7 +1179,7 @@ grid.arrange(imgT, imgC, ncol = 2)
 
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
-```{r} 
+```{r, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks} 
 
 Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type, timepoint) %>%
@@ -1267,9 +1266,96 @@ SummaryTable <- Means.Pivot %>%
 
 SummaryTable
 
-#CHECK super close but theres something wrong with SIC and NaN to NA didn't work
+```
+```{r, eval= !params$stocks}
+#Chunk only evaluates if stocks are not included. 
 
-#Add standard error or deviation to this table? Is there a nice way to group this up into variability levels?
+Project.Means <- PointLevel %>%
+                    dplyr::group_by(plot_type, timepoint) %>%
+                    dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
+
+#pivot so that indicators are row names and plot type and depth increment combinations are column names
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>% arrange(timepoint)%>%
+          pivot_wider(
+    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
+    values_from = value,
+    names_sep = " | "                           #separator
+  ) %>%
+    left_join( #add the units column (CHECK,)
+    proj.indicator.table %>% select(CheckCol, UnitsTable),
+    by = c("Indicator" = "CheckCol")
+  ) %>%
+  mutate(
+    Units = case_when(
+      Indicator %in% c("sand", "silt", "clay") ~ "%",           #tx components will always be %
+      TRUE ~ UnitsTable                                         #the rest will be defined by the table
+    )
+  ) %>%
+  select(-UnitsTable)%>% 
+  mutate(
+    # remove _stocks for matching if present
+    Indicator_base = str_remove(Indicator, "_stocks$")
+  ) %>%
+  left_join(
+    proj.indicator.table %>% select(Acronym, CheckCol),
+    by = c("Indicator_base" = "CheckCol")
+  ) %>%
+  mutate(
+    Acronym = case_when(
+      Indicator_base == "sand" ~ "Sand",
+      Indicator_base == "silt" ~ "Silt",
+      Indicator_base == "clay" ~ "Clay",
+      TRUE ~ Acronym                                # default mapping
+    )
+  )
+
+my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay") #CHECK add plant metrics when present
+
+Means.Pivot <- Means.Pivot1 %>%
+  select(-Indicator_base, -Indicator) %>%
+  select(Acronym, everything(), Units) %>%
+  mutate(
+    order_helper = match(Acronym, my_order),
+    original_order = row_number()
+  ) %>%
+  arrange(is.na(order_helper), order_helper, original_order) %>%
+  select(-order_helper, -original_order)%>%mutate(across(where(is.numeric), ~ ifelse(is.nan(.), NA, .)))
+
+# setup dynamic headers
+timepoints <- unique(Project.Means$timepoint)
+plot_types <- unique(Project.Means$plot_type)
+
+# Build expected column names to match order (timepoint | plot_type)
+value_columns <- names(Means.Pivot1)[!names(Means.Pivot1) %in% c("Indicator", "Indicator_base", "Units", "Acronym")]
+
+# Reorder columns
+Means.Pivot <- Means.Pivot %>%
+  select(Acronym, all_of(value_columns), Units)
+
+# Lower header — show plot types only
+flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Unit")
+
+# Upper header (timepoints)
+header_above <- c(" " = 1)  # blank for Indicator
+for (tp in timepoints) {
+  header_above <- c(header_above, setNames(length(plot_types), tp))
+}
+header_above <- c(header_above, " " = 1)  # blank for Unit
+
+#CHECK! Catie asked me to remove total N as it will be confused with nitrates for producers:
+Means.Pivot<-Means.Pivot%>%filter(Acronym!="N")
+
+# --- create table ---
+SummaryTable <- Means.Pivot %>%
+  kbl(
+    caption = "Plot means for all measured values",
+    digits = 2,
+    col.names = flat_colnames
+  ) %>%
+  add_header_above(header_above) %>%
+  kable_styling(position = "center", full_width = FALSE)
+
+SummaryTable
 ```
 
 
@@ -1284,15 +1370,19 @@ The previous tables and figures report results averaged across the study area. U
 library(htmltools)  #for tagList(), needed if we're going to list multiple maps. 
 
 #this chunk lists 
-if ("bulk_density" %in% proj.indicators.SSC.stocks){
+if ("bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE){
 stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
 }
 
 proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
 
-if ("bulk_density" %in% proj.indicators.SSC.stocks) { #combine into one vector 
+
+
+if ("bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) { #combine into one vector 
+  proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
 } else {
+  proj.indicators.nonbiomass<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
   dynamicmap.inds <- proj.indicators.nonbiomass
 }
 
@@ -1429,8 +1519,8 @@ browsable(tagList(map_outputs))
 
 ```
 
-```{r, eval= unique(PointLevel$timepoints)>1}
-#Chunk only runs if there's more than one timepoint
+```{r, eval= FALSE}
+#Chunk only runs if there's more than one timepoint: unique(PointLevel$timepoints)>1
 
 #SETUP BASELINE AND CHANGEG DYNAMIC MAP
 
