@@ -1369,16 +1369,9 @@ The previous tables and figures report results averaged across the study area. U
 ```{r leaflet_maps_by_timepoint, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
 library(htmltools)  #for tagList(), needed if we're going to list multiple maps. 
 
-#this chunk lists 
-if ("bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE){
-stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
-}
-
-proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
-
-
 
 if ("bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) { #combine into one vector 
+  stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
   proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
 } else {
@@ -1393,7 +1386,7 @@ dynamicmap.inds <- c(
 ) #getting values in the desired display order
 
 
-#define labels for legend and popups
+#Define labels for legend and popups
 Means.Pivot1<-Means.Pivot1%>%
   mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
 legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator)
