@@ -3,124 +3,157 @@
 # Date created: 20250402
 # Date updated: 20251023
 # Purpose: Define Ag-C data cleaning functions used in AgCDataCompile.R to:
-#   1) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester, OSU)
-#   2) clean_tap_df: Renames columns and removes extra columns in TAP df
-#   3) coord_extract: Extracts coordinates for sampling points from projects of interest
-#   4) out_of_range: verify required columns and check for data outside expected ranges
-#   5) proj_design: Extracts project design data required for inference score calculation from point level db
-#   6) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
+#   1) fetch_lab_file: identify lab data sheets containing samples from specified projects
+#   2) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester, OSU)
+#   3) clean_tap_df: Renames columns and removes extra columns in TAP df
+#   4) coord_extract: Extracts coordinates for sampling points from projects of interest
+#   5) out_of_range: verify required columns and check for data outside expected ranges
+#   6) proj_design: Extracts project design data required for inference score calculation from point level db
+#   7) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
 #       mean, 95% confidence interval and n points for all RACA crop and rangeland points (excluding outliers) 
 #       within the Level 3 ecoregion associated with the polygon you read in. The confidence interval is the
 #       value +/- the mean, so for example if mean = 5 and ci = 2, the confidence interval would be from 3 to 7
 
+## ---- fetch_lab_file ----
+fetch_lab_file <- function(data_path, projects){
+  matching_files <- c() # Vector to store matches
+  list_dfs<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+  #Files from ward and cquester lab
+  for (fw in list_dfs[grep("Ward|Cquester",list_dfs)]) {
+    target_column <- "Sample.ID"
+    df <- read.csv(fw)
+    for(p in projects){
+      if (any(grepl(p, df[[target_column]], fixed = TRUE))) {
+        matching_files <- c(matching_files, fw)
+      }
+    }
+  }
+  #Files from OSU lab
+  list_dfs_xlsx<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.xlsx$", full.names = TRUE) #list all the CSVs in folder
+  for (fosu in list_dfs_xlsx[grep("OSU",list_dfs_xlsx)]) {
+    target_column <- "Customer ID"
+    df <- read_excel(fosu, sheet="Data", col_names=FALSE,
+                          na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+    df <- df %>%
+      slice(-1) %>%                                # Remove the first row
+      rename_with(~ as.character(df[2, ])) %>%  # Set column names from second row
+      slice(-1) 
+    for(p in projects){
+      if (any(grepl(p, df[[target_column]], fixed = TRUE))) {
+        matching_files <- c(matching_files, fosu)
+      }
+    }
+  }
+  
+  return(matching_files)
+}
+
 ## ---- clean_lab_df function ----
 
 clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC Data)
-                         lab, #as of now, can be "Cquester" or "Ward" or "OSU"
-                         file_name #optional- can specify if you know the file name and/or are not working with the most recent lab data
+                         projects #projects of interest
                          ){
-  # Import latest csv
-  if(is.na(file_name)==TRUE){
-    list_dfs<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
-    list_dfs<-list_dfs[grep(lab,list_dfs)]
-    df_name <- list_dfs[which.max(as.Date(gsub("\\D","", list_dfs), format = "%Y%m%d"))] #this indexing patterns makes sure we're using the most recent master datasheet
-  }else{
-    df_name<-paste(data_path,"Raw Data","Lab Data", file_name, sep="/")
-  }
-  if(lab %in% c("Ward","Cquester")){
-    lab_raw<-read.csv(df_name)
-  }
-  if(lab == "OSU"){
-    lab_raw <- read_excel(df_name, sheet="Data", col_names=FALSE,
-                          na = c("NA", "na", "ND", "nd", "-", "--","", " "))
-    lab_raw <- lab_raw %>%
-      slice(-1) %>%                                # Remove the first row
-      rename_with(~ as.character(lab_raw[2, ])) %>%  # Set column names from second row
-      slice(-1) %>%
-      select(-c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated")) %>%
-      as.data.frame
+  # Create empty df to store all results
+  lab_clean_final <- data.frame()
+  # Identify which raw lab file(s) contain project(s) of interest
+  lab_files <- fetch_lab_file(data_path,projects)
+  
+  # Clean dataframes based on lab 
+  col_map <- read.csv("lab_column_names.csv")
+  for(f in lab_files){
+    if(grepl("Ward",f)==TRUE){
+      lab_raw<-read.csv(f)
+      rename_vec <- setNames(as.character(col_map$Ward), col_map$Column.Name) #Define ward column map
+      lab_clean <- lab_raw %>%
+        select(-c(Kind.Of.Sample:Field.ID,Date.Recd,Date.Rept,Past.Crop)) %>% #Remove extra id columns
+        select(where(~ !all(is.na(.)))) %>% # Remove columns with no data
+        rename(!!!rename_vec[rename_vec %in% colnames(.)]) %>% # Rename remaining columns
+        mutate(b_depth = round(b_depth*2.54,0), # Convert depths from in to cm 
+               e_depth = round(e_depth*2.54,0))
+      if("total_n" %in% colnames(lab_clean)){ # Convert ppm to percent
+        lab_clean <- lab_clean %>%
+          mutate(total_n = total_n/10000)
+      }
+      if("rocks_g" %in% colnames(lab_clean)){
+        lab_clean <- lab_clean %>%
+          mutate(rocks_g = ifelse(rocks_g == "< 0.01", 0, rocks_g))
+      }
+      if("coarse_g" %in% colnames(lab_clean)){
+        lab_clean <- lab_clean %>%
+          mutate(coarse_g = ifelse(coarse_g == "< 0.01", 0, coarse_g))
+      }
+    }
+    if(grepl("Cquester",f)==TRUE){
+      lab_raw<-read.csv(f)
+      rename_vec <- setNames(as.character(col_map$Cquester), col_map$Column.Name)
+      rename_vec <- gsub("\\.", "", rename_vec)
+      lab_clean <- lab_raw %>%
+        slice(-1) %>%
+        setNames(gsub("\\.", "", names(.))) %>%
+        rename(!!!rename_vec[rename_vec %in% colnames(.)])
+    }
+    if(grepl("OSU",f)==TRUE){
+      lab_raw <- read_excel(df_name, sheet="Data", col_names=FALSE,
+                            na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+      lab_raw <- lab_raw %>%
+        slice(-1) %>%                                # Remove the first row
+        rename_with(~ as.character(lab_raw[2, ])) %>%  # Set column names from second row
+        slice(-1) %>%
+        select(-c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated")) %>%
+        as.data.frame
+      rename_vec <- setNames(as.character(col_map$OSU), col_map$Column.Name)
+      rename_vec <- gsub("\\.", "", rename_vec)
+      lab_clean <- lab_raw %>%
+        rename(!!!rename_vec[rename_vec %in% colnames(.)])
+    }
+    #Define column names from cleaned df
+    clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
+    clean_col_names <- clean_col_names[!duplicated(clean_col_names)]
+    
+    # Check for no unexpected columns in lab raw data
+    if(length(clean_col_names) != ncol(lab_clean)) {
+      message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% names(rename_vec)]))
+    }
+    
+    # Make sure columns are numeric, fill in NAs where blank
+    lab_clean <- lab_clean %>%
+      select(c(clean_col_names)) %>%
+      mutate(across(everything(), ~ ifelse(. %in% c("-","--",""," ","NA","na"), NA,.))) %>%
+      mutate(across(-c(clean_col_names[clean_col_names %in% c("sample_id","texture_name")]),
+                    as.numeric))
+    
+    # Define lab and C analysis method
+    lab_clean$lab_name <- lab
+    lab_clean$c_method <- ifelse(lab %in% c("Cquester","Ward"),"Dry Combustion",NA)
+    
+    #Add required columns that were not in raw lab data 
+    cols_to_add <- col_map$Column.Name[!col_map$Column.Name %in% names(lab_clean)]
+    lab_clean[,cols_to_add] <- NA
+    lab_clean <- lab_clean %>%
+      select(col_map$Column.Name)
+    
+    #Add year that data were reported from lab 
+    lab_clean$year <- str_extract(df_name, "\\d{4}(?=\\d{4}\\.csv)")
+    
+    # Bind to lab_clean_final to store results
+    lab_clean_final <-rbind(lab_clean_final,lab_clean)
   }
 
-  # Rename columns
-  col_map <- read.csv("lab_column_names.csv")
-  if(lab == "OSU"){
-    rename_vec <- setNames(as.character(col_map$OSU), col_map$Column.Name)
-    rename_vec <- gsub("\\.", "", rename_vec)
-    lab_clean <- lab_raw %>%
-      rename(!!!rename_vec[rename_vec %in% colnames(.)])
-  }
-  if(lab == "Cquester"){
-    rename_vec <- setNames(as.character(col_map$Cquester), col_map$Column.Name)
-    rename_vec <- gsub("\\.", "", rename_vec)
-    lab_clean <- lab_raw %>%
-      slice(-1) %>%
-      setNames(gsub("\\.", "", names(.))) %>%
-      rename(!!!rename_vec[rename_vec %in% colnames(.)])
-  }
-  if(lab == "Ward"){
-    rename_vec <- setNames(as.character(col_map$Ward), col_map$Column.Name) #Define ward column map
-    lab_clean <- lab_raw %>%
-      select(-c(Kind.Of.Sample:Field.ID,Date.Recd,Date.Rept,Past.Crop)) %>% #Remove extra id columns
-      select(where(~ !all(is.na(.)))) %>% # Remove columns with no data
-      rename(!!!rename_vec[rename_vec %in% colnames(.)]) %>% # Rename remaining columns
-      mutate(b_depth = round(b_depth*2.54,0), # Convert depths from in to cm 
-             e_depth = round(e_depth*2.54,0))
-    if("total_n" %in% colnames(lab_clean)){ # Convert ppm to percent
-      lab_clean <- lab_clean %>%
-        mutate(total_n = total_n/10000)
-    }
-    if("rocks_g" %in% colnames(lab_clean)){
-      lab_clean <- lab_clean %>%
-        mutate(rocks_g = ifelse(rocks_g == "< 0.01", 0, rocks_g))
-    }
-    if("coarse_g" %in% colnames(lab_clean)){
-      lab_clean <- lab_clean %>%
-        mutate(coarse_g = ifelse(coarse_g == "< 0.01", 0, coarse_g))
-    }
-  }
-  
-  #Define column names from cleaned df
-  clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
-  clean_col_names <- clean_col_names[!duplicated(clean_col_names)]
-  
-  # Check for no unexpected columns in lab raw data
-  if(length(clean_col_names) != ncol(lab_clean)) {
-    message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% names(rename_vec)]))
-  }
-  
-  # Make sure columns are numeric, fill in NAs where blank
-  lab_clean <- lab_clean %>%
-    select(c(clean_col_names)) %>%
-    mutate(across(everything(), ~ ifelse(. %in% c("-","--",""," ","NA","na"), NA,.))) %>%
-    mutate(across(-c(clean_col_names[clean_col_names %in% c("sample_id","texture_name")]),
-           as.numeric))
-  
-  # Define lab and C analysis method
-  lab_clean$lab_name <- lab
-  lab_clean$c_method <- ifelse(lab %in% c("Cquester","Ward"),"Dry Combustion",NA)
-  
-  #Add required columns that were not in raw lab data 
-  cols_to_add <- col_map$Column.Name[!col_map$Column.Name %in% names(lab_clean)]
-  lab_clean[,cols_to_add] <- NA
-  lab_clean <- lab_clean %>%
-    select(col_map$Column.Name)
-  
-  #Add year that data were reported from lab 
-  lab_clean$year <- str_extract(df_name, "\\d{4}(?=\\d{4}\\.csv)")
-  
-  return(lab_clean)
+  return(lab_clean_final)
 }
 
-## ---- clean_tap_df function ----
+## ---- clean_tap_soils function ----
 
-clean_tap_df <- function(agc_data_entry_path){
-  #Read in soils and biomass data sheets
+clean_tap_df <- function(agc_data_entry_path,
+                            projects){
+  #Read in soils data sheets
   tap_soils<-read_excel(agc_data_entry_path, sheet="Soils", col_names=TRUE,
              na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   tap_bio<-read_excel(agc_data_entry_path, sheet="AbovegroundHerbaceousBiomass", col_names=TRUE,
                        na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   tap_herb_root<-read_excel(agc_data_entry_path, sheet="HerbaceousRootBiomass", col_names=TRUE,
                       na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  
   #Remove extra columns, define column types
   soils_clean <- tap_soils %>%
     slice(-1) %>% # remove unit row
@@ -236,6 +269,10 @@ clean_tap_df <- function(agc_data_entry_path){
     
   return(tap_clean)
 }
+
+## ---- clean_tap_biomass function ----
+
+clean_tap_biomass <- function(agc_data_entry_path)
 
 ## ---- Extract point coordinates for sampling points ----
 coord_extract <- function(projects){

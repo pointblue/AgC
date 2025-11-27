@@ -19,20 +19,15 @@ agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs -
 
 ## ---- Import/clean lab and tap field data ----
 
-# Lab soils data
+# identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
+proj_of_int <- c("ABCD.24.PG")
+
+# Lab soils data - extracts all lab data in Z drive for defined projects
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
-                          lab = "Ward", #Options: "Cquester", "Ward", "OSU
-                          file_name = NA)  #optional- can specify if you know the file name and/or are not working with the most recent lab data
-  #AC Addition...if i want to clean multiple lab datasheets at once:
-  lab_clean1<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20240418.csv") #general mills
-  lab_clean2<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250313.csv") #general mills
-  lab_clean3<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250318.csv") #general mills
-  lab_clean4<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250520.csv") #general mills
-  lab_clean5<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250521.csv") #general mills
-  lab_clean6<-clean_lab_df(data_path = data_dir, lab = "OSU", file_name = "OSU_data_20250815.xlsx") #general mills
-  lab_clean7<-clean_lab_df(data_path = data_dir, lab = "Ward", file_name = "Ward_data_20250409.csv") #JPV
-  lab_clean<-rbind(lab_clean1, lab_clean2, lab_clean3, lab_clean4, lab_clean5, lab_clean6, lab_clean7)
+                          projects = proj_of_int)
+  # Check for duplicated sample ids
+  lab_clean[lab_clean$sample_id %in% lab_clean[duplicated(lab_clean$sample_id),]$sample_id,]
 
 # TAP field data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
