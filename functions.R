@@ -144,15 +144,11 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
 
 ## ---- clean_tap_soils function ----
 
-clean_tap_df <- function(agc_data_entry_path,
+clean_tap_soils <- function(agc_data_entry_path,
                             projects){
-  #Read in soils data sheets
+  #Read in soils data sheet
   tap_soils<-read_excel(agc_data_entry_path, sheet="Soils", col_names=TRUE,
              na = c("NA", "na", "ND", "nd", "-", "--","", " "))
-  tap_bio<-read_excel(agc_data_entry_path, sheet="AbovegroundHerbaceousBiomass", col_names=TRUE,
-                       na = c("NA", "na", "ND", "nd", "-", "--","", " "))
-  tap_herb_root<-read_excel(agc_data_entry_path, sheet="HerbaceousRootBiomass", col_names=TRUE,
-                      na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   
   #Remove extra columns, define column types
   soils_clean <- tap_soils %>%
@@ -168,24 +164,6 @@ clean_tap_df <- function(agc_data_entry_path,
     filter(!is.null(PointID))%>% #filter out empty rows
     filter(!is.na(PointID))%>% #filter out empty rows
     mutate(across(c(Volume1_mL:Depth4_cm), as.numeric))
-  
-  bio_clean <- tap_bio %>%
-    slice(-1) %>% # remove unit row
-    mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
-    filter(!is.null(PointID))%>% #filter out empty rows
-    filter(!is.na(PointID))%>% #filter out empty rows
-    mutate(across(c(Area_cm2:DryMass_g), as.numeric)) %>%
-    select(PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
-  
-  root_bio_clean <- tap_herb_root %>%
-    slice(-1) %>% # remove unit row
-    mutate(sample_date_hrb = as.Date(SamplingDate, format = "%m/%d/%Y")) %>%
-    filter(!is.null(PointID))%>% #filter out empty rows
-    filter(!is.na(PointID))%>% #filter out empty rows
-    select(PointID, Timepoint, sample_date_hrb, BdepthTarget_cm,EdepthTarget_cm,
-           CoreDiameter_cm, TinMassFine_g:DryMassCourse_g) %>%
-    mutate(across(c(CoreDiameter_cm:DryMassCourse_g), as.numeric))
-    
   
   #Determine bulk density method  
   tap_clean <- soils_clean %>%
@@ -220,30 +198,6 @@ clean_tap_df <- function(agc_data_entry_path,
     mutate(soil_moisture = (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100,
            dry_soil_g = (WetMass_g - RocksRemovedMass_g - RootsRemovedMass_g)*((100-soil_moisture)/100))
   
-  #Calculate aboveground herb biomass
-  bio_clean <- bio_clean %>%
-    mutate(abh_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
-           ) %>%
-    select(PointID,Timepoint,SamplingDate,abh_bio) %>%
-    rename(sample_date_abh = SamplingDate) %>%
-    group_by(PointID, Timepoint, sample_date_abh) %>%
-    summarise(abh_bio = mean(abh_bio, na.rm = TRUE))
-  
-  #Calculate root herb biomass
-  root_bio_clean <- root_bio_clean %>%
-    mutate(core_area_m2 = pi*(CoreDiameter_cm/100/2)^2,
-           coarse_roots_g = DryMassCourse_g - TinMassCourse_g,
-           fine_roots_g = DryMassFine_g - TinMassFine_g) %>%
-    mutate(hrb_fine = fine_roots_g/core_area_m2*10000/1000, #calculate herbaceous root biomass in kg/ha
-           hrb_coarse = coarse_roots_g/core_area_m2*10000/1000,
-           hrb_total = hrb_fine + hrb_coarse) %>%
-    rename(e_depth_hrb = EdepthTarget_cm) %>%
-    select(PointID, Timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
-  
-  #Bind sheets together
-  tap_clean <- merge(tap_clean,bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
-  tap_clean <- merge(tap_clean,root_bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
-  
   #Select rows
   tap_clean <- tap_clean %>%
     rename(project_id = ProjectID,
@@ -262,9 +216,12 @@ clean_tap_df <- function(agc_data_entry_path,
     select(c(project_id,sample_id,plot_type,
              timepoint, sample_date, b_depth, e_depth, 
              b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
-             rocks_g, vol_cm3,sample_date_abh, abh_bio, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)) %>%
+             rocks_g, vol_cm3
+             #,sample_date_abh, abh_bio, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total
+             )) %>%
     mutate(year = str_sub(sample_date, 1,4)) %>%
     filter(!is.na(project_id)) %>%
+    filter(project_id %in% projects)
     as.data.frame()
     
   return(tap_clean)
@@ -272,7 +229,132 @@ clean_tap_df <- function(agc_data_entry_path,
 
 ## ---- clean_tap_biomass function ----
 
-clean_tap_biomass <- function(agc_data_entry_path)
+clean_tap_biomass <- function(agc_data_entry_path,
+                              projects){
+  # Read in biomass data sheets
+  tap_abh<-read_excel(agc_data_entry_path, sheet="AbovegroundHerbaceousBiomass", col_names=TRUE,
+                      na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_herb_root<-read_excel(agc_data_entry_path, sheet="HerbaceousRootBiomass", col_names=TRUE,
+                            na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_abw_plot<-read_excel(agc_data_entry_path, sheet="WoodyBiomass_plot", col_names=TRUE,
+                            na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_abw_pcq<-read_excel(agc_data_entry_path, sheet="WoodyBiomass_PCQ", col_names=TRUE,
+                   na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_abw_orch<-read_excel(agc_data_entry_path, sheet="WoodyBiomass_orchard", col_names=TRUE,
+                          na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_abw_lch<-read_excel(agc_data_entry_path, sheet="WoodyBiomass_LCH", col_names=TRUE,
+                           na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  tap_abw_hedge<-read_excel(agc_data_entry_path, sheet="WoodyBiomass_hedgerow", col_names=TRUE,
+                          na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+  
+  # ABH: Clean df and calculations
+  if (any(tap_abh[[ProjectID]] %in% projects)) {
+    abh_clean <- tap_abh %>% # Remove extra columns, define column types
+      slice(-1) %>% # remove unit row
+      mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+      filter(!is.null(PointID))%>% #filter out empty rows
+      filter(!is.na(PointID))%>% #filter out empty rows
+      mutate(across(c(Area_cm2:DryMass_g), as.numeric)) %>%
+      select(PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
+    abh_clean <- abh_clean %>% #Calculate aboveground herb biomass
+      mutate(abh_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
+      ) %>%
+      select(PointID,Timepoint,SamplingDate,abh_bio) %>%
+      rename(sample_date_abh = SamplingDate) %>%
+      group_by(PointID, Timepoint, sample_date_abh) %>%
+      summarise(abh_bio = mean(abh_bio, na.rm = TRUE))
+  }
+    
+  # Herbaceous root biomass: Clean df and calculations
+  if (any(tap_herb_root[[ProjectID]] %in% projects)) {
+    root_bio_clean <- tap_herb_root %>%
+      slice(-1) %>% # remove unit row
+      mutate(sample_date_hrb = as.Date(SamplingDate, format = "%m/%d/%Y")) %>%
+      filter(!is.null(PointID))%>% #filter out empty rows
+      filter(!is.na(PointID))%>% #filter out empty rows
+      select(PointID, Timepoint, sample_date_hrb, BdepthTarget_cm,EdepthTarget_cm,
+             CoreDiameter_cm, TinMassFine_g:DryMassCourse_g) %>%
+      mutate(across(c(CoreDiameter_cm:DryMassCourse_g), as.numeric))
+    root_bio_clean <- root_bio_clean %>% #Calculate root herb biomass
+      mutate(core_area_m2 = pi*(CoreDiameter_cm/100/2)^2,
+             coarse_roots_g = DryMassCourse_g - TinMassCourse_g,
+             fine_roots_g = DryMassFine_g - TinMassFine_g) %>%
+      mutate(hrb_fine = fine_roots_g/core_area_m2*10000/1000, #calculate herbaceous root biomass in kg/ha
+             hrb_coarse = coarse_roots_g/core_area_m2*10000/1000,
+             hrb_total = hrb_fine + hrb_coarse) %>%
+      rename(e_depth_hrb = EdepthTarget_cm) %>%
+      select(PointID, Timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
+  }
+  # Woody biomass - plot method: Clean df and calculations
+  if (any(tap_abw_plot[[ProjectID]] %in% projects)) {
+    abw_plot_clean <- tap_abw_plot %>% # Remove extra columns, define column types
+      slice(-1) %>% # remove unit row
+      mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+      filter(ProjectID %in% projects)%>% 
+      filter(!is.na(ProjectID)) %>% #filter out empty rows
+      mutate(across(c(DBH1_cm:TallHeightTop_deg), as.numeric))
+    abw_plot_clean <- abw_plot_clean  # %>% #Calculate woody biomass
+      # mutate(core_area_m2 = pi*(CoreDiameter_cm/100/2)^2,
+      #        coarse_roots_g = DryMassCourse_g - TinMassCourse_g,
+      #        fine_roots_g = DryMassFine_g - TinMassFine_g) %>%
+      # mutate(hrb_fine = fine_roots_g/core_area_m2*10000/1000, #calculate herbaceous root biomass in kg/ha
+      #        hrb_coarse = coarse_roots_g/core_area_m2*10000/1000,
+      #        hrb_total = hrb_fine + hrb_coarse) %>%
+      # rename(e_depth_hrb = EdepthTarget_cm) %>%
+      # select(PointID, Timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
+    
+  }
+  
+  # Woody biomass - PCQ method: Clean df and calculations
+  if (any(tap_abw_pcq[[ProjectID]] %in% projects)) {
+    abw_pcq_clean <- tap_abw_pcq %>% # Remove extra columns, define column types
+      slice(-1) %>% # remove unit row
+      mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+      filter(ProjectID %in% projects) %>% 
+      filter(!is.na(ProjectID)) %>% #filter out empty rows
+      mutate(across(c(Distance_m, DBH1_cm:TallHeightTop_deg), as.numeric)) %>%
+      select(c(ProjectID:FieldNotes))
+    abw_pcq_clean <- abw_pcq_clean #Calculate woody biomass
+  }
+  # Woody biomass - orchards: Clean df and calculations
+  if (any(tap_abw_orch[[ProjectID]] %in% projects)) {
+    abw_orch_clean <- tap_abw_orch %>% # Remove extra columns, define column types
+      slice(-1) %>% # remove unit row
+      mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+      filter(ProjectID %in% projects) %>% 
+      filter(!is.na(ProjectID)) %>% #filter out empty rows
+      mutate(across(c(BetweenRow,WithinRow, DBH1_cm:TallHeightTop_deg), as.numeric)) %>%
+      select(c(ProjectID:FieldNotes))
+    abw_orch_clean <- abw_orch_clean #Calculate woody biomass
+  }
+  
+  # Woody biomass - LCH method: Clean df and calculations
+  if (any(tap_abw_lch[[ProjectID]] %in% projects)) {
+    abw_lch_clean <- tap_abw_lch %>% # Remove extra columns, define column types
+      slice(-1) %>% # remove unit row
+      mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+      filter(ProjectID %in% projects) %>% 
+      filter(!is.na(ProjectID)) %>% #filter out empty rows
+      mutate(across(c(WindbreakLength_m:IntervalMark_m, Distance_cm, DBH1_cm:TallHeightTop_deg), as.numeric)) %>%
+      select(c(ProjectID:FieldNotes))
+    abw_lch_clean <- abw_lch_clean #Calculate woody biomass
+  }
+  # Woody biomass - hedgerows: Clean df and calculations
+  if (any(tap_abw_hedge[[ProjectID]] %in% projects)) {
+    abw_hedge_clean <- tap_abw_hedge %>% # Remove extra columns, define column types
+      slice(-1) %>% # remove unit row
+      mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
+      filter(ProjectID %in% projects) %>% 
+      filter(!is.na(ProjectID)) %>% #filter out empty rows
+      mutate(across(c(HedgerowLength_m:WoodyCoverage_perc), as.numeric)) %>%
+      select(c(ProjectID:FieldNotes))
+    abw_hedge_clean <- abw_hedge_clean #Calculate woody biomass
+  }
+  
+  #Bind sheets together
+  bio_clean <- merge(abh_clean,root_bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
+  
+}
 
 ## ---- Extract point coordinates for sampling points ----
 coord_extract <- function(projects){
