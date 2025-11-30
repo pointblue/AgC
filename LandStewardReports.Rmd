@@ -333,11 +333,11 @@ if (depth.increments.no>1){
 ```{r}
 timepoint_dates<-PointLevel %>%
   group_by(timepoint) %>%
-  summarize(sample_date = first(sample_date), .groups = "drop")
+  summarize(sample_date = first(sample_date), .groups = "drop")%>%
+  arrange(timepoint) #make sure timpoints are in order for indexing
 
 timepoint_sentence <- timepoint_dates %>%
-  arrange(timepoint) %>%  # optional: ensure proper order
-  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date, format = "%m/%d/%Y"), "%B %d, %Y"), ".")) %>%
+  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date), "%B %d, %Y"), ".")) %>%
   pull(text) %>%          # get vector of strings
   paste(collapse = " ")
 
@@ -346,8 +346,7 @@ tp_lookup<- timepoint_dates %>%
   mutate(
     sample_date = as.Date(sample_date),
     year_label = format(sample_date, "%Y")
-  )%>%
-  arrange(timepoint) #make sure timpoints are in order for indexing
+  )
 
 ```
 This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
@@ -495,9 +494,7 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
       
     #Custom x-axis labels
     scale_x_discrete(labels = c(
-      "T0" = "T0",
-      "T1" = "T1",
-      "T2" = "T2",
+      setNames(tp_lookup$year_label, tp_lookup$timepoint),
       "Reference" = "Reference (2010)"
       )) +
       
@@ -714,13 +711,11 @@ ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
     y = "Soil Bulk Density (g/cm3)",
   ) +
   
-  #x-axis labels
-  scale_x_discrete(labels = c(
-    "T0" = "T0",
-    "T1" = "T1",
-    "T2" = "T2",
-    "Reference (2010)" = "Reference (2010)"
-  )) +
+  #Custom x-axis labels
+    scale_x_discrete(labels = c(
+      setNames(tp_lookup$year_label, tp_lookup$timepoint),
+      "Reference" = "Reference (2010)"
+      )) +
   
   theme_minimal()+
 
@@ -894,13 +889,11 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
     )
   ) +
       
-      # Custom x-axis labels
-  scale_x_discrete(labels = c(
-    "T0" = "T0",
-    "T1" = "T1",
-    "T2" = "T2",
-    "Reference (2010)" = "Reference (2010)"
-  )) +
+  #Custom x-axis labels
+    scale_x_discrete(labels = c(
+      setNames(tp_lookup$year_label, tp_lookup$timepoint),
+      "Reference" = "Reference (2010)"
+      )) +
       
       # Text labels for means
       stat_summary(
@@ -1252,7 +1245,8 @@ flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Un
 # Upper header (timepoints)
 header_above <- c(" " = 1)  # blank for Indicator
 for (tp in timepoints) {
-  header_above <- c(header_above, setNames(length(plot_types), tp))
+  tp_label<-filter(tp_lookup, timepoint==tp)$year_label
+  header_above <- c(header_above, setNames(length(plot_types), tp_label))
 }
 header_above <- c(header_above, " " = 1)  # blank for Unit
 
@@ -1340,7 +1334,8 @@ flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Un
 # Upper header (timepoints)
 header_above <- c(" " = 1)  # blank for Indicator
 for (tp in timepoints) {
-  header_above <- c(header_above, setNames(length(plot_types), tp))
+  tp_label<-filter(tp_lookup, timepoint==tp)$year_label
+  header_above <- c(header_above, setNames(length(plot_types), tp_label))
 }
 header_above <- c(header_above, " " = 1)  # blank for Unit
 
@@ -1511,7 +1506,7 @@ DynamicMap
 
 ```{r, results='asis', eval=length(unique(PointLevel$timepoint)) > 1}
 cat("#### Change from",  tp_lookup$year_label[1], "to", tp_lookup$year_label[length(tp_lookup$year_label)],"\n")
-cat("More red points show a greater increase in the toggled indicator. More blue points show a greater decrease in the toggled indicator. White points showed little to no change.","\n")
+cat("Brighter red points show a greater increase in the toggled indicator. Brigther blue points show a greater decrease in the toggled indicator. White points showed little to no change.","\n")
 ```
 ```{r, eval=length(unique(PointLevel$timepoint)) > 1}
 #Prepare change map
