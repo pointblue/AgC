@@ -226,6 +226,387 @@ clean_tap_soils <- function(agc_data_entry_path,
     
   return(tap_clean)
 }
+## ---- wood_biomass function ----
+  #This script defines functions for calculating species-specific tree biomass values based on diameter at breast height (DBH) and height (HT)
+  #DBH is entered in inches, and height is entered in ft, per CARB methods
+  #All volumes are returned in cubic feet, and masses are returned in kgs
+
+wood_biomass <- function(Genusspecies, DBH, HT){
+  Spec_db <- read_excel(path="./WoodyBiomassEqns.xlsx", sheet="Species_database", na=c("na", "", "NA"))
+  if(Genusspecies %in% c("Salixlaevigata","Salixexigua","Salixlasiolepis")){
+    Genusspecies <- "Salixspp."
+  }
+  # Softwood Volume Equations
+    # Eq. 3
+    Volume_Eqn3 <- function(DBH, HT){
+      TMP_DBH = 6 #DBH cutoff
+      BA = (DBH^2)* 0.005454154 #calculate actual BA for use in TERM
+      BA_TMP <- (TMP_DBH^2)* 0.005454154 #calculate temp basal area
+      CF4_TMP <-  0.248569 + 0.0253524*(HT/TMP_DBH) - 0.0000560175*(HT**2/  TMP_DBH)
+      if(CF4_TMP<0.3){CF4_TMP<-0.3} + if(CF4_TMP>0.4){CF4_TMP<-0.4} #Adjust CF4_TMP based on eqn-specific limits
+      CF4 <-  0.248569 + 0.0253524*(HT/DBH) - 0.0000560175*(HT**2/ DBH) 
+      if(CF4<0.3){CF4<-0.3} + if(CF4>0.4){CF4<-0.4}
+      CV4 <- CF4 * BA * HT
+      TERM <- ((1.033 * (1.0 + 1.382937 * exp(-4.015292 * (DBH/10.0)))) * (BA + 0.087266) - 0.174533 ) #do not use temp values here; actual DBH and BA only
+      
+      #Two different ways of getting CVTS based on DBH cutoff
+      if (DBH<6.0){
+        CV4_TMP <- CF4_TMP *BA_TMP * HT
+        TARIF_TMP <- (CV4_TMP * 0.912733) / (BA_TMP - 0.087266) #CALCULATE An ADJUSTED TARIF FOR SMALL TREES (Both DBH and TMP_DBH are used)
+        if (TARIF_TMP <= 0){TARIF_TMP<-0.01} #disable negative values for TARIF_TMP
+        TARIF <- TARIF_TMP * (0.5 * (TMP_DBH - DBH)**2 + (1.0 + 0.063 * (TMP_DBH - DBH)**2))
+        if (TARIF <= 0){TARIF<-0.01} #disable negative values for TARIF
+        CVTS <- TARIF * TERM
+      }else{
+        CVTS <-  (CV4 * TERM )/ (BA - 0.087266)
+      }
+      return(CVTS)
+    }
+  
+    # Eq. 5
+    Volume_Eqn5 <- function(DBH, HT){
+      #creating different terms based on a DBH cutoff of 6 inches
+      if (DBH<6.0){
+        TMP_DBH = 6
+        BA_TMP <- (TMP_DBH^2)* 0.005454154
+        BA = (DBH^2)* 0.005454154 #calculate actual BA for use in TERM
+        CF4_TMP <-  0.402060 - 0.899914 * (1/TMP_DBH)
+        if(CF4_TMP<0.3){CF4_TMP<-0.3} + if(CF4_TMP>0.4){CF4_TMP<-0.4} #Adjust CF4_TMP based on eqn-specific limits
+      } else {
+        BA <- (DBH^2)* 0.005454154
+        CF4 <-  0.402060 - 0.899914 * (1/DBH) 
+        if(CF4<0.3){CF4<-0.3} + if(CF4>0.4){CF4<-0.4}
+        CV4 <- CF4 * BA * HT
+      }
+      
+      #This value does not change based on DBH cutoff
+      TERM <- ((1.033 * (1.0 + 1.382937 * exp(-4.015292 * (DBH/10.0)))) * (BA + 0.087266) - 0.174533 ) #do not use temp values here; actual DBH and BA only
+      
+      #2 Different ways of getting CVTS based on DBH cutoff
+      if (DBH<6.0){
+        CV4_TMP <- CF4_TMP *BA_TMP * HT
+        TARIF_TMP = (CV4_TMP * 0.912733) / (BA_TMP - 0.087266) #CALCULATE An ADJUSTED TARIF FOR SMALL TREES (Both DBH and TMP_DBH are used)
+        if (TARIF_TMP <= 0){TARIF_TMP<-0.01} #disable negative values for TARIF_TMP
+        TARIF <- TARIF_TMP * (0.5 * (TMP_DBH - DBH)**2 + (1.0 + 0.063 * (TMP_DBH - DBH)**2))
+        if (TARIF <= 0){TARIF<-0.01} #disable negative values for TARIF
+        CVTS <- TARIF * TERM
+      }else{
+        CVTS <-  (CV4 * TERM )/ (BA - 0.087266)
+      }
+      return(CVTS)
+    }
+  
+    # Eq. 8
+    Volume_Eqn8 <- function(DBH, HT){
+      CVTSL <- -2.663834 + 1.79023 *log10(DBH) + 1.124873 *log10(HT)
+      CVTS<- 10^CVTSL
+      return(CVTS)
+    }
+  
+    # Eq. 19
+    Volume_Eqn19 <- function(DBH, HT){
+      #creating different terms based on a DBH cutoff of 6 inches
+      if (DBH<6.0){
+        TMP_DBH = 6
+        BA_TMP <- (TMP_DBH^2)* 0.005454154
+        BA = (DBH^2)* 0.005454154 #calculate actual BA for use in TERM
+        CF4_TMP <-  0.225786 + 4.44236 * (1/HT)
+        if(CF4_TMP<0.27){CF4_TMP<-0.27} #Adjust CF4_TMP based on eqn-specific limits
+      } else {
+        BA <- (DBH^2)* 0.005454154
+        CF4 <-  0.225786 + 4.44236 * (1/HT) 
+        if(CF4<0.27){CF4<-0.27}
+        CV4 <- CF4 * BA * HT
+      }
+      
+      #This value does not change based on DBH cutoff
+      TERM <- ((1.033 * (1.0 + 1.382937 * exp(-4.015292 * (DBH/10.0)))) * (BA + 0.087266) - 0.174533 ) #do not use temp values here; actual DBH and BA only
+      
+      #2 Different ways of getting CVTS based on DBH cutoff
+      if (DBH<6.0){
+        CV4_TMP <- CF4_TMP *BA_TMP * HT
+        TARIF_TMP = (CV4_TMP * 0.912733) / (BA_TMP - 0.087266) #CALCULATE An ADJUSTED TARIF FOR SMALL TREES (Both DBH and TMP_DBH are used)
+        if (TARIF_TMP <= 0){TARIF_TMP<-0.01} #disable negative values for TARIF_TMP
+        TARIF <- TARIF_TMP * (0.5 * (TMP_DBH - DBH)**2 + (1.0 + 0.063 * (TMP_DBH - DBH)**2))
+        if (TARIF <= 0){TARIF<-0.01} #disable negative values for TARIF
+        CVTS <- TARIF * TERM
+      }else{
+        CVTS <-  (CV4 * TERM )/ (BA - 0.087266)
+      }
+      return(CVTS)
+    }
+  
+    # Eq. 20
+    Volume_Eqn20 <- function(DBH, HT){
+      #creating different terms based on a DBH cutoff of 6 inches
+      if (DBH<6.0){
+        TMP_DBH = 6
+        BA_TMP <- (TMP_DBH^2)* 0.005454154
+        BA = (DBH^2)* 0.005454154 #calculate actual BA for use in TERM
+        CF4_TMP <-  0.358550 - 0.488134 * (1/ TMP_DBH)
+        if(CF4_TMP<0.3){CF4_TMP<-0.3} + if(CF4_TMP>0.4){CF4_TMP<-0.4} #Adjust CF4_TMP based on eqn-specific limits
+      } else {
+        BA <- (DBH^2)* 0.005454154
+        CF4 <-  0.358550 - 0.488134 * (1/DBH)
+        if(CF4<0.3){CF4<-0.3} + if(CF4>0.4){CF4<-0.4}
+        CV4 <- CF4 * BA * HT
+      }
+      
+      #This value does not change based on DBH cutoff
+      TERM <- ((1.033 * (1.0 + 1.382937 * exp(-4.015292 * (DBH/10.0)))) * (BA + 0.087266) - 0.174533 ) #do not use temp values here; actual DBH and BA only
+      
+      #2 Different ways of getting CVTS based on DBH cutoff
+      if (DBH<6.0){
+        CV4_TMP <- CF4_TMP *BA_TMP * HT
+        TARIF_TMP = (CV4_TMP * 0.912733) / (BA_TMP - 0.087266) #CALCULATE An ADJUSTED TARIF FOR SMALL TREES (Both DBH and TMP_DBH are used)
+        if (TARIF_TMP <= 0){TARIF_TMP<-0.01} #disable negative values for TARIF_TMP
+        TARIF <- TARIF_TMP * (0.5 * (TMP_DBH - DBH)**2 + (1.0 + 0.063 * (TMP_DBH - DBH)**2))
+        if (TARIF <= 0){TARIF<-0.01} #disable negative values for TARIF
+        CVTS <- TARIF * TERM
+      }else{
+        CVTS <-  (CV4 * TERM )/ (BA - 0.087266)
+      }
+      return(CVTS)
+    }
+  
+  # Hardwood Volume Equations
+  
+    # Eq. 27
+    Volume_Eqn27 <- function(DBH, HT){
+      CVTSL <- -2.945047 + 1.803973 *log10(DBH) + 1.238853 *log10(HT)
+      CVTS<- 10^CVTSL
+      return(CVTS)
+    }
+  
+    # Eq. 28
+    Volume_Eqn28 <- function(DBH, HT){
+      CVTSL <- -2.635360 + 1.946034 * log10(DBH) + 1.024793 * log10(HT)
+      CVTS<- 10^CVTSL
+      return(CVTS)
+    }
+  
+    # Eq. 32
+    Volume_Eqn32 <- function(DBH, HT){
+      CVTS<- 0.0120372263*DBH^2.02232*HT^0.68638
+      return(CVTS)
+    }
+  
+    # Eq. 34
+    Volume_Eqn34 <- function(DBH, HT){
+      if (HT>120){HT<-120}
+      CVTS<- 0.0058870024*DBH^1.94165*HT^0.86562
+      return(CVTS)
+    }
+  
+    # Eq. 35
+    Volume_Eqn35 <- function(DBH, HT){
+      CVTS<- 0.0042870077* DBH ^ 2.33631* HT ^ 0.74872
+      return(CVTS)
+    }
+    
+    # Eq. 37
+    Volume_Eqn37 <- function(DBH, HT){
+      CVTS<- 0.0101786350* DBH ^ 2.22462 * HT ^ 0.57561
+      return(CVTS)
+    }
+    
+    # Eq. 38
+    Volume_Eqn38 <- function(DBH, HT){
+      CVTS<- 0.0070538108* DBH ^ 1.97437 * HT ^ 0.85034
+      return(CVTS)
+    }
+    
+    # Eq. 39
+    Volume_Eqn39 <- function(DBH, HT){
+      CVTS<- 0.0125103008* DBH ^ 2.33089 * HT ^ 0.46100
+      return(CVTS)
+    }
+  
+    # Eq. 40
+    Volume_Eqn40 <- function(DBH, HT){
+      if (HT>120){HT<-120}
+      CVTS<- 0.0067322665*DBH^1.96628 * HT ^ 0.83458
+      return(CVTS)
+    }
+    
+    # Eq. 41
+    Volume_Eqn41 <- function(DBH, HT){
+      CVTS<- 0.0072695058* DBH ^ 2.14321* HT ^ 0.74220
+      return(CVTS)
+    }
+    
+    # Eq. 42
+    Volume_Eqn42 <- function(DBH, HT){
+      CVTS<- 0.0097438611*DBH^2.20527* HT ^0.61190
+      return(CVTS)
+    }
+    
+    # Eq. 43
+    Volume_Eqn43 <- function(DBH, HT){
+      CVTS<- 0.0065261029* DBH ^ 2.31958 * HT ^ 0.62528
+      return(CVTS)
+    }
+    
+    # Eq. 44
+    Volume_Eqn44 <- function(DBH, HT){
+      CVTS<- 0.0136818837* DBH ^ 2.02989 * HT ^ 0.63257
+      return(CVTS)
+    }
+  
+  # Bark Biomass Equations
+    # Eq. 8
+    Bark_Biomass_Eqn8 <- function(DBH, HT){
+      BarkBiomass_kg <- exp(-4.3103+2.4300*log((DBH*2.54)))
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+    
+    # Eq. 9
+    Bark_Biomass_Eqn9 <- function(DBH, HT){
+      BarkBiomass_kg <- exp(-3.6263 + 1.34077 * log((DBH*2.54)) + 0.8567 * log((HT*0.3048)))
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+    
+    # Eq. 10
+    Bark_Biomass_Eqn10 <- function(DBH, HT){
+      BarkBiomass_kg <- (exp(2.183174+2.6610*log(DBH*2.54)))/1000
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+    
+    # Eq. 13
+    Bark_Biomass_Eqn13 <- function(DBH, HT){
+      BarkBiomass_kg <- 0.336 + 0.00058 * (DBH*2.54)^2 * (HT*0.3048)
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+    
+    # Eq. 18
+    Bark_Biomass_Eqn18 <- function(DBH, HT){
+      BarkBiomass_kg <- 1.3 + 27.6 * ((DBH*2.54)/100)^2 * (HT*0.3048)
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+    
+    # Eq. 28
+    Bark_Biomass_Eqn28 <- function(DBH, HT){
+      BarkBiomass_kg <- 1.2 + 15.5 * ((DBH*2.54)/100)^2 * (HT*0.3048)
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+  
+  # Bark Biomass Function
+  Bark_Biomass <- function(Genusspecies, DBH, HT){
+    Bark_eqn<-Spec_db[paste0(Spec_db$genus, Spec_db$species) == Genusspecies, ]$CA_BarkBiomass_eqn
+    if (is.na(Bark_eqn)){Bark_biomass_kg<-0}else{
+      Bark_func <- paste0("Bark_Biomass_Eqn", Bark_eqn) 
+      Bark_biomass_kg <- get(Bark_func)(DBH, HT)
+      Bark_biomass_lbs <- Bark_biomass_kg*2.20462
+    }
+    return(Bark_biomass_kg)
+  }
+  
+  # Live Branch Biomass Equations
+    # Eq. 5
+    Branches_Biomass_Eqn5 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- 9.7 + 22.0 * ((DBH*2.54)/100)^2 * (HT*0.3048)
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 6
+    Branches_Biomass_Eqn6 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- exp(-3.6941+ 2.1382*log((DBH*2.54)))
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 7
+    Branches_Biomass_Eqn7 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- exp(-4.1068+1.5177*log((DBH*2.54))+1.0424*log((HT*0.3048)))
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 8
+    Branches_Biomass_Eqn8 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- exp(-7.637 + 3.3648*log((DBH*2.54)))
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 10
+    Branches_Biomass_Eqn10 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- 0.199 + 0.00381 * (DBH*2.54)^2 * (HT*0.3048)
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 14
+    Branches_Biomass_Eqn14 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- 1.7 + 26.2 * ((DBH*2.54)/100)^2 * (HT*0.3048)
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 15
+    Branches_Biomass_Eqn15 <- function(DBH, HT){
+      LiveBranchesBiomass_kg <- 2.5 + 36.8 * ((DBH*2.54)/100)^2 * (HT*0.3048)
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+  
+  # Branch Biomass Function
+  #this function calls the appropriate branch biomass function based on the species
+  Branch_Biomass <- function(Genusspecies, DBH, HT){
+    Branch_eqn<-Spec_db[paste0(Spec_db$genus, Spec_db$species) == Genusspecies, ]$CA_BranchBiomass_eqn
+    if (is.na(Branch_eqn)){Branches_biomass_kg<-0}else{
+      Branches_func <- paste0("Branches_Biomass_Eqn", Branch_eqn) 
+      Branches_biomass_kg <- get(Branches_func)(DBH, HT)
+      Branches_biomass_lbs <- Branches_biomass_kg*2.20462
+    }
+    return(Branches_biomass_kg)
+  }
+  
+  # Stem Biomass Function
+  
+  Stem_Biomass <- function(Genusspecies, DBH, HT){
+    Vol_eqn<-Spec_db[paste0(Spec_db$genus, Spec_db$species) == Genusspecies, ]$CA_vol_eqn #get the correct volume eqn # from the species database
+    
+    #Check point!
+    if (length(Vol_eqn) == 0) {
+      stop("Error: A matching volume equation was not found for the Genusspecies you entered. Check spelling in the function input and look for errors or hanging spaces in the reference doc. Otherwise, the relevant species and/or volume functions may not have been added to the reference document yet.")
+    }
+    if (length(Vol_eqn) > 1) {
+      stop("Error: The Genusspecies value entered corresponds to more than one row in the reference doc. Correct this before continuing")
+    }
+    
+    Vol_func <- paste0("Volume_Eqn", Vol_eqn) #use the eqn # to get the correct function name
+    
+    #Check point!
+    if (!exists(Vol_func)){
+      stop("Error: The species and equation are in the reference doc, but have not been built into the volume equations in the script yet. Sowwy.")
+    }
+    
+    Stem_vol <- get(Vol_func)(DBH, HT)
+    Stem_biomass_lbs <- Stem_vol*Spec_db[paste0(Spec_db$genus, Spec_db$species) == Genusspecies, ]$WoodDensity
+    Stem_biomass_kg <- Stem_biomass_lbs*0.45359237
+    return(Stem_biomass_kg)
+  }
+  
+  # Aboveground biomass calculation
+  Stem_biomass_kg <- Stem_Biomass(Genusspecies, DBH, HT)
+  Bark_biomass_kg <- Bark_Biomass(Genusspecies, DBH, HT)
+  Branches_biomass_kg <- Branch_Biomass(Genusspecies, DBH, HT)
+  WholeTreeAGB_kg<-sum(Stem_biomass_kg, Branches_biomass_kg, Bark_biomass_kg)
+  
+  # Belowground biomass calculation
+  WholeTreeBGB_kg <- exp(-1.0850 + 0.9256*log(WholeTreeAGB_kg))
+    
+  return(data.frame(AGB = WholeTreeAGB_kg, BGB = WholeTreeBGB_kg))
+}
+
 
 ## ---- clean_tap_biomass function ----
 
@@ -292,17 +673,33 @@ clean_tap_biomass <- function(agc_data_entry_path,
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
       filter(ProjectID %in% projects)%>% 
       filter(!is.na(ProjectID)) %>% #filter out empty rows
-      mutate(across(c(DBH1_cm:TallHeightTop_deg), as.numeric))
-    abw_plot_clean <- abw_plot_clean  # %>% #Calculate woody biomass
-      # mutate(core_area_m2 = pi*(CoreDiameter_cm/100/2)^2,
-      #        coarse_roots_g = DryMassCourse_g - TinMassCourse_g,
-      #        fine_roots_g = DryMassFine_g - TinMassFine_g) %>%
-      # mutate(hrb_fine = fine_roots_g/core_area_m2*10000/1000, #calculate herbaceous root biomass in kg/ha
-      #        hrb_coarse = coarse_roots_g/core_area_m2*10000/1000,
-      #        hrb_total = hrb_fine + hrb_coarse) %>%
-      # rename(e_depth_hrb = EdepthTarget_cm) %>%
-      # select(PointID, Timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
-    
+      mutate(across(c(PlotArea_m2,DBH1_cm:TallHeightTop_deg), as.numeric)) %>%
+      mutate(avgDBH_in = rowMeans(across(c(DBH1_cm:DBH5_cm)), na.rm = TRUE)/2.54, #cm to in
+             TH_ft = ifelse(is.na(ShortHeight_cm),
+                            (TallHeightTop_deg - TallHeightBase_deg)/100*TallHeightDist_m*3.28, #m to ft conversion
+                             ShortHeight_cm*3.28/100)) %>%
+      filter(!is.na(avgDBH_in),
+             !is.na(TH_ft))
+    abw_plot_clean <- abw_plot_clean  %>% #Calculate woody biomass
+      rowwise() %>%
+      mutate(
+        out = wood_biomass(Genusspecies, avgDBH_in, TH_ft),
+        AGB = out$AGB,
+        BGB = out$BGB
+      ) %>%
+      select(-out) %>% 
+      ungroup()
+    abw_plot_res <- abw_plot_clean %>%
+      group_by(ProjectID, PlotType, Timepoint) %>% 
+      summarise(
+        SamplingDate = first(SamplingDate), 
+        PlotArea_ha = first(PlotArea_m2)/10000, #convert to ha
+        AGB_sum = sum(AGB, na.rm = TRUE), # sum AGB
+        BGB_sum = sum(BGB, na.rm = TRUE), # sum BGB
+        .groups = "drop") %>%
+      mutate( AGB_kgha = AGB_sum/PlotArea_ha,
+              BGB_kgha = BGB_sum/PlotArea_ha) %>%
+      select(-c(PlotArea_ha,AGB_sum,BGB_sum))
   }
   
   # Woody biomass - PCQ method: Clean df and calculations
@@ -313,8 +710,45 @@ clean_tap_biomass <- function(agc_data_entry_path,
       filter(ProjectID %in% projects) %>% 
       filter(!is.na(ProjectID)) %>% #filter out empty rows
       mutate(across(c(Distance_m, DBH1_cm:TallHeightTop_deg), as.numeric)) %>%
-      select(c(ProjectID:FieldNotes))
-    abw_pcq_clean <- abw_pcq_clean #Calculate woody biomass
+      select(c(ProjectID:FieldNotes)) %>%
+      mutate(avgDBH_in = rowMeans(across(c(DBH1_cm:DBH7_cm)), na.rm = TRUE)/2.54, #cm to in
+             TH_ft = ifelse(is.na(ShortHeight_cm),
+                            (TallHeightTop_deg - TallHeightBase_deg)/100*TallHeightDist_m*3.28, #m to ft conversion
+                            ShortHeight_cm*3.28/100)) %>%
+      filter(!is.na(Genusspecies),
+             !is.na(avgDBH_in),
+             !is.na(TH_ft))
+    abw_pcq_biomass <- abw_pcq_clean %>% #Calculate woody biomass
+      rowwise() %>%
+      mutate(
+        out = wood_biomass(Genusspecies, avgDBH_in, TH_ft),
+        AGB = out$AGB,
+        BGB = out$BGB
+      ) %>%
+      select(-out) %>% 
+      ungroup() 
+    abw_pcq_density <- abw_pcq_clean %>% #Calculate tree density
+      filter(!is.na(TreePresence)) %>%
+      group_by(ProjectID, PlotType, Timepoint) %>%
+      summarise(
+        n_points   = n_distinct(PointID),
+        seg_empty  = sum(TreePresence == 0),
+        r_m        = mean(Distance_m, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(dens_m2 = (pgamma(-log(seg_empty / (4 * n_points)), 3/2) / 
+                       (1 - (seg_empty / (4 * n_points))))^2/(r_m^2))  #This is the correction factor which adjusts density based on "truncated sampling." See Warde&Petranka)
+    abw_pcq_res <- abw_pcq_biomass %>%
+      group_by(ProjectID, PlotType, Timepoint) %>% 
+      summarise(
+        SamplingDate = first(SamplingDate), 
+        AGB_mean = mean(AGB, na.rm = TRUE), # sum AGB
+        BGB_mean = mean(BGB, na.rm = TRUE), # sum BGB
+        .groups = "drop") %>%
+      left_join(abw_pcq_density, by = c("ProjectID","PlotType","Timepoint")) %>%
+      mutate(AGB_kgha = AGB_mean*dens_m2*10000,
+             BGB_kgha = BGB_mean*dens_m2*10000) %>%
+      select(ProjectID,PlotType,Timepoint,SamplingDate,AGB_kgha, BGB_kgha)
   }
   # Woody biomass - orchards: Clean df and calculations
   if (any(tap_abw_orch[[ProjectID]] %in% projects)) {
@@ -337,7 +771,37 @@ clean_tap_biomass <- function(agc_data_entry_path,
       filter(!is.na(ProjectID)) %>% #filter out empty rows
       mutate(across(c(WindbreakLength_m:IntervalMark_m, Distance_cm, DBH1_cm:TallHeightTop_deg), as.numeric)) %>%
       select(c(ProjectID:FieldNotes))
-    abw_lch_clean <- abw_lch_clean #Calculate woody biomass
+    abw_lch_biomass <- abw_lch_clean %>% #Calculate woody biomass
+      rowwise() %>%
+      mutate(
+        out = wood_biomass(Genusspecies, avgDBH_in, TH_ft),
+        AGB = out$AGB,
+        BGB = out$BGB
+      ) %>%
+      select(-out) %>% 
+      ungroup() 
+    abw_lch_density <- abw_lch_clean %>% 
+      filter(!is.na(TreePresence)) %>%
+      group_by(ProjectID, PlotType, Timepoint) %>%
+      summarise(
+        n_points   = n_distinct(PointID),
+        seg_empty  = sum(TreePresence == 0),
+        r_m        = mean(Distance_m, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(dens_m2 = (pgamma(-log(seg_empty / (2 * n_points)), 3/2) / 
+                          (1 - (seg_empty / (2 * n_points))))^2/(r_m^2))  #This is the correction factor which adjusts density based on "truncated sampling." See Warde&Petranka)
+    abw_lch_res <- abw_lch_biomass %>%
+      group_by(ProjectID, PlotType, Timepoint) %>% 
+      summarise(
+        SamplingDate = first(SamplingDate), 
+        AGB_mean = mean(AGB, na.rm = TRUE), # sum AGB
+        BGB_mean = mean(BGB, na.rm = TRUE), # sum BGB
+        .groups = "drop") %>%
+      left_join(abw_lch_density, by = c("ProjectID","PlotType","Timepoint")) %>%
+      mutate(AGB_kgha = AGB_mean*dens_m2*10000,
+             BGB_kgha = BGB_mean*dens_m2*10000) %>%
+      select(ProjectID,PlotType,Timepoint,SamplingDate,AGB_kgha, BGB_kgha)
   }
   # Woody biomass - hedgerows: Clean df and calculations
   if (any(tap_abw_hedge[[ProjectID]] %in% projects)) {
