@@ -1,0 +1,12 @@
+﻿column_name,label,units,levels_example,description
+project_id,Project ID,,EXPR.24.CA,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
+plot_type,Treatment (T) or Control ©,,"T, C",Identifies whether plot is a treatment (T) or control ©
+timepoint,Timepoint,,"T0, T1, …","Timepoint of sampling event, indicating baseline (T0), first sampling after practice implementation (T1), and following events (T2, T3, etc)"
+sample_date_awb,AWB Sampling Date,,MM/DD/YYYY,Date of woody biomass sampling event
+awb_method,Woody Biomass Method,,"Plot-based, LCH, PCQ, Orchard, Hedgerow",Method used for estimating woody biomass
+awb_plot_area,Plot Area,m2,,Plot area if using plot-based method for woody biomass
+awb_radius,PCQ/LCH radius,m,,Sampling radius if using PCQ or LCH method for woody biomass
+tree_id,Tree species identified,,,Genus and species of all identified trees within plot
+tree_density,Tree Density,tree/m2,,Tree density at plot level
+awb,Aboveground Woody Biomass,kg/ha,,Aboveground woody biomass at plot level on per hectare basis
+bwb,Belowground Woody Biomass,kg/ha,,Belowground woody biomass at plot level on per hectare basis

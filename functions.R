@@ -609,9 +609,13 @@ wood_biomass <- function(Genusspecies, DBH, HT){
 
 
 ## ---- clean_tap_biomass function ----
-
+# Still need to input calculations for orchards and hedgerows and do more testing 
 clean_tap_biomass <- function(agc_data_entry_path,
                               projects){
+  # Read in column names for point and field level biomass db
+  point_meta <- read.csv("biomass_point_metadata.csv", stringsAsFactors = FALSE)[,1]
+  field_meta <- read.csv("biomass_field_metadata.csv", stringsAsFactors = FALSE)[,1]
+  
   # Read in biomass data sheets
   tap_abh<-read_excel(agc_data_entry_path, sheet="AbovegroundHerbaceousBiomass", col_names=TRUE,
                       na = c("NA", "na", "ND", "nd", "-", "--","", " "))
@@ -635,14 +639,19 @@ clean_tap_biomass <- function(agc_data_entry_path,
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
       filter(!is.null(PointID))%>% #filter out empty rows
       filter(!is.na(PointID))%>% #filter out empty rows
+      filter(ProjectID %in% projects)%>% 
       mutate(across(c(Area_cm2:DryMass_g), as.numeric)) %>%
-      select(PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
+      select(ProjectID,PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
     abh_clean <- abh_clean %>% #Calculate aboveground herb biomass
       mutate(abh_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
       ) %>%
-      select(PointID,Timepoint,SamplingDate,abh_bio) %>%
-      rename(sample_date_abh = SamplingDate) %>%
-      group_by(PointID, Timepoint, sample_date_abh) %>%
+      mutate(abh_plot_area = Area_cm2/10000) %>%
+      select(ProjectID,PointID,Timepoint,SamplingDate,abh_plot_area,abh_bio) %>%
+      rename(project_id = ProjectID,
+             sample_id = PointID,
+             timepoint = Timepoint,
+             sample_date_abh = SamplingDate) %>%
+      group_by(project_id,sample_id, timepoint, sample_date_abh, abh_plot_area) %>%
       summarise(abh_bio = mean(abh_bio, na.rm = TRUE))
   }
     
@@ -653,7 +662,8 @@ clean_tap_biomass <- function(agc_data_entry_path,
       mutate(sample_date_hrb = as.Date(SamplingDate, format = "%m/%d/%Y")) %>%
       filter(!is.null(PointID))%>% #filter out empty rows
       filter(!is.na(PointID))%>% #filter out empty rows
-      select(PointID, Timepoint, sample_date_hrb, BdepthTarget_cm,EdepthTarget_cm,
+      filter(ProjectID %in% projects)%>% 
+      select(ProjectID,PointID, Timepoint, sample_date_hrb, BdepthTarget_cm,EdepthTarget_cm,
              CoreDiameter_cm, TinMassFine_g:DryMassCourse_g) %>%
       mutate(across(c(CoreDiameter_cm:DryMassCourse_g), as.numeric))
     root_bio_clean <- root_bio_clean %>% #Calculate root herb biomass
@@ -663,9 +673,13 @@ clean_tap_biomass <- function(agc_data_entry_path,
       mutate(hrb_fine = fine_roots_g/core_area_m2*10000/1000, #calculate herbaceous root biomass in kg/ha
              hrb_coarse = coarse_roots_g/core_area_m2*10000/1000,
              hrb_total = hrb_fine + hrb_coarse) %>%
-      rename(e_depth_hrb = EdepthTarget_cm) %>%
-      select(PointID, Timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
+      rename(project_id = ProjectID,
+             sample_id = PointID,
+             timepoint = Timepoint
+             ,e_depth_hrb = EdepthTarget_cm) %>%
+      select(project_id,sample_id, timepoint, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total)
   }
+  
   # Woody biomass - plot method: Clean df and calculations
   if (any(tap_abw_plot[[ProjectID]] %in% projects)) {
     abw_plot_clean <- tap_abw_plot %>% # Remove extra columns, define column types
@@ -690,16 +704,20 @@ clean_tap_biomass <- function(agc_data_entry_path,
       select(-out) %>% 
       ungroup()
     abw_plot_res <- abw_plot_clean %>%
-      group_by(ProjectID, PlotType, Timepoint) %>% 
+      group_by(ProjectID, PlotType, Timepoint) %>%
       summarise(
-        SamplingDate = first(SamplingDate), 
-        PlotArea_ha = first(PlotArea_m2)/10000, #convert to ha
-        AGB_sum = sum(AGB, na.rm = TRUE), # sum AGB
-        BGB_sum = sum(BGB, na.rm = TRUE), # sum BGB
-        .groups = "drop") %>%
-      mutate( AGB_kgha = AGB_sum/PlotArea_ha,
-              BGB_kgha = BGB_sum/PlotArea_ha) %>%
-      select(-c(PlotArea_ha,AGB_sum,BGB_sum))
+        project_id  = first(ProjectID),
+        plot_type   = str_sub(first(PlotType), -1, -1),   # last character of PlotType
+        timepoint   = first(Timepoint),
+        sample_date_awb = first(SamplingDate),
+        tree_id     = paste(sort(unique(Genusspecies)), collapse = ", "),
+        tree_density = n() / first(PlotArea_m2),
+        awb = sum(AGB, na.rm = TRUE) / first(PlotArea_m2) * 10000,
+        bwb = sum(BGB, na.rm = TRUE) / first(PlotArea_m2) * 10000,
+        .groups = "drop"
+      ) %>%
+      select(-c(ProjectID,PlotType,Timepoint))
+    abw_plot_res$awb_method <- "Plot-based"
   }
   
   # Woody biomass - PCQ method: Clean df and calculations
@@ -741,15 +759,41 @@ clean_tap_biomass <- function(agc_data_entry_path,
     abw_pcq_res <- abw_pcq_biomass %>%
       group_by(ProjectID, PlotType, Timepoint) %>% 
       summarise(
-        SamplingDate = first(SamplingDate), 
+        plot_type   = str_sub(first(PlotType), -1, -1),   # last character of PlotType
+        awb_radius = first(Radius_m),
+        tree_id     = paste(sort(unique(Genusspecies)), collapse = ", "),
+        sample_date_awb = first(SamplingDate), 
         AGB_mean = mean(AGB, na.rm = TRUE), # sum AGB
         BGB_mean = mean(BGB, na.rm = TRUE), # sum BGB
         .groups = "drop") %>%
       left_join(abw_pcq_density, by = c("ProjectID","PlotType","Timepoint")) %>%
-      mutate(AGB_kgha = AGB_mean*dens_m2*10000,
-             BGB_kgha = BGB_mean*dens_m2*10000) %>%
-      select(ProjectID,PlotType,Timepoint,SamplingDate,AGB_kgha, BGB_kgha)
+      mutate(awb = AGB_mean*dens_m2*10000,
+             bwb = BGB_mean*dens_m2*10000) %>%
+      rename(project_id = ProjectID,
+             timepoint = Timepoint,
+             tree_density = dens_m2) %>%
+      select(project_id,plot_type,timepoint,sample_date_awb,awb_radius, tree_id,tree_density, awb, bwb)
+    abw_pcq_res$awb_method <- "PCQ"
+    abw_pcq_res_point <- abw_pcq_biomass %>%
+      group_by(ProjectID, PlotType, PointID, Timepoint, SamplingDate) %>%
+      summarise(
+        tree_id = paste(sort(unique(Genusspecies)), collapse = ", "),
+        avg_dist = mean(Distance_m, na.rm = TRUE),
+        tree_presence = (n() / 4) * 100,
+        awb_mean = mean(AGB, na.rm = TRUE),
+        bwb_mean = mean(BGB, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      rename(
+        project_id = ProjectID,
+        plot_type = PlotType,
+        sample_id = PointID,
+        timepoint = Timepoint,
+        sample_date_awb = SamplingDate
+      )
+    abw_pcq_res_point$awb_method <- "PCQ"
   }
+  
   # Woody biomass - orchards: Clean df and calculations
   if (any(tap_abw_orch[[ProjectID]] %in% projects)) {
     abw_orch_clean <- tap_abw_orch %>% # Remove extra columns, define column types
@@ -791,18 +835,44 @@ clean_tap_biomass <- function(agc_data_entry_path,
       ) %>%
       mutate(dens_m2 = (pgamma(-log(seg_empty / (2 * n_points)), 3/2) / 
                           (1 - (seg_empty / (2 * n_points))))^2/(r_m^2))  #This is the correction factor which adjusts density based on "truncated sampling." See Warde&Petranka)
+    abw_lch_res_point <- abw_lch_biomass %>%
+      group_by(ProjectID, PlotType, PointID, Timepoint, SamplingDate) %>%
+      summarise(
+        tree_id = paste(sort(unique(Genusspecies)), collapse = ", "),
+        avg_dist = mean(Distance_cm, na.rm = TRUE)/100,
+        tree_presence = (n() / 2) * 100,
+        awb_mean = mean(AGB, na.rm = TRUE),
+        bwb_mean = mean(BGB, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      rename(
+        project_id = ProjectID,
+        plot_type = PlotType,
+        sample_id = PointID,
+        timepoint = Timepoint,
+        sample_date_awb = SamplingDate
+      )
+    abw_pcq_res_point$awb_method <- "LCH"
     abw_lch_res <- abw_lch_biomass %>%
       group_by(ProjectID, PlotType, Timepoint) %>% 
       summarise(
-        SamplingDate = first(SamplingDate), 
+        plot_type   = str_sub(first(PlotType), -1, -1),   # last character of PlotType
+        awb_radius = first(Radius_m),
+        tree_id     = paste(sort(unique(Genusspecies)), collapse = ", "),
+        sample_date_awb = first(SamplingDate), 
         AGB_mean = mean(AGB, na.rm = TRUE), # sum AGB
         BGB_mean = mean(BGB, na.rm = TRUE), # sum BGB
         .groups = "drop") %>%
       left_join(abw_lch_density, by = c("ProjectID","PlotType","Timepoint")) %>%
-      mutate(AGB_kgha = AGB_mean*dens_m2*10000,
-             BGB_kgha = BGB_mean*dens_m2*10000) %>%
-      select(ProjectID,PlotType,Timepoint,SamplingDate,AGB_kgha, BGB_kgha)
+      mutate(awb = AGB_mean*dens_m2*10000,
+             bwb = BGB_mean*dens_m2*10000) %>%
+      rename(project_id = ProjectID,
+             timepoint = Timepoint,
+             tree_density = dens_m2) %>%
+      select(project_id,plot_type,timepoint,sample_date_awb,awb_radius, tree_density, awb, bwb)
+    abw_lch_res$awb_method <- "LCH"
   }
+  
   # Woody biomass - hedgerows: Clean df and calculations
   if (any(tap_abw_hedge[[ProjectID]] %in% projects)) {
     abw_hedge_clean <- tap_abw_hedge %>% # Remove extra columns, define column types
@@ -815,9 +885,40 @@ clean_tap_biomass <- function(agc_data_entry_path,
     abw_hedge_clean <- abw_hedge_clean #Calculate woody biomass
   }
   
-  #Bind sheets together
-  bio_clean <- merge(abh_clean,root_bio_clean,by=c("PointID","Timepoint"),all.x=TRUE,all.y=TRUE)
+  #Create point-level biomass dataframe 
+  add_missing <- function(df) {
+    missing <- setdiff(point_meta, colnames(df))
+    df[missing] <- NA
+    df
+  }
+  df_names <- c("abh_clean","root_bio_clean","abw_pcq_res_point","abw_lch_res_point")
+  existing_df_names <- df_names[sapply(df_names, exists)]
+  dfs <- mget(existing_df_names)
+  dfs2 <- lapply(dfs, add_missing)
+  all_rows <- bind_rows(dfs2) %>%
+    select(all_of(point_meta))
+  point_res <- all_rows %>%
+    group_by(project_id,sample_id, timepoint) %>%
+    summarise(across(everything(), ~ first(na.omit(.))), .groups = "drop") %>%
+    as.data.frame
   
+  #Create field-level biomass dataframe 
+  add_missing <- function(df) {
+    missing <- setdiff(field_meta, colnames(df))
+    df[missing] <- NA
+    df
+  }
+  df_names <- c("abw_plot_res","abw_pcq_res","abw_lch_res")
+  existing_df_names <- df_names[sapply(df_names, exists)]
+  dfs <- mget(existing_df_names)
+  dfs2 <- lapply(dfs, add_missing)
+  all_rows <- bind_rows(dfs2) %>%
+    select(all_of(field_meta))
+  field_res <- all_rows %>%
+    group_by(project_id,plot_type, timepoint) %>%
+    summarise(across(everything(), ~ first(na.omit(.))), .groups = "drop") %>%
+    as.data.frame
+  return(list(point_biomass = point_res,field_biomass = field_res))
 }
 
 ## ---- Extract point coordinates for sampling points ----
