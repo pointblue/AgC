@@ -1,7 +1,7 @@
 # Title: AgCDataCompile.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20251016
+# Date updated: 20251202
 # Purpose: Main script for compiling ag-c master database
 
 # Load packages
@@ -17,10 +17,31 @@ data_dir<-("Z:/Soils Team/AgC Data/")
 #agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for lisa
 agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
 
-## ---- Import/clean lab and tap field data ----
-
 # identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
-proj_of_int <- c("ABCD.24.PG")
+proj_of_int = c("DORI","TRGR.17.WB","TRGR.15.PG", "KELA.23.PG")
+
+## ---- Import/clean tap biomass  data ---- 
+tap_biomass <- clean_tap_biomass(agc_data_entry, proj_of_int)
+
+## ---- Save biomass  data ---- 
+for(df_name in names(tap_biomass)){
+  bio_df <- tap_biomass[[df_name]]
+  
+  # Convert sample_date to timestamp for compatibility with FarmOS
+  for (col in names(bio_df)[names(bio_df) %in% c("sample_date_abh","sample_date_hrb","sample_date_awb")]) {
+    bio_df[[col]] <- ifelse(bio_df[[col]] == "", NA, bio_df[[col]])
+    bio_df[[col]] <- as.POSIXct(paste(bio_df[[col]], "12:00:00"), format="%Y-%m-%d %H:%M:%S", tz="UTC")
+  }
+  
+  # Change NA values to empty cells
+  bio_df[] <- replace(as.matrix(bio_df), is.na(bio_df), "")
+  
+  # Write files 
+  write.csv(bio_df, paste0(data_dir, "/Master Datasheets/Biomass/", df_name,"_datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
+}
+
+
+## ---- Import/clean lab and tap soils data ----
 
 # Lab soils data - extracts all lab data in Z drive for defined projects
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
@@ -29,11 +50,11 @@ lab_clean <- clean_lab_df(data_path = data_dir,
   # Check for duplicated sample ids
   lab_clean[lab_clean$sample_id %in% lab_clean[duplicated(lab_clean$sample_id),]$sample_id,]
 
-# TAP field data
+# TAP soils data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
-tap_clean <- clean_tap_df(agc_data_entry)
+tap_soils <- clean_tap_soils(agc_data_entry, proj_of_int)
 
-## ---- Merge lab_clean and tap_clean dataframes ----
+## ---- Merge lab_clean and tap_soils dataframes ----
 df <- lab_clean %>%
   left_join(tap_clean, by = c("sample_id","b_depth","e_depth","year")) %>%  # Merge lab and tap field data
   mutate(

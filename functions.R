@@ -636,7 +636,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
                           na = c("NA", "na", "ND", "nd", "-", "--","", " "))
   
   # ABH: Clean df and calculations
-  if (any(tap_abh[[ProjectID]] %in% projects)) {
+  if (any(tap_abh[["ProjectID"]] %in% projects)) {
     abh_clean <- tap_abh %>% # Remove extra columns, define column types
       slice(-1) %>% # remove unit row
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
@@ -659,7 +659,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   }
     
   # Herbaceous root biomass: Clean df and calculations
-  if (any(tap_herb_root[[ProjectID]] %in% projects)) {
+  if (any(tap_herb_root[["ProjectID"]] %in% projects)) {
     root_bio_clean <- tap_herb_root %>%
       slice(-1) %>% # remove unit row
       mutate(sample_date_hrb = as.Date(SamplingDate, format = "%m/%d/%Y")) %>%
@@ -684,7 +684,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   }
   
   # Woody biomass - plot method: Clean df and calculations
-  if (any(tap_abw_plot[[ProjectID]] %in% projects)) {
+  if (any(tap_abw_plot[["ProjectID"]] %in% projects)) {
     abw_plot_clean <- tap_abw_plot %>% # Remove extra columns, define column types
       slice(-1) %>% # remove unit row
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
@@ -713,6 +713,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
         plot_type   = str_sub(first(PlotType), -1, -1),   # last character of PlotType
         timepoint   = first(Timepoint),
         sample_date_awb = first(SamplingDate),
+        awb_plot_area = first(PlotArea_m2),
         tree_id     = paste(sort(unique(Genusspecies)), collapse = ", "),
         tree_density = n() / first(PlotArea_m2),
         awb = sum(AGB, na.rm = TRUE) / first(PlotArea_m2) * 10000,
@@ -724,7 +725,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   }
   
   # Woody biomass - PCQ method: Clean df and calculations
-  if (any(tap_abw_pcq[[ProjectID]] %in% projects)) {
+  if (any(tap_abw_pcq[["ProjectID"]] %in% projects)) {
     abw_pcq_clean <- tap_abw_pcq %>% # Remove extra columns, define column types
       slice(-1) %>% # remove unit row
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
@@ -798,7 +799,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   }
   
   # Woody biomass - orchards: Clean df and calculations
-  if (any(tap_abw_orch[[ProjectID]] %in% projects)) {
+  if (any(tap_abw_orch[["ProjectID"]] %in% projects)) {
     abw_orch_clean <- tap_abw_orch %>% # Remove extra columns, define column types
       slice(-1) %>% # remove unit row
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
@@ -810,7 +811,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   }
   
   # Woody biomass - LCH method: Clean df and calculations
-  if (any(tap_abw_lch[[ProjectID]] %in% projects)) {
+  if (any(tap_abw_lch[["ProjectID"]] %in% projects)) {
     abw_lch_clean <- tap_abw_lch %>% # Remove extra columns, define column types
       slice(-1) %>% # remove unit row
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
@@ -877,7 +878,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   }
   
   # Woody biomass - hedgerows: Clean df and calculations
-  if (any(tap_abw_hedge[[ProjectID]] %in% projects)) {
+  if (any(tap_abw_hedge[["ProjectID"]] %in% projects)) {
     abw_hedge_clean <- tap_abw_hedge %>% # Remove extra columns, define column types
       slice(-1) %>% # remove unit row
       mutate(SamplingDate = format(as.Date(as.numeric(SamplingDate), origin = "1899-12-30"), "%Y-%m-%d")) %>%
