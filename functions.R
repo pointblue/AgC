@@ -1,15 +1,17 @@
 # Title: functions.R
 # Author: Lisa Eash
 # Date created: 20250402
-# Date updated: 20251023
+# Date updated: 20251201
 # Purpose: Define Ag-C data cleaning functions used in AgCDataCompile.R to:
 #   1) fetch_lab_file: identify lab data sheets containing samples from specified projects
 #   2) clean_lab_df: Standardizes columns and units from incoming lab data (Ward, Cquester, OSU)
-#   3) clean_tap_df: Renames columns and removes extra columns in TAP df
-#   4) coord_extract: Extracts coordinates for sampling points from projects of interest
-#   5) out_of_range: verify required columns and check for data outside expected ranges
-#   6) proj_design: Extracts project design data required for inference score calculation from point level db
-#   7) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
+#   3) clean_tap_soils: Renames columns and removes extra columns in TAP soils df
+#   4) wood_biomass: Defines functions for calculating species-specific tree biomass values based on diameter at breast height (DBH) and height (HT)
+#   5) clean_tap_biomass: Processes all biomass columns in tap data entry and returns cleaned point and field-level biomass db
+#   6) coord_extract: Extracts coordinates for sampling points from projects of interest
+#   7) out_of_range: verify required columns and check for data outside expected ranges
+#   8) proj_design: Extracts project design data required for inference score calculation from point level db
+#   9) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
 #       mean, 95% confidence interval and n points for all RACA crop and rangeland points (excluding outliers) 
 #       within the Level 3 ecoregion associated with the polygon you read in. The confidence interval is the
 #       value +/- the mean, so for example if mean = 5 and ci = 2, the confidence interval would be from 3 to 7
@@ -61,6 +63,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
   # Clean dataframes based on lab 
   col_map <- read.csv("lab_column_names.csv")
   for(f in lab_files){
+    lab <- sub(".*/([^_]+)_.*", "\\1", f)
     if(grepl("Ward",f)==TRUE){
       lab_raw<-read.csv(f)
       rename_vec <- setNames(as.character(col_map$Ward), col_map$Column.Name) #Define ward column map
@@ -93,7 +96,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
         rename(!!!rename_vec[rename_vec %in% colnames(.)])
     }
     if(grepl("OSU",f)==TRUE){
-      lab_raw <- read_excel(df_name, sheet="Data", col_names=FALSE,
+      lab_raw <- read_excel(f, sheet="Data", col_names=FALSE,
                             na = c("NA", "na", "ND", "nd", "-", "--","", " "))
       lab_raw <- lab_raw %>%
         slice(-1) %>%                                # Remove the first row
@@ -133,7 +136,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
       select(col_map$Column.Name)
     
     #Add year that data were reported from lab 
-    lab_clean$year <- str_extract(df_name, "\\d{4}(?=\\d{4}\\.csv)")
+    lab_clean$year <- str_extract(f, "\\d{4}(?=\\d{4}\\.csv)")
     
     # Bind to lab_clean_final to store results
     lab_clean_final <-rbind(lab_clean_final,lab_clean)
