@@ -6,6 +6,7 @@ sample_date_awb,AWB Sampling Date,,MM/DD/YYYY,Date of woody biomass sampling eve
 awb_method,Woody Biomass Method,,"Plot-based, LCH, PCQ, Orchard, Hedgerow",Method used for estimating woody biomass
 awb_plot_area,Plot Area,m2,,Plot area if using plot-based method for woody biomass
 awb_radius,PCQ/LCH radius,m,,Sampling radius if using PCQ or LCH method for woody biomass
+hedge_area,Hedgerow Area,m2,,Area (L x W) of full hedgerow 
 tree_id,Tree species identified,,,Genus and species of all identified trees within plot
 tree_density,Tree Density,tree/m2,,Tree density at plot level
 awb,Aboveground Woody Biomass,kg/ha,,Aboveground woody biomass at plot level on per hectare basis
