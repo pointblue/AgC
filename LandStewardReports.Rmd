@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: MERC.24.LI
+  project_name: JPBO.14.SC
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -1372,11 +1372,14 @@ cat("#### All measured values in", tp_lookup$year_label[1], "\n")
 ```
 ```{r leaflet_maps_firsT, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
 #Create a vector of indicators to include in the dynamic map
-if ("bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) {
+if(params$stocks){
+if ("bulk_density" %in% proj.indicators.SSC.stocks) {
   stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
   proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
-} else {
+} 
+}
+  if(!params$stocks) {
   proj.indicators.nonbiomass<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
   dynamicmap.inds <- proj.indicators.nonbiomass
 }
