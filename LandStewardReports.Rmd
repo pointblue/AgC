@@ -20,7 +20,7 @@ params:
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
-  stocks: FALSE
+  stocks: TRUE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -525,212 +525,7 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
       expand_limits(y=0)
 
 ```
-```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks}
-#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
-asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
-```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks}
-#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
 
-#INSERT BD STATS INTERPRETATION HERE
-
-```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks, fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
-#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
-
-#prep NRCS categories based on texture class
-texture <- PointLevel %>% 
-  rename(SAND=sand, SILT=silt, CLAY=clay) %>%
-  filter(!is.na(CLAY)) %>%
-  filter(!is.na(SAND)) %>%
-  filter(!is.na(SILT))
-
-texture_avg <- texture %>%
-  summarise(
-    SAND = mean(SAND, na.rm = TRUE),
-    SILT = mean(SILT, na.rm = TRUE),
-    CLAY = mean(CLAY, na.rm = TRUE)
-  )
-
-texture_avg$USDA_texture <- TT.points.in.classes(
-  tri.data = texture_avg[, c("SAND", "SILT", "CLAY")],
-  class.sys = "USDA.TT"
-)
-
-av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
-
-
-
-avg_tx_info<-get_texture_info(av_tx_abv)
-
-#prep bd dataframe
-bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, bulk_density)%>%
-  mutate(LU="AgC")%>%
-  bind_rows( #bind project stocks df to the raca dataset
-  raca_data %>%
-    mutate(
-      sample_id = rcasiteid,
-      bulk_density = BD,
-      plot_type = "raca",
-      timepoint = "Reference 2010",
-      LU=LU,
-      .keep = "none"   # keep only these renamed columns
-    )
-  )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
-
-#prep threshhold bands dataframe
-non_ref<-unique(bd_df$plot_type)
-non_ref <- non_ref[non_ref != "raca"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
-bd_bands <- data.frame(
-  plot_type = rep(non_ref, each = 3),
-  zone = rep(c(
-    "Ideal",
-    "May affect root growth",
-    "Restricts root growth"
-  ), times = length(non_ref)),
-  ymin = rep(c(
-    min(bd_df$bulk_density, na.rm = TRUE),
-    avg_tx_info$threshold$ideal,
-    avg_tx_info$threshold$restrict
-  ), times = length(non_ref)),
-  ymax = rep(c(
-    avg_tx_info$threshold$ideal,
-    avg_tx_info$threshold$restrict,
-    max(bd_df$bulk_density, na.rm = TRUE)
-  ), times = length(non_ref))
-)
-
-#Define the desired order of facets (needs to be done for both datasets)
-bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
-bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
-    
-#Begin graph
-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
-  
-  #USDA Bulk Density Targets by Texture
-  geom_rect(
-    data = bd_bands,
-    aes(
-      xmin = -Inf,
-      xmax = Inf,
-      ymin = ymin,
-      ymax = ymax,
-      fill = zone
-    ),
-    inherit.aes = FALSE,
-    alpha = 0.15
-  ) +
-  
-  #Jittered black points
-  geom_point(aes(color = LU),
-    alpha = 0.8,
-    size = 3,
-    position = position_jitter(width = 0.2, height = 0)
-  ) +
-
-  #Lines connecting plot averages
-   stat_summary(
-      fun = mean,
-      geom = "line",
-      aes(group = plot_type), 
-      col="black",
-      linewidth = 1 
-    ) +
-  
-  #Mean + 95% CI (colored by plot_type)
-  stat_summary(
-    fun.data = function(x) {
-      mean_x <- mean(x, na.rm = TRUE)
-      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
-      ci <- 1.96 * se_x
-      data.frame(
-        y = mean_x,
-        ymin = mean_x - ci,
-        ymax = mean_x + ci
-      )
-    },
-    geom = "pointrange",
-    aes(color = plot_type),
-    size = .8, #size of dot
-    linewidth = 1.5, #thickness of CI line
-    shape = 16
-  ) +
-  
-  #Text labels for means
-  stat_summary(
-    fun = mean,
-    geom = "shadowtext", #requires package shadowtext
-    bg.color = "black", #text outline color
-    bg.r = 0.15,  #thickness of outline
-    aes(
-      label = sprintf("%.1f", after_stat(y)), #change decimal places printed by altering the digit
-      group = timepoint
-      ), 
-    color = "#FFD700", #text color
-    hjust = 1.2,
-    vjust = -1.2,
-    fontface = "bold",
-    size = 3.5
-  )+
-
-  #Legend settings for sampling points
-  scale_color_manual(
-    name = "",
-    values = c(palette_plot_type, palette_LU),
-    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
-    labels = c(
-      str_wrap("Treated site average", width = 21),
-      str_wrap("Control site average", width = 21),
-      str_wrap(paste0(ecoregion, " average"), width = 21),
-      "AgC project sampling point",
-      "RaCA rangeland sampling point",
-      "RaCA cropland sampling point"
-    )
-  ) +
-  
-  #Legend settings for target bands
-  scale_fill_manual(
-    name = paste0("Target values for ", avg_tx_info$full_name, " soils"),
-    values = c(
-      "Ideal" = "#2C6E6F",
-      "May affect root growth" = "#C9971A",
-      "Restricts root growth" = "#D26A4A"
-    )) +
-  
-  #Change legend order    
-  guides(
-    color = guide_legend(order = 1),
-    fill  = guide_legend(order = 2)
-    )+
-  
-  #Labels, axes, theme
-  labs(
-    x = "",
-    y = "Soil Bulk Density (g/cm3)",
-  ) +
-  
-  #Custom x-axis labels
-    scale_x_discrete(labels = c(
-      setNames(tp_lookup$year_label, tp_lookup$timepoint),
-      "Reference" = "Reference (2010)"
-      )) +
-  
-  theme_minimal()+
-
-  #Remove facet strip labels
-  theme(strip.text = element_blank())+
-  
-  #Make sure the y-axis always shows 0
-  expand_limits(y=0) +
-  
-  #Facet by plot type
-  facet_wrap(~plot_type, scales="free_x")
-
-
-
-```
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
@@ -1048,6 +843,213 @@ theme_minimal()+
 
 
 ```
+```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
+#This will only evaluate if there is bulk density
+asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
+```
+```{r eval = ("bulk_density" %in% proj.indicators.SSC)}
+#This will only evaluate if there is bulk density 
+
+#INSERT BD STATS INTERPRETATION HERE
+
+```
+```{r eval = ("bulk_density" %in% proj.indicators.SSC), fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
+#This will only evaluate if there is bulk density 
+
+#prep NRCS categories based on texture class
+texture <- PointLevel %>% 
+  rename(SAND=sand, SILT=silt, CLAY=clay) %>%
+  filter(!is.na(CLAY)) %>%
+  filter(!is.na(SAND)) %>%
+  filter(!is.na(SILT))
+
+texture_avg <- texture %>%
+  summarise(
+    SAND = mean(SAND, na.rm = TRUE),
+    SILT = mean(SILT, na.rm = TRUE),
+    CLAY = mean(CLAY, na.rm = TRUE)
+  )
+
+texture_avg$USDA_texture <- TT.points.in.classes(
+  tri.data = texture_avg[, c("SAND", "SILT", "CLAY")],
+  class.sys = "USDA.TT"
+)
+
+av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
+
+
+
+avg_tx_info<-get_texture_info(av_tx_abv)
+
+#prep bd dataframe
+bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
+  select (sample_id, timepoint, plot_type, bulk_density)%>%
+  mutate(LU="AgC")%>%
+  bind_rows( #bind project stocks df to the raca dataset
+  raca_data %>%
+    mutate(
+      sample_id = rcasiteid,
+      bulk_density = BD,
+      plot_type = "raca",
+      timepoint = "Reference 2010",
+      LU=LU,
+      .keep = "none"   # keep only these renamed columns
+    )
+  )%>%
+  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+
+#prep threshhold bands dataframe
+non_ref<-unique(bd_df$plot_type)
+non_ref <- non_ref[non_ref != "raca"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
+bd_bands <- data.frame(
+  plot_type = rep(non_ref, each = 3),
+  zone = rep(c(
+    "Ideal",
+    "May affect root growth",
+    "Restricts root growth"
+  ), times = length(non_ref)),
+  ymin = rep(c(
+    min(bd_df$bulk_density, na.rm = TRUE),
+    avg_tx_info$threshold$ideal,
+    avg_tx_info$threshold$restrict
+  ), times = length(non_ref)),
+  ymax = rep(c(
+    avg_tx_info$threshold$ideal,
+    avg_tx_info$threshold$restrict,
+    max(bd_df$bulk_density, na.rm = TRUE)
+  ), times = length(non_ref))
+)
+
+#Define the desired order of facets (needs to be done for both datasets)
+bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
+bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
+    
+#Begin graph
+ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
+  
+  #USDA Bulk Density Targets by Texture
+  geom_rect(
+    data = bd_bands,
+    aes(
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = ymin,
+      ymax = ymax,
+      fill = zone
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.15
+  ) +
+  
+  #Jittered black points
+  geom_point(aes(color = LU),
+    alpha = 0.8,
+    size = 3,
+    position = position_jitter(width = 0.2, height = 0)
+  ) +
+
+  #Lines connecting plot averages
+   stat_summary(
+      fun = mean,
+      geom = "line",
+      aes(group = plot_type), 
+      col="black",
+      linewidth = 1 
+    ) +
+  
+  #Mean + 95% CI (colored by plot_type)
+  stat_summary(
+    fun.data = function(x) {
+      mean_x <- mean(x, na.rm = TRUE)
+      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+      ci <- 1.96 * se_x
+      data.frame(
+        y = mean_x,
+        ymin = mean_x - ci,
+        ymax = mean_x + ci
+      )
+    },
+    geom = "pointrange",
+    aes(color = plot_type),
+    size = .8, #size of dot
+    linewidth = 1.5, #thickness of CI line
+    shape = 16
+  ) +
+  
+  #Text labels for means
+  stat_summary(
+    fun = mean,
+    geom = "shadowtext", #requires package shadowtext
+    bg.color = "black", #text outline color
+    bg.r = 0.15,  #thickness of outline
+    aes(
+      label = sprintf("%.1f", after_stat(y)), #change decimal places printed by altering the digit
+      group = timepoint
+      ), 
+    color = "#FFD700", #text color
+    hjust = 1.2,
+    vjust = -1.2,
+    fontface = "bold",
+    size = 3.5
+  )+
+
+  #Legend settings for sampling points
+  scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU),
+    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    labels = c(
+      str_wrap("Treated site average", width = 21),
+      str_wrap("Control site average", width = 21),
+      str_wrap(paste0(ecoregion, " average"), width = 21),
+      "AgC project sampling point",
+      "RaCA rangeland sampling point",
+      "RaCA cropland sampling point"
+    )
+  ) +
+  
+  #Legend settings for target bands
+  scale_fill_manual(
+    name = paste0("Target values for ", avg_tx_info$full_name, " soils"),
+    values = c(
+      "Ideal" = "#2C6E6F",
+      "May affect root growth" = "#C9971A",
+      "Restricts root growth" = "#D26A4A"
+    )) +
+  
+  #Change legend order    
+  guides(
+    color = guide_legend(order = 1),
+    fill  = guide_legend(order = 2)
+    )+
+  
+  #Labels, axes, theme
+  labs(
+    x = "",
+    y = "Soil Bulk Density (g/cm3)",
+  ) +
+  
+  #Custom x-axis labels
+    scale_x_discrete(labels = c(
+      setNames(tp_lookup$year_label, tp_lookup$timepoint),
+      "Reference" = "Reference (2010)"
+      )) +
+  
+  theme_minimal()+
+
+  #Remove facet strip labels
+  theme(strip.text = element_blank())+
+  
+  #Make sure the y-axis always shows 0
+  expand_limits(y=0) +
+  
+  #Facet by plot type
+  facet_wrap(~plot_type, scales="free_x")
+
+
+
+```
+
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
 asis_output("### Soil texture\\n") #CONDITIONAL HEADER
 ```
