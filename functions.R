@@ -970,7 +970,8 @@ coord_extract <- function(projects){
 
 out_of_range <- function(df, var, min, max){
   df %>% 
-    filter(.data[[var]] < min | .data[[var]] > max | is.na(.data[[var]]))
+    filter(.data[[var]] < min | .data[[var]] > max | is.na(.data[[var]]))%>%
+    select(sample_id, all_of(var))
 }
 
 ## ---- Store project design info ----
