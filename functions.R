@@ -24,10 +24,10 @@ fetch_lab_file <- function(data_path, projects){
   for (fw in list_dfs[grep("Ward|Cquester",list_dfs)]) {
     target_column <- "Sample.ID"
     df <- read.csv(fw)
-    for(p in projects){
-      if (any(grepl(p, df[[target_column]], fixed = TRUE))) {
-        matching_files <- c(matching_files, fw)
-      }
+    if (any(sapply(projects, \(p)
+                   any(grepl(p, df[[target_column]], fixed = TRUE))
+    ))) {
+      matching_files <- c(matching_files, fw)
     }
   }
   #Files from OSU lab
@@ -40,14 +40,14 @@ fetch_lab_file <- function(data_path, projects){
       slice(-1) %>%                                # Remove the first row
       rename_with(~ as.character(df[2, ])) %>%  # Set column names from second row
       slice(-1) 
-    for(p in projects){
-      if (any(grepl(p, df[[target_column]], fixed = TRUE))) {
-        matching_files <- c(matching_files, fosu)
-      }
+    if (any(sapply(projects, \(p)
+                   any(grepl(p, df[[target_column]], fixed = TRUE))
+    ))) {
+      matching_files <- c(matching_files, fosu)
     }
   }
   
-  return(matching_files)
+  return(unique(matching_files))
 }
 
 ## ---- clean_lab_df function ----
@@ -225,7 +225,7 @@ clean_tap_soils <- function(agc_data_entry_path,
     mutate(year = str_sub(sample_date, 1,4)) %>%
     filter(!is.na(project_id)) %>%
     filter(project_id %in% projects)
-    as.data.frame()
+    #as.data.frame()
     
   return(tap_clean)
 }
