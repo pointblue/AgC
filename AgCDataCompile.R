@@ -18,7 +18,7 @@ data_dir<-("Z:/Soils Team/AgC Data/")
 agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
 
 # identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
-proj_of_int = c("JPFA.14.SC","JPBO.14.SC","JPNC.14.SC", "JPNV.14.SC")
+proj_of_int = c("JPFA.14.SC","JPBO.14.SC","JPNC.14.SC", "JPNV.14.SC", "MERC.14.LI", "STAN.25.LI", "KERN.25.LI")
 
 ## ---- Import/clean tap biomass  data ---- 
 tap_biomass <- clean_tap_biomass(agc_data_entry, proj_of_int)
@@ -56,7 +56,7 @@ tap_soils <- clean_tap_soils(agc_data_entry, proj_of_int)
 
 ## ---- Merge lab_clean and tap_soils dataframes ----
 df <- lab_clean %>%
-  left_join(tap_clean, by = c("sample_id","b_depth","e_depth","year")) %>%  # Merge lab and tap field data
+  left_join(tap_soils, by = c("sample_id","b_depth","e_depth","year")) %>%  # Merge lab and tap field data
   mutate(
     texture_name = coalesce(texture_name.x,texture_name.y),
     ph = coalesce(ph.x, ph.y),
@@ -72,8 +72,8 @@ df <- lab_clean %>%
   select(-ends_with(c(".y",".x"))) %>%
   mutate(across(c(total_n:cec_na_perc), as.numeric))
 
-#Check for sample_ids not found in tap_clean
-df[is.na(df$project_id),]
+#Check for sample_ids not found in tap_soils
+df[is.na(df$project_id),] #CHECK! This returns all the OSU microbial biomass rows
 
 ## ---- Bulk density and biomass calculations ----
 
