@@ -16,11 +16,11 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: JPBO.14.SC
+  project_name: MERC.24.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
-  stocks: TRUE
+  stocks: FALSE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
@@ -352,6 +352,156 @@ tp_lookup<- timepoint_dates %>%
 This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
 
 ## Results
+```{r, Calculating stocks, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
+#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
+
+#Calculating stocks on qualifying soil metrics
+if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be different when we get plant projects cause someone could have SOC% only but also have measured plants
+stocks.inds <- c("total_c", "org_c", "inorg_c", "maoc", "poc") #these are the columns that can be turned into stocks
+#CHECK! how best to handle this when we have plant stocks?
+
+#calculating stocks on soil metrics
+for(col in intersect(proj.indicators.SSC, stocks.inds)) {
+  new_col <- paste0(col, "_stocks")  # new column name
+  PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4462 #calculating stocks in US tons / acre (percent to decimal cancels out) 
+}
+
+proj.indicators.SSC.stocks<- c(proj.indicators.SSC, paste0(intersect(proj.indicators.SSC, stocks.inds), "_stocks")) #add those new column names to my list of indicator columns
+
+if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 'maoc_stocks')))>1){ #if the number of stocks indicators in this project (minus poc and maoc) are greater than one, create a summed all stocks column
+  
+  PointLevel <- PointLevel %>%
+  mutate(
+    all_stocks = rowSums(
+      select(., ends_with("_stocks"), -any_of(c("maoc_stocks", "poc_stocks"))), #create a column for all pools combined, but make sure you're not double-counting poc and maoc, since org_c should cover that
+      na.rm = TRUE
+    )
+  )
+  proj.indicators.SSC.stocks<-c(proj.indicators.SSC.stocks, "all_stocks") #CHECK! I may have added this to the wrong vector previously. Need to see how this is used 
+}
+
+}
+```
+
+```{r, formatting stocks data, eval =  "bulk_density" %in% proj.indicators.SSC && params$stocks}
+#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
+
+#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
+
+stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
+  pivot_longer(
+    cols = contains("_stocks"), # Select columns to pivot
+    names_to = "Stocks_Indicator",          # Name for the new column
+    values_to = "Tons.Acre"              # values to populate the new column
+  ) %>%
+  mutate(LU="AgC")%>%
+  bind_rows( #bind project stocks df to the raca dataset
+  raca_data %>%
+    mutate(
+      sample_id = rcasiteid,
+      Tons.Acre = SOCstock*0.446092,
+      plot_type = "raca",
+      timepoint = "Reference (2010)",
+      Stocks_Indicator = "org_c_stocks",
+      LU=LU,
+      .keep = "none"   # keep only these renamed columns
+    )
+  )%>%
+  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+
+#SOC stocks graphic comparing to RaCa baselines
+    SOC_stocks_df<-stocks_df%>%
+      filter(Stocks_Indicator=="org_c_stocks", #filter the stocks df for only SOC (including raca)
+             LU %in% c("AgC",   params$raca_filter) #this includes raca values from whatever LU types were included in the render function
+             ) 
+    
+    #Define the desired order of x-axis values
+    SOC_stocks_df$plot_type <- factor(SOC_stocks_df$plot_type, levels = c("T", "C", "raca"))
+
+```
+```{r, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks} 
+Project.Means <- PointLevel %>%
+                    dplyr::group_by(plot_type, timepoint) %>%
+                    dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
+
+#pivot so that indicators are row names and plot type and depth increment combinations are column names
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>% arrange(timepoint)%>%
+          pivot_wider(
+    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
+    values_from = value,
+    names_sep = " | "                           #separator
+  ) %>%
+    left_join( #add the units column (CHECK,)
+    proj.indicator.table %>% select(CheckCol, UnitsTable),
+    by = c("Indicator" = "CheckCol")
+  ) %>%
+  mutate(
+    Units = case_when(
+      Indicator %in% c("sand", "silt", "clay") ~ "%",           #tx components will always be %
+      str_ends(Indicator, "_stocks") ~ "tons/acre",             #stocks inds will always be tons/acre
+      TRUE ~ UnitsTable                                         #the rest will be defined by the table
+    )
+  ) %>%
+  select(-UnitsTable)%>% 
+  mutate(
+    # remove _stocks for matching if present
+    Indicator_base = str_remove(Indicator, "_stocks$")
+  ) %>%
+  left_join(
+    proj.indicator.table %>% select(Acronym, CheckCol),
+    by = c("Indicator_base" = "CheckCol")
+  ) %>%
+  mutate(
+    Acronym = case_when(
+      Indicator_base == "sand" ~ "Sand",
+      Indicator_base == "silt" ~ "Silt",
+      Indicator_base == "clay" ~ "Clay",
+      TRUE ~ Acronym                                # default mapping
+    )
+  )
+```
+```{r, eval= !params$stocks}
+#Chunk only evaluates if stocks are not included. 
+
+Project.Means <- PointLevel %>%
+                    dplyr::group_by(plot_type, timepoint) %>%
+                    dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
+
+#pivot so that indicators are row names and plot type and depth increment combinations are column names
+Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>% arrange(timepoint)%>%
+          pivot_wider(
+    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
+    values_from = value,
+    names_sep = " | "                           #separator
+  ) %>%
+    left_join( #add the units column (CHECK,)
+    proj.indicator.table %>% select(CheckCol, UnitsTable),
+    by = c("Indicator" = "CheckCol")
+  ) %>%
+  mutate(
+    Units = case_when(
+      Indicator %in% c("sand", "silt", "clay") ~ "%",           #tx components will always be %
+      TRUE ~ UnitsTable                                         #the rest will be defined by the table
+    )
+  ) %>%
+  select(-UnitsTable)%>% 
+  mutate(
+    # remove _stocks for matching if present
+    Indicator_base = str_remove(Indicator, "_stocks$")
+  ) %>%
+  left_join(
+    proj.indicator.table %>% select(Acronym, CheckCol),
+    by = c("Indicator_base" = "CheckCol")
+  ) %>%
+  mutate(
+    Acronym = case_when(
+      Indicator_base == "sand" ~ "Sand",
+      Indicator_base == "silt" ~ "Silt",
+      Indicator_base == "clay" ~ "Clay",
+      TRUE ~ Acronym                                # default mapping
+    )
+  )
+```
 ```{r, baseline only statement, results='asis'}
 if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
   cat("Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
@@ -403,15 +553,7 @@ palette_LU <- c(
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 asis_output("### Soil organic carbon concentrations\\n") #CONDITIONAL HEADER
 ```
-```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks}
-#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-
-#INSERT SOC STATS HERE
-
-```
-```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
-#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-
+```{r}
 #prep soc dataframe
 soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
   select (sample_id, timepoint, plot_type, org_c)%>%
@@ -433,6 +575,39 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
     #Define the desired order of x-axis values
     soc_df$plot_type <- factor(soc_df$plot_type, levels = c("T", "C", "raca"))
     soc_df$timepoint <- factor(soc_df$timepoint, levels = c("T0","T1","T2","Reference (2010)"))
+```
+
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+
+source("SummaryStats_dev.R")
+
+percentile_scentence
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(paste0(percentile_scentence, "/n/n"))
+  cat(time_change)
+}
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(paste0(percentile_scentence, "/n/n"))
+  cat(treatment_contrast)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(paste0(percentile_scentence, "/n/n"))
+  cat(paste0(time_contrasts, "/n/n"))
+  cat(baci)
+}
+
+
+```
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
     
     #Begin graph
     ggplot(soc_df, aes(x = timepoint, y = org_c))+
@@ -547,80 +722,13 @@ paste0("The following graph shows **soil organic carbon stocks** stored in the s
 
 )
 ```
-```{r, Calculating stocks, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
-#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
 
-#Calculating stocks on qualifying soil metrics
-if ("bulk_density" %in% proj.indicators.SSC){ #CHECK this condition needs to be different when we get plant projects cause someone could have SOC% only but also have measured plants
-stocks.inds <- c("total_c", "org_c", "inorg_c", "maoc", "poc") #these are the columns that can be turned into stocks
-#CHECK! how best to handle this when we have plant stocks?
-
-#calculating stocks on soil metrics
-for(col in intersect(proj.indicators.SSC, stocks.inds)) {
-  new_col <- paste0(col, "_stocks")  # new column name
-  PointLevel[[new_col]] <- PointLevel[[col]]*PointLevel$bulk_density*PointLevel$e_depth*0.4462 #calculating stocks in US tons / acre (percent to decimal cancels out) 
-}
-
-proj.indicators.SSC.stocks<- c(proj.indicators.SSC, paste0(intersect(proj.indicators.SSC, stocks.inds), "_stocks")) #add those new column names to my list of indicator columns
-
-if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 'maoc_stocks')))>1){ #if the number of stocks indicators in this project (minus poc and maoc) are greater than one, create a summed all stocks column
-  
-  PointLevel <- PointLevel %>%
-  mutate(
-    all_stocks = rowSums(
-      select(., ends_with("_stocks"), -any_of(c("maoc_stocks", "poc_stocks"))), #create a column for all pools combined, but make sure you're not double-counting poc and maoc, since org_c should cover that
-      na.rm = TRUE
-    )
-  )
-  proj.indicators.SSC.stocks<-c(proj.indicators.SSC.stocks, "all_stocks") #CHECK! I may have added this to the wrong vector previously. Need to see how this is used 
-}
-
-}
-```
-
-```{r, formatting stocks data, eval =  "bulk_density" %in% proj.indicators.SSC && params$stocks}
-#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
-
-#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
-
-stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  pivot_longer(
-    cols = contains("_stocks"), # Select columns to pivot
-    names_to = "Stocks_Indicator",          # Name for the new column
-    values_to = "Tons.Acre"              # values to populate the new column
-  ) %>%
-  mutate(LU="AgC")%>%
-  bind_rows( #bind project stocks df to the raca dataset
-  raca_data %>%
-    mutate(
-      sample_id = rcasiteid,
-      Tons.Acre = SOCstock*0.446092,
-      plot_type = "raca",
-      timepoint = "Reference (2010)",
-      Stocks_Indicator = "org_c_stocks",
-      LU=LU,
-      .keep = "none"   # keep only these renamed columns
-    )
-  )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
-
-```
 
 
 ```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
-
-
-#SOC stocks graphic comparing to RaCa baselines
-    SOC_stocks_df<-stocks_df%>%
-      filter(Stocks_Indicator=="org_c_stocks", #filter the stocks df for only SOC (including raca)
-             LU %in% c("AgC",   params$raca_filter) #this includes raca values from whatever LU types were included in the render function
-             ) 
-    
-    #Define the desired order of x-axis values
-    SOC_stocks_df$plot_type <- factor(SOC_stocks_df$plot_type, levels = c("T", "C", "raca"))
     
     
        # Optional: connect repeated measurements if you have a sample ID
@@ -1177,46 +1285,7 @@ grid.arrange(imgT, imgC, ncol = 2)
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
 ```{r, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks} 
-
-Project.Means <- PointLevel %>%
-                    dplyr::group_by(plot_type, timepoint) %>%
-                    dplyr::summarise(across(all_of(proj.indicators.SSC.stocks), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
-
-#pivot so that indicators are row names and plot type and depth increment combinations are column names
-Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.stocks), names_to ='Indicator') %>% arrange(timepoint)%>%
-          pivot_wider(
-    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
-    values_from = value,
-    names_sep = " | "                           #separator
-  ) %>%
-    left_join( #add the units column (CHECK,)
-    proj.indicator.table %>% select(CheckCol, UnitsTable),
-    by = c("Indicator" = "CheckCol")
-  ) %>%
-  mutate(
-    Units = case_when(
-      Indicator %in% c("sand", "silt", "clay") ~ "%",           #tx components will always be %
-      str_ends(Indicator, "_stocks") ~ "tons/acre",             #stocks inds will always be tons/acre
-      TRUE ~ UnitsTable                                         #the rest will be defined by the table
-    )
-  ) %>%
-  select(-UnitsTable)%>% 
-  mutate(
-    # remove _stocks for matching if present
-    Indicator_base = str_remove(Indicator, "_stocks$")
-  ) %>%
-  left_join(
-    proj.indicator.table %>% select(Acronym, CheckCol),
-    by = c("Indicator_base" = "CheckCol")
-  ) %>%
-  mutate(
-    Acronym = case_when(
-      Indicator_base == "sand" ~ "Sand",
-      Indicator_base == "silt" ~ "Silt",
-      Indicator_base == "clay" ~ "Clay",
-      TRUE ~ Acronym                                # default mapping
-    )
-  )
+#chunk only evalualtes if stocks are included
 
 my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay") #CHECK add plant metrics when present
 
@@ -1268,44 +1337,6 @@ SummaryTable
 ```{r, eval= !params$stocks}
 #Chunk only evaluates if stocks are not included. 
 
-Project.Means <- PointLevel %>%
-                    dplyr::group_by(plot_type, timepoint) %>%
-                    dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
-
-#pivot so that indicators are row names and plot type and depth increment combinations are column names
-Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), names_to ='Indicator') %>% arrange(timepoint)%>%
-          pivot_wider(
-    names_from = c("timepoint", "plot_type"),   # timepoint first, then plot_type
-    values_from = value,
-    names_sep = " | "                           #separator
-  ) %>%
-    left_join( #add the units column (CHECK,)
-    proj.indicator.table %>% select(CheckCol, UnitsTable),
-    by = c("Indicator" = "CheckCol")
-  ) %>%
-  mutate(
-    Units = case_when(
-      Indicator %in% c("sand", "silt", "clay") ~ "%",           #tx components will always be %
-      TRUE ~ UnitsTable                                         #the rest will be defined by the table
-    )
-  ) %>%
-  select(-UnitsTable)%>% 
-  mutate(
-    # remove _stocks for matching if present
-    Indicator_base = str_remove(Indicator, "_stocks$")
-  ) %>%
-  left_join(
-    proj.indicator.table %>% select(Acronym, CheckCol),
-    by = c("Indicator_base" = "CheckCol")
-  ) %>%
-  mutate(
-    Acronym = case_when(
-      Indicator_base == "sand" ~ "Sand",
-      Indicator_base == "silt" ~ "Silt",
-      Indicator_base == "clay" ~ "Clay",
-      TRUE ~ Acronym                                # default mapping
-    )
-  )
 
 my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay") #CHECK add plant metrics when present
 
