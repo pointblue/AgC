@@ -1387,8 +1387,7 @@ ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
 
 ```
 
-=======
->>>>>>> 0cc9a047be6dea2cd9d56f3c195fb2b95f8ac175
+
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
 asis_output("### Soil texture\\n") #CONDITIONAL HEADER
 ```
