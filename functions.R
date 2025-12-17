@@ -305,6 +305,12 @@ wood_biomass <- function(Genusspecies, DBH, HT){
       CVTS<- 10^CVTSL
       return(CVTS)
     }
+    
+    # Eq. 17
+    Volume_Eqn17 <- function(DBH, HT){
+     CVTS <- 0.001106485 * DBH^1.8140497 * HT^1.2744923
+     return(CVTS)
+    }
   
     # Eq. 19
     Volume_Eqn19 <- function(DBH, HT){
@@ -485,6 +491,13 @@ wood_biomass <- function(Genusspecies, DBH, HT){
       return(BarkBiomass_kg)
     }
     
+    # Eq. 21
+    Bark_Biomass_Eqn13 <- function(DBH, HT){
+      BarkBiomass_kg <- 0.9 + 27.4 * (DBH*2.54/100)^2 * (HT*0.3048)
+      BarkBiomass_lbs <- BarkBiomass_kg*2.20462
+      return(BarkBiomass_kg)
+    }
+    
     # Eq. 18
     Bark_Biomass_Eqn18 <- function(DBH, HT){
       BarkBiomass_kg <- 1.3 + 27.6 * ((DBH*2.54)/100)^2 * (HT*0.3048)
@@ -556,6 +569,13 @@ wood_biomass <- function(Genusspecies, DBH, HT){
     # Eq. 15
     Branches_Biomass_Eqn15 <- function(DBH, HT){
       LiveBranchesBiomass_kg <- 2.5 + 36.8 * ((DBH*2.54)/100)^2 * (HT*0.3048)
+      LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
+      return(LiveBranchesBiomass_kg)
+    }
+    
+    # Eq. 24
+    Branches_Biomass_Eqn24 <- function (DBH, HT){
+      LiveBranchesBiomass_kg <- 2.4 + 15.0 * ((DBH*2.54)/100)^2 * (HT*0.3048)
       LiveBranchesBiomass_lbs <- LiveBranchesBiomass_kg*2.20462
       return(LiveBranchesBiomass_kg)
     }
