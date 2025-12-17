@@ -16,11 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-<<<<<<< HEAD
   project_name: KERN.25.LI
-=======
-  project_name: MERC.24.LI
->>>>>>> 0cc9a047be6dea2cd9d56f3c195fb2b95f8ac175
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -703,18 +699,27 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
       expand_limits(y=0)
 
 ```
-```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks}
-#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
+```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
+#This will only evaluate if there is bulk density
 asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
 ```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks}
-#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
-
-#INSERT BD STATS INTERPRETATION HERE
-
-```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks, fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
-#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
+```{r eval = ("bulk_density" %in% proj.indicators.SSC)}
+#prep bd dataframe
+bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
+  select (sample_id, timepoint, plot_type, bulk_density)%>%
+  mutate(LU="AgC")%>%
+  bind_rows( #bind project stocks df to the raca dataset
+  raca_data %>%
+    mutate(
+      sample_id = rcasiteid,
+      bulk_density = BD,
+      plot_type = "raca",
+      timepoint = "Reference 2010",
+      LU=LU,
+      .keep = "none"   # keep only these renamed columns
+    )
+  )%>%
+  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
 
 #prep NRCS categories based on texture class
 texture <- PointLevel %>% 
@@ -737,26 +742,7 @@ texture_avg$USDA_texture <- TT.points.in.classes(
 
 av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
 
-
-
 avg_tx_info<-get_texture_info(av_tx_abv)
-
-#prep bd dataframe
-bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, bulk_density)%>%
-  mutate(LU="AgC")%>%
-  bind_rows( #bind project stocks df to the raca dataset
-  raca_data %>%
-    mutate(
-      sample_id = rcasiteid,
-      bulk_density = BD,
-      plot_type = "raca",
-      timepoint = "Reference 2010",
-      LU=LU,
-      .keep = "none"   # keep only these renamed columns
-    )
-  )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
 
 #prep threshhold bands dataframe
 non_ref<-unique(bd_df$plot_type)
@@ -783,6 +769,36 @@ bd_bands <- data.frame(
 #Define the desired order of facets (needs to be done for both datasets)
 bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
 bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
+```
+
+```{r eval = ("bulk_density" %in% proj.indicators.SSC), results = 'asis'}
+#This will only evaluate if there is bulk density 
+
+source("SummaryStats_BD.R")
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence_bd)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence_bd, "\n\n")
+  cat(time_change_bd)
+}
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(percentile_scentence_bd, "\n\n")
+  cat(treatment_contrast_bd)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(percentile_scentence_bd, "\n\n")
+  cat(time_contrasts_bd, "\n\n")
+  cat(baci_bd)
+}
+
+```
+```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks, fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
+#This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
     
 #Begin graph
 ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
@@ -1159,7 +1175,6 @@ theme_minimal()+
 
 
 ```
-<<<<<<< HEAD
 ```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
 #This will only evaluate if there is bulk density
 asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
