@@ -1038,7 +1038,7 @@ proj_design <- function(projects){
 ## ---- Extract regional baseline for producer reports ----
 reg_baseline <- function(polygon, #Specify polygon of project
                          depth #specify max depth of SOC sampling
-){
+                         ){
   # Find centroid of polygon
   cent <- st_centroid(polygon)[1,]
   
@@ -1084,10 +1084,10 @@ reg_baseline <- function(polygon, #Specify polygon of project
   SOC_out <- boxplot.stats(RACA_res$SOC_perc)$out
   SOCstock_out <- boxplot.stats(RACA_soc$SOCstock)$out
   RACA_soc <- RACA_soc[!RACA_soc$SOCstock %in% SOCstock_out,]
-  RACA_res$BD[RACA_res$BD %in% BD_out] <- NA
-  RACA_res$SOC_perc[RACA_res$SOC_perc %in% SOC_out] <-NA
+  RACA_res[RACA_res$BD %in% BD_out, ]$BD <-NA
+  RACA_res[RACA_res$SOC_perc %in% SOC_out, ]$SOC_perc <-NA
   return(list(RACA_res, RACA_soc, region_name))
-}
+  }
 
 ## ---- format text function ----
 #takes in a vector of strings and formats it into a list sentence with oxford comma where relevant
