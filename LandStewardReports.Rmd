@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: KERN.25.LI
+  project_name: JPBO.14.SC
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -356,7 +356,9 @@ if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint)
 ```
 
 ## Results
+#### ~Raca prep {.hidden}
 ```{r, raca data prep, include = FALSE}
+# ---- Raca prep ----
 raca_call<-reg_baseline(border, max.depth.cent)
 raca_data<-raca_call[[1]]%>%left_join(raca_call[[2]]%>%select(-LU), by="rcasiteid")
 ecoregion<-raca_call[[3]]
@@ -373,7 +375,7 @@ paste0("The following graph(s) compare data collected at your site to other agri
 
 )
 ```
-
+#### ~Prepping stocks data{.hidden}
 ```{r, Calculating stocks, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
 
@@ -403,12 +405,6 @@ if (length(setdiff(intersect(proj.indicators.SSC, stocks.inds), c('poc_stocks', 
 }
 
 }
-```
-
-```{r, formatting stocks data, eval =  "bulk_density" %in% proj.indicators.SSC && params$stocks}
-#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
-
-#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
 
 stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
   pivot_longer(
@@ -439,8 +435,100 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
     
     #Define the desired order of x-axis values
     SOC_stocks_df$plot_type <- factor(SOC_stocks_df$plot_type, levels = c("T", "C", "raca"))
-
 ```
+#### ~Prepping SOC% data {.hidden}
+```{r}
+#prep soc dataframe
+soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
+  select (sample_id, timepoint, plot_type, org_c)%>%
+  mutate(LU="AgC")%>%
+  bind_rows( #bind project stocks df to the raca dataset
+  raca_data %>%
+    mutate(
+      sample_id = rcasiteid,
+      org_c = SOC_perc,
+      plot_type = "raca",
+      timepoint = "Reference (2010)",
+      LU=LU,
+      .keep = "none"   #drop all other columns
+    )
+  )%>%
+  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+
+
+    #Define the desired order of x-axis values
+    soc_df$plot_type <- factor(soc_df$plot_type, levels = c("T", "C", "raca"))
+    soc_df$timepoint <- factor(soc_df$timepoint, levels = c("T0","T1","T2","Reference (2010)"))
+```
+#### ~Prepping BD data {.hidden}
+```{r eval = ("bulk_density" %in% proj.indicators.SSC)}
+#prep bd dataframe
+bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
+  select (sample_id, timepoint, plot_type, bulk_density)%>%
+  mutate(LU="AgC")%>%
+  bind_rows( #bind project stocks df to the raca dataset
+  raca_data %>%
+    mutate(
+      sample_id = rcasiteid,
+      bulk_density = BD,
+      plot_type = "raca",
+      timepoint = "Reference 2010",
+      LU=LU,
+      .keep = "none"   # keep only these renamed columns
+    )
+  )%>%
+  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+
+#prep NRCS categories based on texture class
+texture <- PointLevel %>% 
+  rename(SAND=sand, SILT=silt, CLAY=clay) %>%
+  filter(!is.na(CLAY)) %>%
+  filter(!is.na(SAND)) %>%
+  filter(!is.na(SILT))
+
+texture_avg <- texture %>%
+  summarise(
+    SAND = mean(SAND, na.rm = TRUE),
+    SILT = mean(SILT, na.rm = TRUE),
+    CLAY = mean(CLAY, na.rm = TRUE)
+  )
+
+texture_avg$USDA_texture <- TT.points.in.classes(
+  tri.data = texture_avg[, c("SAND", "SILT", "CLAY")],
+  class.sys = "USDA.TT"
+)
+
+av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
+
+avg_tx_info<-get_texture_info(av_tx_abv)
+
+#prep threshhold bands dataframe
+non_ref<-unique(bd_df$plot_type)
+non_ref <- non_ref[non_ref != "raca"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
+bd_bands <- data.frame(
+  plot_type = rep(non_ref, each = 3),
+  zone = rep(c(
+    "Ideal",
+    "May affect root growth",
+    "Restricts root growth"
+  ), times = length(non_ref)),
+  ymin = rep(c(
+    min(bd_df$bulk_density, na.rm = TRUE),
+    avg_tx_info$threshold$ideal,
+    avg_tx_info$threshold$restrict
+  ), times = length(non_ref)),
+  ymax = rep(c(
+    avg_tx_info$threshold$ideal,
+    avg_tx_info$threshold$restrict,
+    max(bd_df$bulk_density, na.rm = TRUE)
+  ), times = length(non_ref))
+)
+
+#Define the desired order of facets (needs to be done for both datasets)
+bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
+bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
+```
+#### ~Prepping project means (stocks) {.hidden}
 ```{r, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks} 
 Project.Means <- PointLevel %>%
                     dplyr::group_by(plot_type, timepoint) %>%
@@ -482,6 +570,7 @@ Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC.st
     )
   )
 ```
+#### ~Prepping project means (no stocks) {.hidden}
 ```{r, eval= !params$stocks}
 #Chunk only evaluates if stocks are not included. 
 
@@ -524,8 +613,7 @@ Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), 
     )
   )
 ```
-
-
+#### ~Prepping palettes {.hidden}
 ```{r, color palette prep, include = FALSE}
 #Define color palette for all ggplot figures
 cbbPalette <- c("T" = "#384F8Dff", 
@@ -558,35 +646,11 @@ palette_LU <- c(
 "#9FBF88"
 
 ```
-
+#### SOC% Results {.hidden}
 ```{r results='asis', eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 asis_output("### Soil organic carbon concentrations\\n") #CONDITIONAL HEADER
 ```
-```{r}
-#prep soc dataframe
-soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, org_c)%>%
-  mutate(LU="AgC")%>%
-  bind_rows( #bind project stocks df to the raca dataset
-  raca_data %>%
-    mutate(
-      sample_id = rcasiteid,
-      org_c = SOC_perc,
-      plot_type = "raca",
-      timepoint = "Reference (2010)",
-      LU=LU,
-      .keep = "none"   #drop all other columns
-    )
-  )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
-
-
-    #Define the desired order of x-axis values
-    soc_df$plot_type <- factor(soc_df$plot_type, levels = c("T", "C", "raca"))
-    soc_df$timepoint <- factor(soc_df$timepoint, levels = c("T0","T1","T2","Reference (2010)"))
-```
-
 ```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 
@@ -709,78 +773,116 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
       expand_limits(y=0)
 
 ```
+#### SOC Stocks Results {.hidden}
+```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
+#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
+
+#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
+
+asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
+```
+```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
+#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
+
+#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
+    
+    
+       # Optional: connect repeated measurements if you have a sample ID
+   #geom_line(aes(group = sample_id), alpha = 0.4, linetype = "dashed") +
+    
+    #Begin graph
+    ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
+      
+      # Jittered black points
+      geom_point(aes(color = LU),
+        alpha = 0.8,
+        size = 3,
+        position = position_jitter(width = 0.2, height = 0)
+      ) +
+    
+      #lines connecting plot averages
+       stat_summary(
+          fun = mean,
+          geom = "line",
+          aes(group = plot_type), 
+          col="black",
+          linewidth = 1 
+        ) +
+      
+      # Mean + 95% CI (colored by plot_type)
+      stat_summary(
+        fun.data = function(x) {
+          mean_x <- mean(x, na.rm = TRUE)
+          se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+          ci <- 1.96 * se_x
+          data.frame(
+            y = mean_x,
+            ymin = mean_x - ci,
+            ymax = mean_x + ci
+          )
+        },
+        geom = "pointrange",
+        aes(color = plot_type),
+        size = 0.7, #size of dot
+        linewidth = 1.5, #thickness of CI line
+        shape = 16
+      ) +
+      
+      # Labels, axes, theme
+      labs(
+        x = "",
+        y = "Soil Organic Carbon Stored (tons/acre)",
+      ) +
+
+      scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU),
+    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    labels = c(
+      str_wrap("Treated site average", width = 21),
+      str_wrap("Control site average", width = 21),
+      str_wrap(paste0(ecoregion, " average"), width = 21),
+      "AgC project sampling point",
+      "RaCA rangeland sampling point",
+      "RaCA cropland sampling point"
+    )
+  ) +
+      
+  #Custom x-axis labels
+    scale_x_discrete(labels = c(
+      setNames(tp_lookup$year_label, tp_lookup$timepoint),
+      "Reference" = "Reference (2010)"
+      )) +
+      
+      # Text labels for means
+      stat_summary(
+        fun = mean,
+        geom = "shadowtext", #requires package shadowtext
+        bg.color = "black", #text outline color
+        bg.r = 0.15,  #thickness of outline
+        aes(label = sprintf("%.2f", after_stat(y))), #change decimal places printed by altering the digit
+        color = "#FFD700", #text color
+        hjust = 1.2,
+        vjust = -1.2,
+        fontface = "bold",
+        size = 3.5
+      )+
+      
+        # Facet by plot type
+  facet_wrap(~plot_type, scales="free_x") +
+            theme_minimal() +
+
+      theme(strip.text = element_blank())+
+      
+      expand_limits(y=0)
+
+
+```
+#### BD Results {.hidden}
 ```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
 #This will only evaluate if there is bulk density
 asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
 ```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC)}
-#prep bd dataframe
-bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, bulk_density)%>%
-  mutate(LU="AgC")%>%
-  bind_rows( #bind project stocks df to the raca dataset
-  raca_data %>%
-    mutate(
-      sample_id = rcasiteid,
-      bulk_density = BD,
-      plot_type = "raca",
-      timepoint = "Reference 2010",
-      LU=LU,
-      .keep = "none"   # keep only these renamed columns
-    )
-  )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
-
-#prep NRCS categories based on texture class
-texture <- PointLevel %>% 
-  rename(SAND=sand, SILT=silt, CLAY=clay) %>%
-  filter(!is.na(CLAY)) %>%
-  filter(!is.na(SAND)) %>%
-  filter(!is.na(SILT))
-
-texture_avg <- texture %>%
-  summarise(
-    SAND = mean(SAND, na.rm = TRUE),
-    SILT = mean(SILT, na.rm = TRUE),
-    CLAY = mean(CLAY, na.rm = TRUE)
-  )
-
-texture_avg$USDA_texture <- TT.points.in.classes(
-  tri.data = texture_avg[, c("SAND", "SILT", "CLAY")],
-  class.sys = "USDA.TT"
-)
-
-av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
-
-avg_tx_info<-get_texture_info(av_tx_abv)
-
-#prep threshhold bands dataframe
-non_ref<-unique(bd_df$plot_type)
-non_ref <- non_ref[non_ref != "raca"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
-bd_bands <- data.frame(
-  plot_type = rep(non_ref, each = 3),
-  zone = rep(c(
-    "Ideal",
-    "May affect root growth",
-    "Restricts root growth"
-  ), times = length(non_ref)),
-  ymin = rep(c(
-    min(bd_df$bulk_density, na.rm = TRUE),
-    avg_tx_info$threshold$ideal,
-    avg_tx_info$threshold$restrict
-  ), times = length(non_ref)),
-  ymax = rep(c(
-    avg_tx_info$threshold$ideal,
-    avg_tx_info$threshold$restrict,
-    max(bd_df$bulk_density, na.rm = TRUE)
-  ), times = length(non_ref))
-)
-
-#Define the desired order of facets (needs to be done for both datasets)
-bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
-bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
-```
-
 ```{r eval = ("bulk_density" %in% proj.indicators.SSC), results = 'asis'}
 #This will only evaluate if there is bulk density 
 
@@ -935,110 +1037,7 @@ ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
 
 
 ```
-```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
-#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
-
-#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
-
-asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
-```
-```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
-#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
-
-#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
-    
-    
-       # Optional: connect repeated measurements if you have a sample ID
-   #geom_line(aes(group = sample_id), alpha = 0.4, linetype = "dashed") +
-    
-    #Begin graph
-    ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
-      
-      # Jittered black points
-      geom_point(aes(color = LU),
-        alpha = 0.8,
-        size = 3,
-        position = position_jitter(width = 0.2, height = 0)
-      ) +
-    
-      #lines connecting plot averages
-       stat_summary(
-          fun = mean,
-          geom = "line",
-          aes(group = plot_type), 
-          col="black",
-          linewidth = 1 
-        ) +
-      
-      # Mean + 95% CI (colored by plot_type)
-      stat_summary(
-        fun.data = function(x) {
-          mean_x <- mean(x, na.rm = TRUE)
-          se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
-          ci <- 1.96 * se_x
-          data.frame(
-            y = mean_x,
-            ymin = mean_x - ci,
-            ymax = mean_x + ci
-          )
-        },
-        geom = "pointrange",
-        aes(color = plot_type),
-        size = 0.7, #size of dot
-        linewidth = 1.5, #thickness of CI line
-        shape = 16
-      ) +
-      
-      # Labels, axes, theme
-      labs(
-        x = "",
-        y = "Soil Organic Carbon Stored (tons/acre)",
-      ) +
-
-      scale_color_manual(
-    name = "",
-    values = c(palette_plot_type, palette_LU),
-    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
-    labels = c(
-      str_wrap("Treated site average", width = 21),
-      str_wrap("Control site average", width = 21),
-      str_wrap(paste0(ecoregion, " average"), width = 21),
-      "AgC project sampling point",
-      "RaCA rangeland sampling point",
-      "RaCA cropland sampling point"
-    )
-  ) +
-      
-  #Custom x-axis labels
-    scale_x_discrete(labels = c(
-      setNames(tp_lookup$year_label, tp_lookup$timepoint),
-      "Reference" = "Reference (2010)"
-      )) +
-      
-      # Text labels for means
-      stat_summary(
-        fun = mean,
-        geom = "shadowtext", #requires package shadowtext
-        bg.color = "black", #text outline color
-        bg.r = 0.15,  #thickness of outline
-        aes(label = sprintf("%.2f", after_stat(y))), #change decimal places printed by altering the digit
-        color = "#FFD700", #text color
-        hjust = 1.2,
-        vjust = -1.2,
-        fontface = "bold",
-        size = 3.5
-      )+
-      
-        # Facet by plot type
-  facet_wrap(~plot_type, scales="free_x") +
-            theme_minimal() +
-
-      theme(strip.text = element_blank())+
-      
-      expand_limits(y=0)
-
-
-```
+#### Other Stocks Results {.hidden}
 ```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
@@ -1168,6 +1167,7 @@ theme_minimal()+
 
 
 ```
+#### Texture Results {.hidden}
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
 asis_output("### Soil texture\\n") #CONDITIONAL HEADER
 ```
@@ -1303,8 +1303,6 @@ grid.arrange(imgT, imgC, ncol = 2)
 
 
 ```
-
-
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
 ```{r, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks} 

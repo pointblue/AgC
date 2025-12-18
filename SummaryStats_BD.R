@@ -83,7 +83,7 @@ if(length(unique(PointLevel$timepoint))>1){
 
 
 ### ---- 1TP, T&C ----
-
+if (length(unique(PointLevel$plot_type))>1){
 #Treatment contrast
 model <- lm(bulk_density ~ plot_type, data = PointLevel_stats)
 anova(model)
@@ -99,13 +99,13 @@ treatment_contrast_bd<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C"))
   )%>%
   pull(text) %>%          # get vector of strings
   paste(collapse = " ")
-
+}
 
 
 ### ---- >1TP, T&C ----
 
 #Plot-wise change
-if(length(unique(PointLevel$timepoint))>1){
+if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type))>1){
   model <- lmer(bulk_density ~ plot_type * timepoint + (1 | sample_id),data = PointLevel_stats)
   emm <- emmeans(model, ~ plot_type * timepoint, at=list(plot_type = c("C", "T"), timepoint = c(tp_first, tp_last)))
   time_contrasts_bd <- contrast(emm, by = "plot_type", method = setNames(list(c(-1, 1)), paste0(tp_last, " - ", tp_first))) %>%

@@ -56,6 +56,7 @@ avg_tx_c<-get_texture_info(texture_avg_list$C$USDA_texture)$full_name
     ### ---- Comparing %Clay, T&C ----
     
     #Treatment contrast
+    if (length(unique(PointLevel$plot_type))>1){
     model <- lm(CLAY ~ plot_type, data = texture)
     anova(model)
     emm <- emmeans(model, ~ plot_type)
@@ -70,5 +71,5 @@ avg_tx_c<-get_texture_info(texture_avg_list$C$USDA_texture)$full_name
       )%>%
       pull(text) %>%          # get vector of strings
       paste(collapse = " ")
-      
+    } 
   

@@ -84,6 +84,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
     ### ---- 1TP, T&C ----
     
     #Treatment contrast
+    if (length(unique(PointLevel$plot_type))>1){
     model <- lm(org_c ~ plot_type, data = PointLevel_stats)
     anova(model)
     emm <- emmeans(model, ~ plot_type)
@@ -98,13 +99,13 @@ tp_last  <- last(PointLevel_stats$timepoint)
       )%>%
       pull(text) %>%          # get vector of strings
       paste(collapse = " ")
-      
+    }
   
   
     ### ---- >1TP, T&C ----
   
     #Plot-wise change
-    if(length(unique(PointLevel$timepoint))>1){
+    if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type))>1){
     model <- lmer(org_c ~ plot_type * timepoint + (1 | sample_id),data = PointLevel_stats)
     emm <- emmeans(model, ~ plot_type * timepoint, at=list(plot_type = c("C", "T"), timepoint = c(tp_first, tp_last)))
     time_contrasts_soc <- contrast(emm, by = "plot_type", method = setNames(list(c(-1, 1)), paste0(tp_last, " - ", tp_first))) %>%
