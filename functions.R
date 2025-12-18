@@ -1075,10 +1075,10 @@ reg_baseline <- function(polygon, #Specify polygon of project
     st_as_sf(coords = c("Gen_long", "Gen_lat"), crs = 4326)
   RACA_coords <- st_transform(RACA_coords, st_crs(region))
   RACA_coords <- RACA_coords[st_within(RACA_coords, region, sparse = FALSE), ] #select all points within ecoregion of interest
-  RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% #Select only range and cropland points
-    filter(LU %in% c("R","C")) %>%
-    select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1,Texture) %>%
-    filter(rcasiteid %in% RACA_coords$RaCA_Id)
+  RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% 
+    filter(rcasiteid %in% RACA_coords$RaCA_Id)%>%
+    filter(LU %in% c("R","C")) %>% #Select only range and cropland points
+    select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1,Texture)
   RACA_res <- RACA_samples %>%
     filter(TOP < depth) %>% 
     mutate(BOT = if_else(BOT > depth, depth, BOT)) %>%
