@@ -1064,7 +1064,9 @@ reg_baseline <- function(polygon, #Specify polygon of project
   
   # Associate centroid of polygon with ecoregion
   ecoregions <- st_read("./Ecoregions/us_eco_l3.shp")
-  ecoregions <- st_make_valid(st_transform(ecoregions, st_crs(cent)))
+  if (!identical(st_crs(cent), st_crs(ecoregions))){
+  ecoregions <- st_transform(ecoregions, st_crs(cent))
+  }
   region <- ecoregions[st_contains(ecoregions, cent, sparse = FALSE), ]
   region_name <-unique(region$US_L3NAME)
   
