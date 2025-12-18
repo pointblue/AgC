@@ -41,17 +41,18 @@ tp_last  <- last(PointLevel_stats$timepoint)
                
                raca_percentile>0 ~ paste0("The most recent mean value in the ", 
                            plot_full, 
-                           " plot is in the ", 
+                           " plot is in the **", 
                            english::ordinal(raca_percentile), 
-                           " percentile of the comparison dataset for your ecoregion."
+                           " percentile** of the comparison dataset for your ecoregion."
                            ),
              raca_percentile<=0 ~ paste0("The most recent mean value in the ", 
                                          plot_full, 
-                                         " plot is less than any value in the comparison dataset for your ecoregion."
+                                         " plot is **less than any value** in the comparison dataset for your ecoregion."
                                          )
               ) )
              
       percentile_scentence_soc<-raca_compare_soc%>%
+      arrange(desc(plot_type))%>% #This makes it so the T sentence prints before the C sentence
       pull(text) %>%          # get vector of strings
       paste(collapse = " ")
 
@@ -71,9 +72,9 @@ tp_last  <- last(PointLevel_stats$timepoint)
       as.data.frame()%>%
       mutate(
         text = case_when(
-          p.value < 0.05 & estimate > 0 ~ "SOC% in the treated plot increased between the first and most recent monitoring timepoint. Though this suggests that the practice is positively affecting soil organic matter and fertility, it may also be a result of changes in climate variation across years.",
-          p.value < 0.05 & estimate < 0 ~ "SOC% in the treated plot decreased between the first and most recent monitoring timepoint. Without a control field, we are unable to tell whether this is due to changes in management or in climate variation across years.",
-          TRUE                          ~ "SOC% did not meaningfully change between the two monitoring timepoints. Possible explanations for a lack of significant change include benefits acrruing more slowly than the monitoring timeline, general SOC% decreases in surrounding areas that didn't recieve conservation, and unexpected impacts of the conservation practice."
+          p.value < 0.05 & estimate > 0 ~ "SOC% in the treated plot **increased** between the first and most recent monitoring timepoint. Though this suggests that the practice is positively affecting soil organic matter and fertility, it may also be a result of changes in climate variation across years.",
+          p.value < 0.05 & estimate < 0 ~ "SOC% in the treated plot **decreased** between the first and most recent monitoring timepoint. Without a control field, we are unable to tell whether this is due to changes in management or in climate variation across years.",
+          TRUE                          ~ "SOC% **did not meaningfully change** between the two monitoring timepoints. Possible explanations for a lack of significant change include benefits acrruing more slowly than the monitoring timeline, general SOC% decreases in surrounding areas that didn't recieve conservation, and unexpected impacts of the conservation practice."
         )
       )%>%
       pull(text) %>%          # get vector of strings
@@ -90,9 +91,9 @@ tp_last  <- last(PointLevel_stats$timepoint)
       as.data.frame()%>%
       mutate(
         text = case_when(
-          p.value < 0.05 & estimate > 0 ~ "At the current timepoint, SOC% is higher in the treated plot than the control. This difference should be taken into consideration when looking at change in each plot over time.",
-          p.value < 0.05 & estimate < 0 ~ "At the current timepoint, SOC% is lower in the treated plot than the control. This difference should be taken into consideration when looking at change in each plot over time.",
-          TRUE ~ "There is no significant difference between SOC% in the treated and control site at this time. This means that the sites are well-matched, making interpretation of future results straightforward."
+          p.value < 0.05 & estimate > 0 ~ "At the current timepoint, SOC% is **higher in the treated plot** than the control. This difference should be taken into consideration when looking at change in each plot over time.",
+          p.value < 0.05 & estimate < 0 ~ "At the current timepoint, SOC% is **lower in the treated plot** than the control. This difference should be taken into consideration when looking at change in each plot over time.",
+          TRUE ~ "There is **no significant difference** between SOC% in the treated and control site at this time. This means that the sites are well-matched, making interpretation of future results straightforward."
         )
       )%>%
       pull(text) %>%          # get vector of strings
@@ -111,11 +112,12 @@ tp_last  <- last(PointLevel_stats$timepoint)
       mutate(
         plot_full = case_when(plot_type=="T"~"treatment", plot_type=="C"~"control"),
         text = case_when(
-          p.value < 0.05 & estimate > 0 ~ paste0("SOC% in the ", plot_full, " plot increased between the first and most recent monitoring timepoint."),
-          p.value < 0.05 & estimate < 0 ~ paste0("SOC% in the ", plot_full, " plot decreased between the first and most recent monitoring timepoint."),
-          TRUE                          ~ paste0("No significant change in percent SOC was detected in the ", plot_full, " plot between the first and most recent monitoring timepoint.")
+          p.value < 0.05 & estimate > 0 ~ paste0("SOC% in the ", plot_full, " plot **increased** between the first and most recent monitoring timepoint."),
+          p.value < 0.05 & estimate < 0 ~ paste0("SOC% in the ", plot_full, " plot **decreased** between the first and most recent monitoring timepoint."),
+          TRUE                          ~ paste0("**No significant change** in percent SOC was detected in the ", plot_full, " plot between the first and most recent monitoring timepoint.")
         )
       )%>%
+      arrange(desc(plot_type))%>% #This makes it so the T sentence prints before the C sentence
       pull(text) %>%          # get vector of strings
       paste(collapse = " ")
     
@@ -125,13 +127,13 @@ tp_last  <- last(PointLevel_stats$timepoint)
       mutate(
         text = case_when(
           p.value < 0.05 & estimate > 0 ~
-            "SOC% at the treated site increased (or declined less) relative to the control site, indicating a positive impact of the conservation practice.",
+            "SOC% at the treated site **increased (or declined less)** relative to the control site, indicating a positive impact of the conservation practice.",
           
           p.value < 0.05 & estimate < 0 ~
-            "SOC% at the treated site decreased at a greater rate than the control site, indicating a negative impact of the conservation practice.",
+            "SOC% at the treated site **decreased at a greater rate** than the control site, indicating a negative impact of the conservation practice.",
           
           TRUE ~
-            "Change was similar in the treatment and control plot, so no influence of the management intervention was detected. Possible explanations include benefits accruing more slowly than the monitoring timeline, or an outsized impact of other factors relative to the impact of the management practice."
+            "Change was similar in the treatment and control plot, so **no influence of the management intervention was detected**. Possible explanations include benefits accruing more slowly than the monitoring timeline, or an outsized impact of other factors relative to the impact of the management practice."
         )
       )%>%
       pull(text) %>%          # get vector of strings

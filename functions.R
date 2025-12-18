@@ -1199,7 +1199,7 @@ render_one_html <- function(project, raca_filter, author = NULL) {
     output_file = paste0(project, '_Report_', Sys.Date(), '.html'), #ID the file path and naming pattern
     output_dir = "Z:/Soils Team/AgC Data/RenderedReports",
     params = p,
-    envir = new.env(parent = globalenv())
+    envir = globalenv()
   )
 }
 #layering that so you can pass a vector of project names to render many reports at once

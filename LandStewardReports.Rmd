@@ -141,7 +141,7 @@ To support interpretability and comparability, `r proj.protocol` assigns each mo
 
 ### Your inference score
 
-The monitoring plan developed for the `r paste0(proj.implementationyear, " ", proj.practicetype)` practice at `r proj.propertyname ` results in a `r proj.protocol` inference score of `r proj.inscore`. In addition to the indicators measured, their sampling densities, and the selected methods, the following design factors contributed to the score: 
+The monitoring plan developed for the `r paste0(proj.implementationyear, " ", proj.practicetype)` practice at `r proj.propertyname ` results in a `r proj.protocol` **inference score of** **`r proj.inscore`**. In addition to the indicators measured, their sampling densities, and the selected methods, the following design factors contributed to the score: 
 
 ```{r Dynamic text Baseline and Control, results='asis'}
 if (ProjectDesign$control_baseline=="TRUE" & length(unique(border$plot_type))==2){cat(paste0("- This ", proj.protocol, " project includes baseline monitoring before the conservation practice was implemented as well as parallel monitoring at an untreated control site.^[The most rigorous project design includes baseline monitoring before the conservation practice is implemented, as well as parallel monitoring at an untreated control site into the future. Although not logistically possible for every project, these elements together provide highly interpretable results.]", "<br>"))}
@@ -160,7 +160,7 @@ max.depth.cent <- max(as.numeric(sub(".*-", "", unique(PointLevel$target_depth))
 
 cat(paste0("- Soil samples were taken to a target maximum depth of ", max.depth.inches, " inches.\n\n"))
 
-if (ProjectDesign$point_generation_method=="GIS"){
+if (ProjectDesign$point_generation_method=="gis"){
   cat("- Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
 }else{cat("- Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
 ```
@@ -349,6 +349,11 @@ tp_lookup<- timepoint_dates %>%
 
 ```
 This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
+```{r, baseline only statement, results='asis'}
+if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
+  cat("\\n Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
+}
+```
 
 ## Results
 ```{r, raca data prep, include = FALSE}
@@ -359,6 +364,16 @@ ecoregion<-raca_call[[3]]
 raca_data$LU[raca_data$LU == "C"] <- "crop"
 raca_data$LU[raca_data$LU == "R"] <- "range"
 ```
+```{r, results='asis'}
+asis_output(
+
+paste0("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: ", 
+       ecoregion,
+       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration.")
+
+)
+```
+
 ```{r, Calculating stocks, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
 
@@ -508,11 +523,6 @@ Means.Pivot1<- Project.Means %>% pivot_longer(cols=all_of(proj.indicators.SSC), 
       TRUE ~ Acronym                                # default mapping
     )
   )
-```
-```{r, baseline only statement, results='asis'}
-if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
-  cat("Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
-}
 ```
 
 
@@ -859,7 +869,7 @@ ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
     bg.color = "black", #text outline color
     bg.r = 0.15,  #thickness of outline
     aes(
-      label = sprintf("%.1f", after_stat(y)), #change decimal places printed by altering the digit
+      label = sprintf("%.2f", after_stat(y)), #change decimal places printed by altering the digit
       group = timepoint
       ), 
     color = "#FFD700", #text color
@@ -932,23 +942,6 @@ ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
 
 asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
 ```
-
-``` {r, results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
-#CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
-
-#This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
-
-asis_output(
-
-paste0("The following graph shows **soil organic carbon stocks** stored in the study area compared to other agricultural sites in your ecoregion: ", 
-       ecoregion,
-       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other agricultural sites in comparable climates. As you continue implementing conservation practices, your soil organic carbon (SOC) stocks have the potential to increase, moving closer to the higher end of SOC stocks seen in your region.")
-
-)
-```
-
-
-
 ```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
@@ -1175,234 +1168,6 @@ theme_minimal()+
 
 
 ```
-```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
-#This will only evaluate if there is bulk density
-asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
-```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC)}
-#prep bd dataframe
-bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, bulk_density)%>%
-  mutate(LU="AgC")%>%
-  bind_rows( #bind project stocks df to the raca dataset
-  raca_data %>%
-    mutate(
-      sample_id = rcasiteid,
-      bulk_density = BD,
-      plot_type = "raca",
-      timepoint = "Reference 2010",
-      LU=LU,
-      .keep = "none"   # keep only these renamed columns
-    )
-  )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
-
-#prep NRCS categories based on texture class
-texture <- PointLevel %>% 
-  rename(SAND=sand, SILT=silt, CLAY=clay) %>%
-  filter(!is.na(CLAY)) %>%
-  filter(!is.na(SAND)) %>%
-  filter(!is.na(SILT))
-
-texture_avg <- texture %>%
-  summarise(
-    SAND = mean(SAND, na.rm = TRUE),
-    SILT = mean(SILT, na.rm = TRUE),
-    CLAY = mean(CLAY, na.rm = TRUE)
-  )
-
-texture_avg$USDA_texture <- TT.points.in.classes(
-  tri.data = texture_avg[, c("SAND", "SILT", "CLAY")],
-  class.sys = "USDA.TT"
-)
-
-av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
-
-avg_tx_info<-get_texture_info(av_tx_abv)
-
-#prep threshhold bands dataframe
-non_ref<-unique(bd_df$plot_type)
-non_ref <- non_ref[non_ref != "raca"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
-bd_bands <- data.frame(
-  plot_type = rep(non_ref, each = 3),
-  zone = rep(c(
-    "Ideal",
-    "May affect root growth",
-    "Restricts root growth"
-  ), times = length(non_ref)),
-  ymin = rep(c(
-    min(bd_df$bulk_density, na.rm = TRUE),
-    avg_tx_info$threshold$ideal,
-    avg_tx_info$threshold$restrict
-  ), times = length(non_ref)),
-  ymax = rep(c(
-    avg_tx_info$threshold$ideal,
-    avg_tx_info$threshold$restrict,
-    max(bd_df$bulk_density, na.rm = TRUE)
-  ), times = length(non_ref))
-)
-
-#Define the desired order of facets (needs to be done for both datasets)
-bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
-bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
-```
-
-```{r eval = ("bulk_density" %in% proj.indicators.SSC), results = 'asis'}
-#This will only evaluate if there is bulk density 
-
-source("SummaryStats_BD.R")
-
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
-  cat(percentile_scentence_bd)
-}
-
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
-  cat(percentile_scentence_bd, "\n\n")
-  cat(time_change_bd)
-}
-
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
-  cat(percentile_scentence_bd, "\n\n")
-  cat(treatment_contrast_bd)
-}
-
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
-  cat(percentile_scentence_bd, "\n\n")
-  cat(time_contrasts_bd, "\n\n")
-  cat(baci_bd)
-}
-
-```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC), fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
-#This will only evaluate if there is bulk density 
-    
-#Begin graph
-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
-  
-  #USDA Bulk Density Targets by Texture
-  geom_rect(
-    data = bd_bands,
-    aes(
-      xmin = -Inf,
-      xmax = Inf,
-      ymin = ymin,
-      ymax = ymax,
-      fill = zone
-    ),
-    inherit.aes = FALSE,
-    alpha = 0.15
-  ) +
-  
-  #Jittered black points
-  geom_point(aes(color = LU),
-    alpha = 0.8,
-    size = 3,
-    position = position_jitter(width = 0.2, height = 0)
-  ) +
-
-  #Lines connecting plot averages
-   stat_summary(
-      fun = mean,
-      geom = "line",
-      aes(group = plot_type), 
-      col="black",
-      linewidth = 1 
-    ) +
-  
-  #Mean + 95% CI (colored by plot_type)
-  stat_summary(
-    fun.data = function(x) {
-      mean_x <- mean(x, na.rm = TRUE)
-      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
-      ci <- 1.96 * se_x
-      data.frame(
-        y = mean_x,
-        ymin = mean_x - ci,
-        ymax = mean_x + ci
-      )
-    },
-    geom = "pointrange",
-    aes(color = plot_type),
-    size = .8, #size of dot
-    linewidth = 1.5, #thickness of CI line
-    shape = 16
-  ) +
-  
-  #Text labels for means
-  stat_summary(
-    fun = mean,
-    geom = "shadowtext", #requires package shadowtext
-    bg.color = "black", #text outline color
-    bg.r = 0.15,  #thickness of outline
-    aes(
-      label = sprintf("%.2f", after_stat(y)), #change decimal places printed by altering the digit
-      group = timepoint
-      ), 
-    color = "#FFD700", #text color
-    hjust = 1.2,
-    vjust = -1.2,
-    fontface = "bold",
-    size = 3.5
-  )+
-
-  #Legend settings for sampling points
-  scale_color_manual(
-    name = "",
-    values = c(palette_plot_type, palette_LU),
-    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
-    labels = c(
-      str_wrap("Treated site average", width = 21),
-      str_wrap("Control site average", width = 21),
-      str_wrap(paste0(ecoregion, " average"), width = 21),
-      "AgC project sampling point",
-      "RaCA rangeland sampling point",
-      "RaCA cropland sampling point"
-    )
-  ) +
-  
-  #Legend settings for target bands
-  scale_fill_manual(
-    name = paste0("Target values for ", avg_tx_info$full_name, " soils"),
-    values = c(
-      "Ideal" = "#2C6E6F",
-      "May affect root growth" = "#C9971A",
-      "Restricts root growth" = "#D26A4A"
-    )) +
-  
-  #Change legend order    
-  guides(
-    color = guide_legend(order = 1),
-    fill  = guide_legend(order = 2)
-    )+
-  
-  #Labels, axes, theme
-  labs(
-    x = "",
-    y = "Soil Bulk Density (g/cm3)",
-  ) +
-  
-  #Custom x-axis labels
-    scale_x_discrete(labels = c(
-      setNames(tp_lookup$year_label, tp_lookup$timepoint),
-      "Reference" = "Reference (2010)"
-      )) +
-  
-  theme_minimal()+
-
-  #Remove facet strip labels
-  theme(strip.text = element_blank())+
-  
-  #Make sure the y-axis always shows 0
-  expand_limits(y=0) +
-  
-  #Facet by plot type
-  facet_wrap(~plot_type, scales="free_x")
-
-
-
-```
-
-
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
 asis_output("### Soil texture\\n") #CONDITIONAL HEADER
 ```
@@ -1414,12 +1179,25 @@ if ("Tx" %in% proj.indicators){cat("The graphic below represents where each soil
 if ("Tx" %in% proj.indicators & length(unique(border$plot_type))==2){cat("Since this project includes a treated and control site, it's also important to note how well the texture values between plots 'match' one another - this helps us interpret differences in carbon dynamics between the sites. Two texture triangles are shown, one for the treated site, and one for the control site.")}
 
 ```
-```{r texture timepoints, results='asis'}
+```{r texture timepoints, eval="Tx" %in% proj.indicators, results='asis'}
 if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
-  cat("Note that soil texture is considered an inherent soil property -- we don't expect these values to change due to management intervention. For this reason, texture is generally only measured at the first timepoint to help contextualize results going forward.")
+  cat("\\n Note that soil texture is considered an inherent soil property -- we don't expect these values to change due to management intervention. For this reason, texture is generally only measured at the first timepoint to help contextualize results going forward. \\n")
 }
 
 ```
+<br>
+<br>
+```{r, eval="Tx" %in% proj.indicators, results='asis'}
+#INSERT TEXT ABOUT TEXTURE T-C MATCH AND AVG SOIL TEXTURE
+source('SummaryStats_Tx.R')
+
+cat(tx_avg_sentence)
+
+if(length(unique(PointLevel$plot_type))>1){
+  cat(treatment_contrast_clay)
+}
+```
+
 ```{r fig.height=6, fig.cap="Texture triangle(s) showing texture classifications for samples in the study area."}
 if ("Tx" %in% proj.indicators){ #only do any of this if texture was included as an indicator (med and high ACTION roadmaps)
 
@@ -1650,7 +1428,7 @@ cat("#### All measured values in", tp_lookup$year_label[1], "\n")
 ```
 ```{r leaflet_maps_firsT, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
 #Create a vector of indicators to include in the dynamic map
-if ("bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) {
+if (exists("proj.indicators.SSC.stocks") && "bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) {
   stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
   proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
   dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
