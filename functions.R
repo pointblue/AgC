@@ -136,7 +136,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
       select(col_map$Column.Name)
     
     #Add year that data were reported from lab 
-    lab_clean$year <- str_extract(f, "\\d{4}(?=\\d{4}\\.csv)")
+    lab_clean$year <- str_extract(f, "\\d{4}(?=\\d{4}\\.)")
     
     # Bind to lab_clean_final to store results
     lab_clean_final <-rbind(lab_clean_final,lab_clean)
