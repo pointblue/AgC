@@ -18,7 +18,7 @@ data_dir<-("Z:/Soils Team/AgC Data/")
 agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
 
 # identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
-proj_of_int = c("JPFA.14.SC","JPBO.14.SC","JPNC.14.SC", "JPNV.14.SC", "MERC.14.LI", "STAN.25.LI", "KERN.25.LI")
+proj_of_int = c("STAN.25.LI", "KERN.25.LI", "MERC.24.LI", "JPBO.14.SC", "JPFA.14.SC", "JPNV.14.SC", "JPNC.14.SC")
 
 ## ---- Import/clean tap biomass  data ---- 
 tap_biomass <- clean_tap_biomass(agc_data_entry, proj_of_int)
@@ -47,8 +47,61 @@ for(df_name in names(tap_biomass)){
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
                           projects = proj_of_int)
-  # Check for duplicated sample ids
+  # Check for duplicated sample ids CHECK! RETURNS ALL TIME SERIES DATA AND DEPTH INCREMENTS
   lab_clean[lab_clean$sample_id %in% lab_clean[duplicated(lab_clean$sample_id),]$sample_id,]
+  
+  #AC ADDED, Lisa check pls
+  lab_clean <- lab_clean %>%
+    group_by(sample_id, year, b_depth, e_depth) %>%
+    summarise(
+      across(everything(), ~ {
+        # if numeric, take first non-NA if exists, otherwise NA
+        if (is.numeric(.)) {
+          vals <- na.omit(.)
+          if (length(vals)) vals[1] else NA_real_
+        } else if (is.character(.)) {
+          vals <- unique(na.omit(.))
+          if (length(vals)) paste(vals, collapse = ", ") else NA_character_ 
+        } else {
+          # leave other types as-is (e.g., factor, Date) - take first
+          .[1]
+        }
+      }),
+      .groups = "drop"
+    )
+  
+  #CHECK this is a temporary solution while we figure out how to handle microbial_c depths separately 
+  lab_clean<-lab_clean %>%
+    group_by(sample_id, year) %>%
+    summarise(
+      b_depth = {
+        vals <- na.omit(b_depth)
+        if (length(unique(vals)) > 1) stop("Conflicting b_depth for sample_id ", cur_group_id())
+        if (length(vals)) vals[1] else NA_real_
+      },
+      e_depth = {
+        vals <- na.omit(e_depth)
+        if (length(unique(vals)) > 1) stop("Conflicting e_depth for sample_id ", cur_group_id())
+        if (length(vals)) vals[1] else NA_real_
+      },
+      across(-c(b_depth, e_depth), ~ {
+        if (is.numeric(.)) {
+          vals <- na.omit(.)
+          if (length(vals)) vals[1] else NA_real_
+        } else if (is.character(.)) {
+          vals <- unique(na.omit(.))
+          if (length(vals)) paste(vals, collapse = ", ") else NA_character_
+        } else {
+          .[1]  # factors, dates, etc.
+        }
+      }),
+      .groups = "drop"
+    )
+  
+  #check for duplicates after regrouping
+  lab_clean %>%
+    group_by(sample_id, year, b_depth, e_depth) %>%
+    filter(n() > 1)  # keeps only groups with duplicates
 
 # TAP soils data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
@@ -73,7 +126,7 @@ df <- lab_clean %>%
   mutate(across(c(total_n:cec_na_perc), as.numeric))
 
 #Check for sample_ids not found in tap_soils
-df[is.na(df$project_id),] #CHECK! This returns all the OSU microbial biomass rows
+df[is.na(df$project_id),]$sample_id
 
 ## ---- Bulk density and biomass calculations ----
 
@@ -116,15 +169,15 @@ df$inorg_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)] <-
   df$org_c[is.na(df$inorg_c) & !is.na(df$total_c) & !is.na(df$org_c)]
 
 # Make sure all samples have identifying info, total_c or org_c value, and bulk_density value
-df[is.na(df$project_id),]
+df[is.na(df$project_id),]$sample_id
 df[is.na(df$lat) | is.na(df$long),]
 df[is.na(df$total_c) & is.na(df$org_c),]
-df[is.na(df$bulk_density),]
+df[is.na(df$bulk_density),]$sample_id
 
 # Check for values out of range
 out_of_range(df, "bulk_density", 0.5, 1.8) #Bulk density between 0.5 and 1.8 g/cm3
 out_of_range(df, "org_c", 0.1, 20) #total c %
-out_of_range(df, "ph", 4, 9) #pH
+out_of_range(df, "ph", 4, 9) #pH #CHECK returning NA values
 
 #Org + inorg c = total c
 df %>%
