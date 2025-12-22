@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: MERC.24.LI
+  project_name: STAN.25.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -356,7 +356,6 @@ if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint)
 ```
 
 ## Results
-#### ~Raca prep {.hidden}
 ```{r, raca data prep, include = FALSE}
 # ---- Raca prep ----
 raca_call<-reg_baseline(border, max.depth.cent)
@@ -367,14 +366,13 @@ raca_data$LU[raca_data$LU == "C"] <- "crop"
 raca_data$LU[raca_data$LU == "R"] <- "range"
 ```
 ```{r, results='asis'}
-asis_output(
-
-paste0("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: ", 
+cat("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: ", 
        ecoregion,
-       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration.")
+       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration."
 
 )
 ```
+
 #### ~Prepping stocks data{.hidden}
 ```{r, Calculating stocks, eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
