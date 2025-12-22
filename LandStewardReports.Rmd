@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: JPBO.14.SC
+  project_name: MERC.24.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -351,7 +351,7 @@ tp_lookup<- timepoint_dates %>%
 This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
 ```{r, baseline only statement, results='asis'}
 if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
-  cat("\\n Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices should be inferred.")
+  cat("\\n Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices is shown.")
 }
 ```
 
@@ -673,7 +673,6 @@ if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_typ
 
 if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
   cat(percentile_scentence_soc, "\n\n")
-  cat(time_contrasts_soc, "\n\n")
   cat(baci_soc)
 }
 
@@ -904,7 +903,7 @@ if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_typ
 
 if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
   cat(percentile_scentence_bd, "\n\n")
-  cat(time_contrasts_bd, "\n\n")
+  #cat(time_contrasts_bd, "\n\n")
   cat(baci_bd)
 }
 

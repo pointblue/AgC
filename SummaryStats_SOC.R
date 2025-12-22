@@ -1,5 +1,5 @@
 #Land Steward Report Stats Development Script
-#Created by AC on 11/30/2025 updated 12/16/2025
+#Created by AC on 11/30/2025 updated 12/22/2025
 
 library(english)
 library(lme4)
@@ -75,8 +75,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
         text = case_when(
           p.value < 0.05 & estimate > 0 ~ "SOC% in the treated plot **increased** between the first and most recent monitoring timepoint. Though this suggests that the practice is positively affecting soil organic matter and fertility, it may also be a result of changes in climate variation across years.",
           p.value < 0.05 & estimate < 0 ~ "SOC% in the treated plot **decreased** between the first and most recent monitoring timepoint. Without a control field, we are unable to tell whether this is due to changes in management or in climate variation across years.",
-          TRUE                          ~ "SOC% **did not meaningfully change** between the two monitoring timepoints. 
-          This may be due to soils already being in balance, management changes helping to protect existing carbon rather than increase it, or high soil variability and/or a short timeframe making changes hard to detect."
+          TRUE                          ~ "SOC% **did not meaningfully change** between the two monitoring timepoints. This may be due to soils already being in balance, management changes helping to protect existing carbon rather than increase it, or high soil variability and/or a short timeframe making changes hard to detect."
         )
       )%>%
       pull(text) %>%          # get vector of strings
@@ -105,8 +104,9 @@ tp_last  <- last(PointLevel_stats$timepoint)
   
     ### ---- >1TP, T&C ----
   
-    #Plot-wise change
+    #Plot-wise change over time  
     if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type))>1){
+      
     model <- lmer(org_c ~ plot_type * timepoint + (1 | sample_id),data = PointLevel_stats)
     emm <- emmeans(model, ~ plot_type * timepoint, at=list(plot_type = c("C", "T"), timepoint = c(tp_first, tp_last)), ddf="Kenward-Roger")
     time_contrasts_soc <- contrast(emm, by = "plot_type", method = setNames(list(c(-1, 1)), paste0(tp_last, " - ", tp_first))) %>%
@@ -119,52 +119,86 @@ tp_last  <- last(PointLevel_stats$timepoint)
           TRUE ~ "no change"
         ))
     
+    #statements for DIFFERENT direction of change in each plot
     if (length(unique(time_contrasts_soc$condition)) >1){
-      if (time_contrasts_soc[time_contrasts_soc$plot_type == "treatment", ]$condition=="increased"){
-        sentence<-"While SOC% at your control site is decreasing, SOC% at the treatment site is increasing. This indicates the mangement intervention is both increasing SOC% and preventing SOC% loss as observed in your conrol site."
-      } else {sentence<-"While SOC% in the treatment plot is declining, SOC% in the control plot is increasing. This indicates an unexpected negative impact of the conservation practice."}
-    } else{
-    
-    #Treatment effect
-      if(unique(time_contrasts_so$condition == "decreased")){
       
-    baci_soc <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
-      as.data.frame() %>%
-      mutate(
-        text = case_when(
-          p.value < 0.05 & estimate > 0 ~
-            "SOC% at the treated site **declined less** relative to the control site, indicating a positive impact of the conservation practice.",
-          
-          p.value < 0.05 & estimate < 0 ~
-            "SOC% at the treated site **decreased at a greater rate** than the control site, indicating a negative impact of the conservation practice.",
-          
-          TRUE ~
-            "Decreases in SOC% were observed in your field but were not due to practice changes, since these decreases were observed in both the treatment and control sites. 
-            The adopted practice might still be beneficial in protecting existing soil carbon, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
-        )
-      )%>%
-      pull(text) %>%          # get vector of strings
-      paste(collapse = " ")
+      #C decrease T increase
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increased") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "decreased")) { 
+        baci_soc<-"While SOC% at your **control site is decreasing**, SOC% at the **treatment site is increasing**. This indicates the management intervention is both increasing SOC% and preventing SOC% loss as observed in your control site."
+      }
+      
+      #C steady T increase
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increase") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) { 
+        baci_soc<-"INSERT TEXT"
+      }
+      
+      #C decrease T steady
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "no change") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "decreased")) { 
+        baci_soc<-"INSERT TEXT"
+      }
+      
+      #T decrease C increase
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "decreased") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "increased")) {
+        baci_soc<-"While SOC% in the **treatment plot is declining**, SOC% in the **control plot is increasing**. This indicates an unexpected negative impact of the conservation practice."
+      }
+      
+      #T steady C increase
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "no change") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "increased")) {
+        baci_soc<-"INSERT TEXT"
+      }
+      
+      #T decrease C steady
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "decreased") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) {
+        baci_soc<-"INSERT TEXT"
       }
     }else{
+    
+      #Statements for SAME DIRECTION OF CHANGE in each plot (testing for treatment effect)
+      
+      #Both plots steady (no further test needed, just text)  
+      if (all(unique(time_contrasts_soc$condition) == "no change")){
+        baci_soc<-"SOC% in both plots is **steady over time**. This tells us that general conditions have not altered SOC% over the monitoring timeline, and the impact of the conservation practice is not currently detectable. The adopted practice might still be beneficial, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+      }
+      
+      #Both plots decreasing
+      if(all(unique(time_contrasts_soc$condition) == "decreased")){
       baci_soc <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(
             p.value < 0.05 & estimate > 0 ~
-              "SOC% at the treated site **increased more** relative to the control site, indicating a positive impact of the conservation practice.",
+              "SOC% at the treated site **declined less** relative to the control site, indicating a positive impact of the conservation practice.",
             
             p.value < 0.05 & estimate < 0 ~
-              "SOC% at the treated site **increased less** than the control site, indicating a negative impact of the conservation practice.",
+              "SOC% at the treated site **decreased at a greater rate** than the control site, indicating a negative impact of the conservation practice.",
             
             TRUE ~
-              "Increases in SOC% were observed in your field but were not due to practice changes, since these increases were observed in both the treatment and control sites. 
-            The adopted practice might still be beneficial but its impact cannot be detected yet due to high soil variability and/or a short timeframe.")
+              "Decreases in SOC% were observed in your field but were **not due to practice changes**, since these decreases were observed in both the treatment and control sites. The adopted practice might still be beneficial in protecting existing soil carbon, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+          )
         )%>%
         pull(text) %>%          # get vector of strings
         paste(collapse = " ")
+      }
       
-    }
-    
-    }
+      #Both plots increasing
+      if (all(unique(time_contrasts_soc$condition) == "increased")){
+        baci_soc <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
+          as.data.frame() %>%
+          mutate(
+            text = case_when(
+              p.value < 0.05 & estimate > 0 ~
+                "SOC% at the treated site **increased more** relative to the control site, indicating a positive impact of the conservation practice.",
+              
+              p.value < 0.05 & estimate < 0 ~
+                "SOC% at the treated site **increased less** than the control site, indicating a negative impact of the conservation practice.",
+              
+              TRUE ~
+                "Increases in SOC% were observed in your field but were **not due to practice changes**, since these increases were observed in both the treatment and control sites. The adopted practice might still be beneficial, but its impact cannot be detected yet due to high soil variability and/or a short timeframe.")
+          )%>%
+          pull(text) %>%          # get vector of strings
+          paste(collapse = " ")
+        }
+      }
+      }
+      
     
