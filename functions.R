@@ -1237,6 +1237,27 @@ render_html_report <- function(projects, raca_filter, author = NULL){ #when proj
   }
 }
 
+## ---- Convert depths ----
+#this function is used in LandStewardReports
+convert_depths <- function(x) {
+  sapply(strsplit(x, "-"), function(parts) {
+    nums <- as.numeric(parts)
+    nums <- round(nums * 0.393701)
+    paste(nums, collapse = "-")
+  })
+}
+
+## ---- Depths sentence ----
+#this function is used in LandStewardReports
+depth_sentence <- function(depths.string) {
+  paste0(
+    "Depth increments from ",
+    paste(depths.string, collapse = ", "),
+    " inches were analyzed separately."
+  ) |>
+    sub(", ([^,]*)$", " and \\1", x = _)
+}
+
 ## ---- Read GIS data to R ----
 read_spatial <- function(dir, file_name) {
   #Read a GIS file into R, even if it's zipped
