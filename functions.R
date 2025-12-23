@@ -1087,7 +1087,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
     summarise(BD = weighted.mean(Bulkdensity, sample_depth),
               SOC_perc = weighted.mean(SOC_pred1, sample_depth))
   RACA_res <- merge(RACA_res,RACA_samples[!duplicated(RACA_samples$rcasiteid,RACA_samples$LU),c("rcasiteid","LU","Texture")], by="rcasiteid",all.x=TRUE, all.y=FALSE)
-  RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
+  RACA_soc <-read.csv("./ReportRef/RaCA Data/RaCA_SOC_pedons.csv") %>%
     filter(rcasiteid %in% RACA_samples$rcasiteid) %>%
     select(rcasiteid, SOCstock5, SOCstock30, SOCstock100) %>%
     mutate(

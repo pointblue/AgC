@@ -16,11 +16,11 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: STAN.25.LI
+  project_name: MERC.24.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
-  stocks: FALSE
+  stocks: TRUE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 #Created by: Avalon Cook
@@ -778,6 +778,34 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 
 asis_output("### Soil organic carbon stocks\\n") #CONDITIONAL HEADER
 ```
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || params$stocks, results = 'asis'}
+#This will only evaluate if there is bulk density and if the user opted to show stocks in the report
+
+source("ReportRef/SummaryStats_stocks.R")
+
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence_stocks)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence_stocks, "\n\n")
+  cat(time_change_stocks)
+}
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(percentile_scentence_stocks, "\n\n")
+  cat(treatment_contrast_stocks)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(percentile_scentence_stocks, "\n\n")
+  cat(baci_stocks)
+}
+
+
+```
+
 ```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
 
@@ -906,7 +934,7 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 }
 
 ```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC) && !params$stocks, fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
+```{r eval = ("bulk_density" %in% proj.indicators.SSC), fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
     
 #Begin graph
@@ -1308,6 +1336,7 @@ The following table summarizes average values across the study area for all metr
 my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay") #CHECK add plant metrics when present
 
 Means.Pivot <- Means.Pivot1 %>%
+  filter(Indicator != "all_stocks")%>% #remove all stocks. dont need it in this table
   select(-Indicator_base, -Indicator) %>%
   select(Acronym, everything(), Units) %>%
   mutate(
@@ -1359,6 +1388,7 @@ SummaryTable
 my_order <- c("SOC", "SIC", "MAOC", "POC", "BD", "pH", "Sand", "Silt", "Clay") #CHECK add plant metrics when present
 
 Means.Pivot <- Means.Pivot1 %>%
+  filter(Indicator != "all_stocks")%>% #remove all stocks. dont need it in this table
   select(-Indicator_base, -Indicator) %>%
   select(Acronym, everything(), Units) %>%
   mutate(
@@ -1437,9 +1467,10 @@ fixed_order <- c("org_c", "maoc", "poc", "inorg_c", "org_c_stocks", "maoc_stocks
 dynamicmap.inds <- c(intersect(fixed_order, dynamicmap.inds), setdiff(dynamicmap.inds, fixed_order))
 
 #Define labels for legend and popups
-Means.Pivot1<-Means.Pivot1%>%
+Means.Pivot2<-Means.Pivot1%>%
+  filter(Indicator != "all_stocks")%>%
   mutate(legend = paste0(Acronym,ifelse(is.na(Units), "", paste0(" ", Units))))
-legends_names <- setNames(Means.Pivot1$legend, Means.Pivot1$Indicator)
+legends_names <- setNames(Means.Pivot2$legend, Means.Pivot2$Indicator)
 legends_names["sample_id"]<-"Sample ID" #handling this separately
 
 #Define a helper function to create custom HTML popups for each sampling point (from chatGPT)
