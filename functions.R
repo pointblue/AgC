@@ -52,7 +52,7 @@ fetch_lab_file <- function(data_path, projects){
 
 ## ---- clean_lab_df function ----
 
-clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC Data)
+clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data)
                          projects #projects of interest
                          ){
   # Create empty df to store all results
@@ -1089,7 +1089,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
   cent <- st_centroid(polygon)[1,]
   
   # Associate centroid of polygon with ecoregion
-  ecoregions <- st_read("./Ecoregions/us_eco_l3.shp")
+  ecoregions <- st_read("./ReportRef/Ecoregions/us_eco_l3.shp")
   if (!identical(st_crs(cent), st_crs(ecoregions))){
   ecoregions <- st_transform(ecoregions, st_crs(cent))
   }
@@ -1097,11 +1097,11 @@ reg_baseline <- function(polygon, #Specify polygon of project
   region_name <-unique(region$US_L3NAME)
   
   # Pull RACA data for ecoregion of interest
-  RACA_coords <- read.csv("./RaCA Data/RaCa_general_location.csv") %>% #imports RaCA point coords
+  RACA_coords <- read.csv("./ReportRef/RaCA Data/RaCa_general_location.csv") %>% #imports RaCA point coords
     st_as_sf(coords = c("Gen_long", "Gen_lat"), crs = 4326)
   RACA_coords <- st_transform(RACA_coords, st_crs(region))
   RACA_coords <- RACA_coords[st_within(RACA_coords, region, sparse = FALSE), ] #select all points within ecoregion of interest
-  RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% 
+  RACA_samples <- read.csv("./ReportRef/RaCA Data/RaCA_samples.csv") %>% 
     filter(rcasiteid %in% RACA_coords$RaCA_Id)%>%
     filter(LU %in% c("R","C")) %>% #Select only range and cropland points
     select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1,Texture)
@@ -1113,7 +1113,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
     summarise(BD = weighted.mean(Bulkdensity, sample_depth),
               SOC_perc = weighted.mean(SOC_pred1, sample_depth))
   RACA_res <- merge(RACA_res,RACA_samples[!duplicated(RACA_samples$rcasiteid,RACA_samples$LU),c("rcasiteid","LU","Texture")], by="rcasiteid",all.x=TRUE, all.y=FALSE)
-  RACA_soc <-read.csv("./RaCA Data/RaCA_SOC_pedons.csv") %>%
+  RACA_soc <-read.csv("./ReportRef/RaCA Data/RaCA_SOC_pedons.csv") %>%
     filter(rcasiteid %in% RACA_samples$rcasiteid) %>%
     select(rcasiteid, SOCstock5, SOCstock30, SOCstock100) %>%
     mutate(
