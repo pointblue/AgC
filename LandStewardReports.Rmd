@@ -652,7 +652,7 @@ asis_output("### Soil organic carbon concentrations\\n") #CONDITIONAL HEADER
 ```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 
-source("SummaryStats_SOC.R")
+source("ReportRef/SummaryStats_SOC.R")
 
 
 if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
@@ -883,7 +883,7 @@ asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
 ```{r eval = ("bulk_density" %in% proj.indicators.SSC), results = 'asis'}
 #This will only evaluate if there is bulk density 
 
-source("SummaryStats_BD.R")
+source("ReportRef/SummaryStats_BD.R")
 
 if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
   cat(percentile_scentence_bd)
@@ -1186,7 +1186,7 @@ if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
 <br>
 ```{r, eval="Tx" %in% proj.indicators, results='asis'}
 #INSERT TEXT ABOUT TEXTURE T-C MATCH AND AVG SOIL TEXTURE
-source('SummaryStats_Tx.R')
+source('ReportRef/SummaryStats_Tx.R')
 
 cat(tx_avg_sentence)
 

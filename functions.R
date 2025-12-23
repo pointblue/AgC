@@ -1063,7 +1063,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
   cent <- st_centroid(polygon)[1,]
   
   # Associate centroid of polygon with ecoregion
-  ecoregions <- st_read("./Ecoregions/us_eco_l3.shp")
+  ecoregions <- st_read("./ReportRef/Ecoregions/us_eco_l3.shp")
   if (!identical(st_crs(cent), st_crs(ecoregions))){
   ecoregions <- st_transform(ecoregions, st_crs(cent))
   }
@@ -1071,11 +1071,11 @@ reg_baseline <- function(polygon, #Specify polygon of project
   region_name <-unique(region$US_L3NAME)
   
   # Pull RACA data for ecoregion of interest
-  RACA_coords <- read.csv("./RaCA Data/RaCa_general_location.csv") %>% #imports RaCA point coords
+  RACA_coords <- read.csv("./ReportRef/RaCA Data/RaCa_general_location.csv") %>% #imports RaCA point coords
     st_as_sf(coords = c("Gen_long", "Gen_lat"), crs = 4326)
   RACA_coords <- st_transform(RACA_coords, st_crs(region))
   RACA_coords <- RACA_coords[st_within(RACA_coords, region, sparse = FALSE), ] #select all points within ecoregion of interest
-  RACA_samples <- read.csv("./RaCA Data/RaCA_samples.csv") %>% 
+  RACA_samples <- read.csv("./ReportRef/RaCA Data/RaCA_samples.csv") %>% 
     filter(rcasiteid %in% RACA_coords$RaCA_Id)%>%
     filter(LU %in% c("R","C")) %>% #Select only range and cropland points
     select(rcasiteid, sample.id, LU, TOP, BOT, Bulkdensity, SOC_pred1,Texture)
