@@ -62,7 +62,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
   
   # Clean dataframes based on lab 
   col_map <- read.csv("lab_column_names.csv")
-  for(f in lab_files){
+  for(f in lab_files[grepl("Ward|Cquester", lab_files)]){
     lab <- sub(".*/([^_]+)_.*", "\\1", f)
     if(grepl("Ward",f)==TRUE){
       lab_raw<-read.csv(f)
@@ -93,20 +93,6 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
       lab_clean <- lab_raw %>%
         slice(-1) %>%
         setNames(gsub("\\.", "", names(.))) %>%
-        rename(!!!rename_vec[rename_vec %in% colnames(.)])
-    }
-    if(grepl("OSU",f)==TRUE){
-      lab_raw <- read_excel(f, sheet="Data", col_names=FALSE,
-                            na = c("NA", "na", "ND", "nd", "-", "--","", " "))
-      lab_raw <- lab_raw %>%
-        slice(-1) %>%                                # Remove the first row
-        rename_with(~ as.character(lab_raw[2, ])) %>%  # Set column names from second row
-        slice(-1) %>%
-        select(-c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated")) %>%
-        as.data.frame
-      rename_vec <- setNames(as.character(col_map$OSU), col_map$Column.Name)
-      rename_vec <- gsub("\\.", "", rename_vec)
-      lab_clean <- lab_raw %>%
         rename(!!!rename_vec[rename_vec %in% colnames(.)])
     }
     #Define column names from cleaned df
@@ -141,7 +127,41 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC D
     # Bind to lab_clean_final to store results
     lab_clean_final <-rbind(lab_clean_final,lab_clean)
   }
-
+  # Create microbial biomass dataframe from OSU
+  lab_clean_OSU <- data.frame()
+  for(f in lab_files[grepl("OSU", lab_files)]){
+    lab_raw <- read_excel(f, sheet="Data", col_names=FALSE,
+                          na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+    lab_raw <- lab_raw %>%
+      slice(-1) %>%                                # Remove the first row
+      rename_with(~ as.character(lab_raw[2, ])) %>%  # Set column names from second row
+      slice(-1) %>%
+      select(-c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated")) %>%
+      as.data.frame
+    rename_vec <- setNames(as.character(col_map$OSU), col_map$Column.Name)
+    rename_vec <- gsub("\\.", "", rename_vec)
+    lab_clean <- lab_raw %>%
+      rename(!!!rename_vec[rename_vec %in% colnames(.)])
+    lab_clean_OSU <-rbind(lab_clean_OSU,lab_clean)
+  }
+  # If lab_clean_OSU is not empty, replace NA microbial_c values in lab_clean_final with the values from OSU lab_clean
+  if(nrow(lab_clean_OSU) >0){
+    lab_clean_final <- lab_clean_final %>%
+      left_join(
+        lab_clean_OSU %>% select(sample_id, microbial_c),
+        by = "sample_id",
+        suffix = c("", "_new")
+      ) %>%
+      mutate(
+        microbial_c = microbial_c_new
+      ) %>%
+      select(-microbial_c_new)  
+  }
+  #Filter for just projects of interest
+  pattern <- paste0("^(", paste(gsub("\\.", "\\\\.", projects), collapse = "|"), ")")
+  lab_clean_final <- lab_clean_final %>%
+    filter(grepl(pattern, sample_id))
+  
   return(lab_clean_final)
 }
 
@@ -212,13 +232,19 @@ clean_tap_soils <- function(agc_data_entry_path,
            e_depth = EdepthTarget_cm,
            b_depth_meas = Bdepth_cm,
            e_depth_meas = Edepth_cm,
+           b_depth_mic_c = MicrobialBiomassBdepth_cm,
+           e_depth_mic_c = MicrobialBiomassEdepth_cm,
+           b_depth_plfa = PLFABdepth_cm,
+           e_depth_plfa = PLFAEdepth_cm,
            position = Position,
            texture_name = Texture_infield,
            ph = pH_infield,
            rocks_g = RocksRemovedMass_g) %>%
     select(c(project_id,sample_id,plot_type,
              timepoint, sample_date, b_depth, e_depth, 
-             b_depth_meas,e_depth_meas,bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
+             b_depth_meas,e_depth_meas,b_depth_mic_c, e_depth_mic_c,
+             b_depth_plfa, e_depth_plfa,
+             bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
              rocks_g, vol_cm3
              #,sample_date_abh, abh_bio, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total
              )) %>%
