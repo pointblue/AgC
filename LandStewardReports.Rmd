@@ -157,7 +157,6 @@ cat(paste0("Note that your project includes indicators that aren’t directly re
 ```
 ```{r}
 source("ReportRef/IndicatorTable_prep.R")
-
 IndicatorTableFinal
 ```
 
@@ -165,11 +164,8 @@ IndicatorTableFinal
 The interactive map below shows the boundaries of the study area for monitoring and how sampling points are distributed. 
 ```{r}
 #spatial data was pulled in above. Use this chunk to render your map.
-
 source("ReportRef/SpatialDeisgnMap_prep.R")
-
 SpatialDesignMapFinal
-
 ```
 ```{r Dynamic text generation 1, results='asis'}
 #this section states which, if any, indicators were measured at every sampling point and removes them from the following legend table
@@ -284,26 +280,20 @@ cat("The following graph(s) compare data collected at your site to other agricul
 
 #### ~Prepping results data{.hidden}
 ```{r, include=FALSE}
-
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
 if ("bulk_density" %in% proj.indicators.SSC && params$stocks){
 source("ReportRef/StocksData_prep.R")
 }
-
 #There will always be SOC% data, no condition needed
 source("ReportRef/SOCData_prep.R")
-
 #only runs if BD is included
 if("bulk_density" %in% proj.indicators.SSC){
 source("ReportRef/BDData_prep.R")
 }
-
 #Contains internal conditions for stocks vs non-stocks
 source("ReportRef/MeansData_prep.R")
-
 #prep color palettes
 source("ReportRef/Palette_prep.R")
-
 ```
 #### SOC% Results {.hidden}
 ```{r results='asis', eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks}
@@ -334,16 +324,11 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
   cat(percentile_scentence_soc, "\n\n")
   cat(baci_soc)
 }
-
-
 ```
 ```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-    
 source("ReportRef/SOCfig_prep.R")
-
 SOCfig
-
 ```
 #### SOC Stocks Results {.hidden}
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
@@ -383,13 +368,9 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 
 ```{r warning=FALSE, fig.cap="Average soil organic carbon stocks. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values.", eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
-
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
-
 source("ReportRef/Stocksfig_prep.R")
-
 Stocksfig
-
 ```
 #### BD Results {.hidden}
 ```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
@@ -424,24 +405,18 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 ```
 ```{r eval = ("bulk_density" %in% proj.indicators.SSC), fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
-    
 source("ReportRef/BDfig_prep.R")
-
 BDfig
-
 ```
 #### Other Stocks Results {.hidden}
 ```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
-
 asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
-
 ```
 ``` {r, results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
 #Only generates if there is a stocks indicators other than SOC and SIC 
-
 asis_output(
 #CHECK this sentence sucks
 "The following graph shows **all other pools of carbon** measured in this project compared to the sum of all measured carbon pools in the study area."
@@ -449,11 +424,8 @@ asis_output(
 ```
 ```{r, eval = any(c("POC", "MAOC")%in%proj.indicators),fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
 #CHECK! for the eval statement, you'll have to add the acronyms for plant biomass for this to work properly
-
 source("ReportRef/OtherStocksfig_prep.R")
-
 OtherStocksfig
-
 ```
 #### Texture Results {.hidden}
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
@@ -478,9 +450,7 @@ if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
 ```{r, eval="Tx" %in% proj.indicators, results='asis'}
 #INSERT TEXT ABOUT TEXTURE T-C MATCH AND AVG SOIL TEXTURE
 source('ReportRef/SummaryStats_Tx.R')
-
 cat(tx_avg_sentence)
-
 if(length(unique(PointLevel$plot_type))>1){
   cat(treatment_contrast_clay)
 }
@@ -588,18 +558,13 @@ grid.arrange(imgT, imgC, ncol = 2)
   }
   
 }
-
-
 ```
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
 ```{r} 
-
 #Contains internal conditions for stocks vs non-stocks
 source("ReportRef/SummaryTable_prep.R")
-
 SummaryTable
-
 ```
 ### Dynamic maps: point-level results
 
@@ -614,9 +579,7 @@ cat("#### All measured values in", tp_lookup$year_label[1], "\n")
 ```
 ```{r leaflet_maps_firsT, results='asis', echo=FALSE, message=FALSE, warning=FALSE}
 source("ReportRef/DynamicMapFirstT_prep.R")
-      
 DynamicMap
-
 ```
 
 ```{r, results='asis', eval=length(unique(PointLevel$timepoint)) > 1}
@@ -625,7 +588,6 @@ cat("Brighter red points show a greater increase in the toggled indicator. Brigt
 ```
 ```{r, eval=length(unique(PointLevel$timepoint)) > 1}
 source("ReportRef/DynamicMapChange_prep.R")
-
 DynamicMap2
 ```
 
