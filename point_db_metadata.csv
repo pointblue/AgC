@@ -7,7 +7,11 @@ lat,Latitude,CRS WGS 84,,Latitude of soil sampling point
 long,Longitude,CRS WGS 84,,Longitude of soil sampling point
 target_depth,Target Sampling Depth,cm,0-30,Planned beginning and end depth of sample separated by -
 b_depth,Beginning Depth,cm,0,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
-e_depth,End Depth,cm,32.4,"Starting depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
+e_depth,End Depth,cm,32.4,"End depth of sample measured by technician or producer. If not entered in AgCDataEntry.csv, assumed to be the same as the target_depth"
+b_depth_mic_c,Microbial Biomass C Beginning Depth ,cm,0,Starting depth of sample for microbial biomass carbon
+e_depth_mic_c,Microbial Biomass C End Depth ,cm,30,End depth of sample for microbial biomass carbon
+b_depth_plfa,PLFA Beginning Depth,cm,0,Starting depth of sample for PLFA
+e_depth_plfa,PLFA End Depth,cm,30,End depth of sample for PLFA
 position,Sample Position,,alley; row; shoulder; NA,"Placement of the soil sample relative to perennial crop rows. Alley = between perennial rows, row = within planting rows, shoulder = slope between row and alley. Not applicable in annual crops and rangelands"
 lab_name,Lab Name,,Ward; Cquester; UCDavis; CSU,Name of lab service provider
 c_method,C Method,,Dry Combustion; LOI,Method used for soil C quantification
