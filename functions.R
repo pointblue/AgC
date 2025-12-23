@@ -52,7 +52,7 @@ fetch_lab_file <- function(data_path, projects){
 
 ## ---- clean_lab_df function ----
 
-clean_lab_df <- function(data_path, #main data directory (Z:/Soils Program/AgC Data)
+clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data)
                          projects #projects of interest
                          ){
   # Create empty df to store all results
