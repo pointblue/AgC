@@ -47,61 +47,9 @@ for(df_name in names(tap_biomass)){
   #Note: a warning message will appear if there are column names that are not yet included in our master datasheet
 lab_clean <- clean_lab_df(data_path = data_dir, 
                           projects = proj_of_int)
-  # Check for duplicated sample ids CHECK! RETURNS ALL TIME SERIES DATA AND DEPTH INCREMENTS
-  lab_clean[lab_clean$sample_id %in% lab_clean[duplicated(lab_clean$sample_id),]$sample_id,]
-  
-  #AC ADDED, Lisa check pls
-  lab_clean <- lab_clean %>%
-    group_by(sample_id, year, b_depth, e_depth) %>%
-    summarise(
-      across(everything(), ~ {
-        # if numeric, take first non-NA if exists, otherwise NA
-        if (is.numeric(.)) {
-          vals <- na.omit(.)
-          if (length(vals)) vals[1] else NA_real_
-        } else if (is.character(.)) {
-          vals <- unique(na.omit(.))
-          if (length(vals)) paste(vals, collapse = ", ") else NA_character_ 
-        } else {
-          # leave other types as-is (e.g., factor, Date) - take first
-          .[1]
-        }
-      }),
-      .groups = "drop"
-    )
-  
-  #CHECK this is a temporary solution while we figure out how to handle microbial_c depths separately 
-  lab_clean<-lab_clean %>%
-    group_by(sample_id, year) %>%
-    summarise(
-      b_depth = {
-        vals <- na.omit(b_depth)
-        if (length(unique(vals)) > 1) stop("Conflicting b_depth for sample_id ", cur_group_id())
-        if (length(vals)) vals[1] else NA_real_
-      },
-      e_depth = {
-        vals <- na.omit(e_depth)
-        if (length(unique(vals)) > 1) stop("Conflicting e_depth for sample_id ", cur_group_id())
-        if (length(vals)) vals[1] else NA_real_
-      },
-      across(-c(b_depth, e_depth), ~ {
-        if (is.numeric(.)) {
-          vals <- na.omit(.)
-          if (length(vals)) vals[1] else NA_real_
-        } else if (is.character(.)) {
-          vals <- unique(na.omit(.))
-          if (length(vals)) paste(vals, collapse = ", ") else NA_character_
-        } else {
-          .[1]  # factors, dates, etc.
-        }
-      }),
-      .groups = "drop"
-    )
-  
-  #check for duplicates after regrouping
-  lab_clean %>%
-    group_by(sample_id, year, b_depth, e_depth) %>%
-    filter(n() > 1)  # keeps only groups with duplicates
+
+  # Check for duplicated sample id/year/end depth
+  lab_clean[duplicated(lab_clean[, c("sample_id", "year", "e_depth")]), ]
 
 # TAP soils data
   #Note: a warning message will appear if there is no volume calculated for bulk density but there are some data in the BD.Vol/BD.Depth columns
