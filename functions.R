@@ -24,9 +24,12 @@ fetch_lab_file <- function(data_path, projects){
   for (fw in list_dfs[grep("Ward|Cquester",list_dfs)]) {
     target_column <- "Sample.ID"
     df <- read.csv(fw)
-    if (any(sapply(projects, \(p)
-                   any(grepl(p, df[[target_column]], fixed = TRUE))
-    ))) {
+    matching_columns <- grep(target_column, names(df), value = TRUE)
+    if (any(sapply(projects, function(p) {
+      any(sapply(matching_columns, function(col) {
+        any(grepl(p, df[[col]], fixed = TRUE))
+      }))
+    }))) {
       matching_files <- c(matching_files, fw)
     }
   }
@@ -66,16 +69,41 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
     lab <- sub(".*/([^_]+)_.*", "\\1", f)
     if(grepl("Ward",f)==TRUE){
       lab_raw<-read.csv(f)
-      rename_vec <- setNames(as.character(col_map$Ward), col_map$Column.Name) #Define ward column map
+      rename_vec <- setNames(col_map$Column.Name,as.character(col_map$Ward)) #Define ward column map
+      rename_vec <- rename_vec[!is.na(rename_vec)]
+      rename_vec <- rename_vec[!is.na(names(rename_vec))]
+      names(rename_vec) <- make.unique(names(rename_vec))
+      sample_id_col <-grep("Sample.ID", names(lab_raw), ignore.case = TRUE) #ID which column contains sample ID to delete prior identifying columns
       lab_clean <- lab_raw %>%
-        select(-c(Kind.Of.Sample:Field.ID,Date.Recd,Date.Rept,Past.Crop)) %>% #Remove extra id columns
+        select(sample_id_col[1]:ncol(lab_raw)) %>% # Remove extra identifying columns
         select(where(~ !all(is.na(.)))) %>% # Remove columns with no data
-        rename(!!!rename_vec[rename_vec %in% colnames(.)]) %>% # Rename remaining columns
+        select(-matches("lbs", ignore.case = TRUE)) %>%  # Remove columns containing "lbs"
+        rename_with(~ {
+          # This function will return a vector of new names for all columns
+          sapply(., function(col_name) {
+            # Only proceed if the column name is not NA
+            if (is.na(col_name)) return(col_name)
+            
+            new_name <- NULL
+            # Loop over possible old names in the rename map
+            for (old_name in names(rename_vec)) {
+              if (any(grepl(old_name, col_name, ignore.case = TRUE))) {
+                new_name <- rename_vec[old_name]
+                break
+              }
+            }
+            # If no match, return the original column name
+            if (is.null(new_name)) return(col_name)
+            return(new_name)
+          })
+        }) %>% 
         mutate(b_depth = round(b_depth*2.54,0), # Convert depths from in to cm 
                e_depth = round(e_depth*2.54,0))
-      if("total_n" %in% colnames(lab_clean)){ # Convert ppm to percent
+      if("total_n" %in% colnames(lab_clean)){ 
+        if(max(lab_clean$total_n, na.rm=TRUE)>100){ # Convert ppm to percent
         lab_clean <- lab_clean %>%
           mutate(total_n = total_n/10000)
+        }
       }
       if("rocks_g" %in% colnames(lab_clean)){
         lab_clean <- lab_clean %>%
@@ -96,12 +124,12 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
         rename(!!!rename_vec[rename_vec %in% colnames(.)])
     }
     #Define column names from cleaned df
-    clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
+    clean_col_names <- unname(rename_vec[rename_vec %in% colnames(lab_clean)])
     clean_col_names <- clean_col_names[!duplicated(clean_col_names)]
     
     # Check for no unexpected columns in lab raw data
     if(length(clean_col_names) != ncol(lab_clean)) {
-      message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% names(rename_vec)]))
+      message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% rename_vec]))
     }
     
     # Make sure columns are numeric, fill in NAs where blank
