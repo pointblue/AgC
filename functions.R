@@ -34,7 +34,7 @@ fetch_lab_file <- function(data_path, projects){
   list_dfs_xlsx<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.xlsx$", full.names = TRUE) #list all the CSVs in folder
   for (fosu in list_dfs_xlsx[grep("OSU",list_dfs_xlsx)]) {
     target_column <- "Customer ID"
-    df <- read_excel(fosu, sheet="Data", col_names=FALSE,
+    df <- read_excel(fosu, sheet="Report", col_names=FALSE,
                           na = c("NA", "na", "ND", "nd", "-", "--","", " "))
     df <- df %>%
       slice(-1) %>%                                # Remove the first row
@@ -130,7 +130,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
   # Create microbial biomass dataframe from OSU
   lab_clean_OSU <- data.frame()
   for(f in lab_files[grepl("OSU", lab_files)]){
-    lab_raw <- read_excel(f, sheet="Data", col_names=FALSE,
+    lab_raw <- read_excel(f, sheet="Report", col_names=FALSE,
                           na = c("NA", "na", "ND", "nd", "-", "--","", " "))
     lab_raw <- lab_raw %>%
       slice(-1) %>%                                # Remove the first row
