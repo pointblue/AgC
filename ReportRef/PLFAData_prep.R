@@ -9,8 +9,6 @@ PLFA_df <- PointLevel %>% #reformats so the dataframe is long with respect to th
         values_to = "biomass"          # new column for the values
       )%>%
   mutate(LU="AgC")
- # )%>%
-#filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
 
 
 #Define the desired order of x-axis values
