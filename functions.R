@@ -1238,13 +1238,14 @@ get_texture_info <- function(abbrev) {
 }
 
 ## ---- Render HTML Reports ----
-render_one_html <- function(project, raca_filter, author = NULL) {
+render_one_html <- function(project, raca_filter, stocks = FALSE, author = NULL) {
   #Reports will write to Z:\Soils Team\AgC Data\RenderedReports
   
   #making a list of parameters that will pass to the markdown
   p <- list(
     project_name = project, #"project_name" references the name of the parameter in the YAML header; "project" represents the current throughput of the loop
-    raca_filter = raca_filter
+    raca_filter = raca_filter,
+    stocks = stocks 
   )
   if (!missing(author)) {
     p$author <- author #only include author if user actually provided it, otherwise default will be used (Avalon, Lisa, Erika)
@@ -1259,9 +1260,9 @@ render_one_html <- function(project, raca_filter, author = NULL) {
   )
 }
 #layering that so you can pass a vector of project names to render many reports at once
-render_html_report <- function(projects, raca_filter, author = NULL){ #when projects is a project name or a vector of project names
+render_html_report <- function(projects, raca_filter, stocks = FALSE, author = NULL){ #when projects is a project name or a vector of project names
   for(project in projects){
-    render_one_html(project, raca_filter, author)
+    render_one_html(project, raca_filter, stocks, author)
   }
 }
 

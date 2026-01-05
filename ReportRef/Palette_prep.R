@@ -16,6 +16,10 @@ palette_LU <- c(
   "crop"   = "#BFAF91"
 )
 
+palette_PLFA <- c(
+  "AgC" = "gray60"
+)
+
 #some more colors to grab if desired
 "#9BA7C6"
 "#BFAF91"

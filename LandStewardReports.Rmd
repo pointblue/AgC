@@ -149,8 +149,8 @@ if (ProjectDesign$point_generation_method=="gis"){
 ```
 
 
-### Carbon indicators
-The following table includes carbon indicators that were included in this monitoring project and their corresponding acronyms that will be used in the following tables, graphs, and maps. A description of each indicator and reported units are provided. 
+### Indicators
+The following table lists carbon and other indicators that were included in this monitoring project and their corresponding acronyms that will be used in the following tables, graphs, and maps. A description of each indicator and reported units are provided. 
 ```{r, , results='asis'}
 if ("Extra" %in% proj.indicator.table$Status){
 cat(paste0("Note that your project includes indicators that aren’t directly related to carbon dynamics. These indicators provide additional information about site dynamics but aren’t covered in the ", proj.protocol,  " handbook."))}
@@ -330,6 +330,43 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 source("ReportRef/SOCfig_prep.R")
 SOCfig
 ```
+#### PLFA Results {.hidden}
+```{r results='asis', eval = (all_of("fung_bio", "bact_bio") %in% proj.indicators.SSC)}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+asis_output("### Phospholipid Fatty Acid Results\\n") #CONDITIONAL HEADER
+```
+PLFA (phospholipid fatty acid) analysis measures the microbial community in soil by analyzing signature molecules from bacterial, fungal, and other microbes. It provides insights into community composition and soil biological activity, which are key indicators of soil health.
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+
+source("ReportRef/SummaryStats_PLFA.R")
+
+#UPDATE#
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence_soc)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+  cat(percentile_scentence_soc, "\n\n")
+  cat(time_change_soc)
+}
+
+if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(percentile_scentence_soc, "\n\n")
+  cat(treatment_contrast_soc)
+}
+
+if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+  cat(percentile_scentence_soc, "\n\n")
+  cat(baci_soc)
+}
+```
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+source("ReportRef/PLFAfig_prep.R")
+PLFAfig
+```
+
 #### SOC Stocks Results {.hidden}
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
 #CHECK! Here's the eval statement if you want to re-activate this chunk: "bulk_density" %in% proj.indicators.SSC && params$stocks
