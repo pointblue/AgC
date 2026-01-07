@@ -260,10 +260,42 @@ tp_lookup<- timepoint_dates %>%
 
 ```
 This monitoring project includes `r length(unique(PointLevel$timepoint))` timepoint(s) of data. `r timepoint_sentence` Continued monitoring can provide additional insight into the long-term impact of your conservation practice(s). 
-```{r, baseline only statement, results='asis'}
+```{r, baseline statements, results='asis'}
 if ((length(unique(PointLevel$timepoint)) == 1) && (unique(PointLevel$timepoint) == "T0")){
-  cat("\\n Note that results shown in this report are for the **baseline timepoint only**. This means that these data are a starting point for assessing conditions prior to management change and no impact from conservation practices is shown.")
+  cat("\\n Note that results shown in this report are for the **baseline timepoint only**. This means that these results are a starting point for assessing conditions prior to management change and no impact from conservation practices is shown.")
 }
+
+#separate statement for projects with no baseline or time series
+if ((length(unique(PointLevel$timepoint)) == 1 && unique(PointLevel$timepoint)=="T1")){
+    cat("\\n Note that monitoring for this site began after conservation practices were implemented. Over time, continued monitoring may show changes due to conservation, but the full impact of the practice(s) won't be captured. ")
+}
+#And another for no baseline with time series
+if ((length(unique(PointLevel$timepoint)) > 1 & "T0" %in% PointLevel$timepoint == FALSE)){
+    cat("\\n Note that monitoring for this site began after conservation practices were implemented. Repeated monitoring may reveal continued changes since implementation, but the full impact of the practice(s) is not captured by these results.")
+}
+```
+```{r, remonitoring interval statement, results='asis'}
+if (length(unique(PointLevel$timepoint))>1){
+
+timediff<-tp_lookup$sample_date[length(tp_lookup$sample_date)] - tp_lookup$sample_date[1]
+current_interval<-round(as.numeric(timediff)/365) 
+
+if (proj.protocol == "Crop-C"){
+rec_interval <- min(pract_codes$Interval_Crop[match(practs_vec, pract_codes$Abbreviation)])
+}else {
+  rec_interval <- min(pract_codes$Interval_Range[match(practs_vec, pract_codes$Abbreviation)])
+}
+
+cat("\\n We expect to see increased soil organic carbon from your conservation practice", rec_interval, "year(s) after implementation. The first and last monitoring timepoint for this project are", current_interval, "year(s) apart.")
+
+if (current_interval >= rec_interval){
+  cat("We expect this timeframe to be sufficient for detecting change.")
+} else {
+  cat("**This monitoring timeframe may be too soon to detect change from the conservation practice.**")
+}
+
+}
+
 ```
 
 ## Results
@@ -282,18 +314,27 @@ cat("The following graph(s) compare data collected at your site to other agricul
 ```{r, include=FALSE}
 #This will only evaluate if there is bulk density AND  the user opted to show stocks in the report
 if ("bulk_density" %in% proj.indicators.SSC && params$stocks){
-source("ReportRef/StocksData_prep.R")
+  source("ReportRef/StocksData_prep.R")
 }
+
 #There will always be SOC% data, no condition needed
 source("ReportRef/SOCData_prep.R")
+
 #only runs if BD is included
 if("bulk_density" %in% proj.indicators.SSC){
-source("ReportRef/BDData_prep.R")
+  source("ReportRef/BDData_prep.R")
 }
+
 #Contains internal conditions for stocks vs non-stocks
 source("ReportRef/MeansData_prep.R")
+
 #prep color palettes
 source("ReportRef/Palette_prep.R")
+
+#prep PLFA data if needed
+if (all(c("bact_bio", "fung_bio") %in% proj.indicators.SSC)) {
+source("ReportRef/PLFAData_prep.R")
+}
 ```
 #### SOC% Results {.hidden}
 ```{r results='asis', eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks}
@@ -331,40 +372,42 @@ source("ReportRef/SOCfig_prep.R")
 SOCfig
 ```
 #### PLFA Results {.hidden}
-```{r results='asis', eval = (all_of("fung_bio", "bact_bio") %in% proj.indicators.SSC)}
+```{r results='asis', eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC))}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 asis_output("### Phospholipid Fatty Acid Results\\n") #CONDITIONAL HEADER
+
+cat("PLFA (phospholipid fatty acid) analysis measures the microbial community in soil by analyzing signature molecules from bacterial, fungal, and other microbes. It provides insights into community composition and soil biological activity, which are key indicators of soil health.")
 ```
-PLFA (phospholipid fatty acid) analysis measures the microbial community in soil by analyzing signature molecules from bacterial, fungal, and other microbes. It provides insights into community composition and soil biological activity, which are key indicators of soil health.
+
 ```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 
-source("ReportRef/SummaryStats_PLFA.R")
+#source("ReportRef/SummaryStats_PLFA.R")
 
 #UPDATE#
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
-  cat(percentile_scentence_soc)
-}
+#if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+#  cat(percentile_scentence_soc)
+#}
 
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
-  cat(percentile_scentence_soc, "\n\n")
-  cat(time_change_soc)
-}
+#if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+#  cat(percentile_scentence_soc, "\n\n")
+#  cat(time_change_soc)
+#}
 
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
-  cat(percentile_scentence_soc, "\n\n")
-  cat(treatment_contrast_soc)
-}
+#if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+#  cat(percentile_scentence_soc, "\n\n")
+#  cat(treatment_contrast_soc)
+#}
 
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
-  cat(percentile_scentence_soc, "\n\n")
-  cat(baci_soc)
-}
+#if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+#  cat(percentile_scentence_soc, "\n\n")
+#  cat(baci_soc)
+#}
 ```
 ```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-source("ReportRef/PLFAfig_prep.R")
-PLFAfig
+#source("ReportRef/PLFAfig_prep.R")
+#PLFAfig
 ```
 
 #### SOC Stocks Results {.hidden}
