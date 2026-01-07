@@ -286,7 +286,7 @@ rec_interval <- min(pract_codes$Interval_Crop[match(practs_vec, pract_codes$Abbr
   rec_interval <- min(pract_codes$Interval_Range[match(practs_vec, pract_codes$Abbreviation)])
 }
 
-cat("\\n We expect to see increased soil organic carbon from your conservation practice", rec_interval, "year(s) after implementation. The first and last monitoring timepoint for this project are", current_interval, "year(s) apart.")
+cat("\\n We expect to see increased soil organic carbon from your conservation practice", rec_interval, "year(s) after implementation. The first and last monitoring timepoint for this project are", current_interval, "year(s) apart. ")
 
 if (current_interval >= rec_interval){
   cat("We expect this timeframe to be sufficient for detecting change.")
@@ -376,10 +376,10 @@ SOCfig
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 asis_output("### Phospholipid Fatty Acid Results\\n") #CONDITIONAL HEADER
 
-cat("PLFA (phospholipid fatty acid) analysis measures the microbial community in soil by analyzing signature molecules from bacterial, fungal, and other microbes. It provides insights into community composition and soil biological activity, which are key indicators of soil health.")
+cat("PLFA (phospholipid fatty acid) analysis measures the microbial community in soil by analyzing signature molecules from bacterial, fungal, and other microbes. It provides insights into community composition and soil biological activity, which are key indicators of soil health. PLFA data can be analyzed in several ways, but looking at combined microbial biomass and fungal to bacterial ratios is common. Higher microbial biomass is associated with greater microbial activity and nutrient cycling, while a higher fungal to bacterial ratio is associated with greater organic matter stabilization and improved soil structure.")
 ```
 
-```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
+```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), results = 'asis'}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 
 #source("ReportRef/SummaryStats_PLFA.R")
@@ -404,10 +404,13 @@ cat("PLFA (phospholipid fatty acid) analysis measures the microbial community in
 #  cat(baci_soc)
 #}
 ```
-```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
+```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), fig.cap="Average combined microbial biomass. The error bars around average values show the range of confidence based on data variability (95% confidence intervals)."}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-#source("ReportRef/PLFAfig_prep.R")
-#PLFAfig
+source("ReportRef/PLFAfig_prep.R")
+PLFAfig_biomass
+```
+```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), fig.cap="Average fungal to bacterial ratio. The error bars around average values show the range of confidence based on data variability (95% confidence intervals)."}
+PLFAfig_ratio
 ```
 
 #### SOC Stocks Results {.hidden}
