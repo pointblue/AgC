@@ -1,7 +1,25 @@
 #Prepping PLFA figure for LandStewardReports
 
+#Prepping ratio benchmark values
+
+Ratio_benchmarks <- data.frame(
+  LU = c("conv_crop", "ann_past", "peren_past", "orchard"),
+  Ratio = c(0.1, 0.3, 0.8, 2)
+)
+
+
 #Begin graph 1
 PLFAfig_ratio<-ggplot(PLFA_df, aes(x = timepoint, y = Ratio))+
+  
+  geom_hline(
+    data = Ratio_benchmarks%>%filter(LU != "orchard"),
+    aes(yintercept = Ratio, color = LU),
+    inherit.aes = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  )+
+
+
   
   #Jittered black points
   geom_point(aes(color = LU),
@@ -58,15 +76,28 @@ PLFAfig_ratio<-ggplot(PLFA_df, aes(x = timepoint, y = Ratio))+
   #Legend settings for sampling points
   scale_color_manual(
     name = "",
-    values = c(palette_plot_type, palette_PLFA),
-    breaks = c("T", "C", "raca", "AgC"),
+    values = c(palette_plot_type, 
+               palette_PLFA,
+               conv_crop  = "#C9971A",
+               ann_past   = "#A67FA4",
+               peren_past = "#9FBF88",
+               orchard    = "#2C6E6F"),
+    breaks = c(
+      "T", "C", "raca", "AgC",
+      "conv_crop", "ann_past", "peren_past", "orchard"
+    ),
     labels = c(
       str_wrap("Treated site average", width = 21),
       str_wrap("Control site average", width = 21),
       str_wrap(paste0(ecoregion, " average"), width = 21),
-      "Ag-C sampling point"
+      "Ag-C sampling point",
+      "Typical tilled cropland",
+      "Typical annual pasture",
+      "Typical perennial pasture",
+      "Typical orchard"
     )
   ) +
+  
   
   #Labels, axes, theme
   labs(
