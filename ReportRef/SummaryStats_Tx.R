@@ -12,7 +12,8 @@ texture <- PointLevel %>%
   rename(SAND=sand, SILT=silt, CLAY=clay) %>%
   filter(!is.na(CLAY)) %>%
   filter(!is.na(SAND)) %>%
-  filter(!is.na(SILT))
+  filter(!is.na(SILT))%>%
+  mutate(across(c(CLAY, SAND, SILT), as.numeric))
 
 texture_avg <- texture %>%
   group_by(plot_type)%>%
@@ -53,20 +54,24 @@ avg_tx_c<-get_texture_info(texture_avg_list$C$USDA_texture)$full_name
 } else{tx_avg_sentence<-paste0("The average texture type in the treated plot is **", avg_tx_t, "**. ")}
 
   
-    ### ---- Comparing %Clay, T&C ----
+    ### ---- Comparing %Clay%Silt, T&C ----
     
+  texture<-texture%>%mutate(
+    siltclay=SILT+CLAY
+  )
+
     #Treatment contrast
     if (length(unique(PointLevel$plot_type))>1){
-    model <- lm(CLAY ~ plot_type, data = texture)
+    model <- lm(siltclay ~ plot_type, data = texture)
     anova(model)
     emm <- emmeans(model, ~ plot_type)
-    treatment_contrast_clay<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C")) %>%
+    treatment_contrast_siltclay<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C")) %>%
       as.data.frame()%>%
       mutate(
         text = case_when(
-          p.value < 0.05 & estimate > 0 ~ "The treated plot has more clayey soils than the control. This difference can impact the way the two plots store carbon over time.",
-          p.value < 0.05 & estimate < 0 ~ "The treated plot has less clayey soils than the control. This difference can impact the way the two plots store carbon over time.",
-          TRUE ~ "There is **no significant difference** in clay content between the treated and control sites. This means that the sites are well-matched, making interpretation of future results straightforward."
+          p.value < 0.05 & estimate > 0 ~ "The treated plot has finer textured soils than the control. This difference can impact the way the two plots store carbon over time.",
+          p.value < 0.05 & estimate < 0 ~ "The treated plot has courser textured soils than the control. This difference can impact the way the two plots store carbon over time.",
+          TRUE ~ "There is **no significant difference** in fine particle content between the treated and control sites. This means that the sites are well-matched, making interpretation of future results straightforward."
         )
       )%>%
       pull(text) %>%          # get vector of strings

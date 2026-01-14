@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: MERC.24.LI
+  project_name: MAAN.26.SC
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -110,6 +110,7 @@ if ("Tx" %in% proj.indicators) { #create a vector of value names that match the 
 ```
 
 # `r proj.propertyname` {.unlisted .unnumbered}
+#### Project Code: `r FieldLevel$project_name[1]` {.unlisted .unnumbered}
 #### Conservation practice(s): `r proj.practicetype` {.unlisted .unnumbered}
 
 ## Background
@@ -275,18 +276,25 @@ if ((length(unique(PointLevel$timepoint)) > 1 & "T0" %in% PointLevel$timepoint =
 }
 ```
 ```{r, remonitoring interval statement, results='asis'}
-if (length(unique(PointLevel$timepoint))>1){
-
-timediff<-tp_lookup$sample_date[length(tp_lookup$sample_date)] - tp_lookup$sample_date[1]
-current_interval<-round(as.numeric(timediff)/365) 
-
 if (proj.protocol == "Crop-C"){
 rec_interval <- min(pract_codes$Interval_Crop[match(practs_vec, pract_codes$Abbreviation)])
 }else {
   rec_interval <- min(pract_codes$Interval_Range[match(practs_vec, pract_codes$Abbreviation)])
 }
 
-cat("\\n We expect to see increased soil organic carbon from your conservation practice", rec_interval, "year(s) after implementation. The first and last monitoring timepoint for this project are", current_interval, "year(s) apart. ")
+if (proj.protocol == "Crop-C"){
+impact_pract <- (pract_codes[match(practs_vec, pract_codes$Abbreviation),]%>%arrange(Interval_Crop))[1,1]
+}else {
+  impact_pract <- (pract_codes[match(practs_vec, pract_codes$Abbreviation),]%>%arrange(Interval_Range))[1,1]
+}
+
+
+if (length(unique(PointLevel$timepoint))>1){
+
+timediff<-tp_lookup$sample_date[length(tp_lookup$sample_date)] - tp_lookup$sample_date[1]
+current_interval<-round(as.numeric(timediff)/365) 
+
+cat("\\n We expect to see increased soil organic carbon from your conservation practice ", rec_interval, " year(s) after implementation of the most impactful practice at your site:", impact_pract,". The first and last monitoring timepoint for this project are ", current_interval, " year(s) apart.", sep = "")
 
 if (current_interval >= rec_interval){
   cat("We expect this timeframe to be sufficient for detecting change.")
@@ -294,6 +302,12 @@ if (current_interval >= rec_interval){
   cat("**This monitoring timeframe may be too soon to detect change from the conservation practice.**")
 }
 
+}
+
+if (length(unique(PointLevel$timepoint))==1 && (unique(PointLevel$timepoint) == "T0")){
+
+cat("\\n We expect to see increased soil organic carbon from your conservation practice ", rec_interval, " year(s) after implementation of the most impactful practice at your site: ", impact_pract,".", sep = "") 
+  
 }
 
 ```
@@ -305,7 +319,7 @@ source("ReportRef/RaCAData_prep.R")
 ```{r, results='asis'}
 cat("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: ", 
        ecoregion,
-       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration."
+       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration.", sep=""
 
 )
 ```
@@ -528,14 +542,14 @@ if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
 }
 
 ```
-<br>
+
 <br>
 ```{r, eval="Tx" %in% proj.indicators, results='asis'}
 #INSERT TEXT ABOUT TEXTURE T-C MATCH AND AVG SOIL TEXTURE
 source('ReportRef/SummaryStats_Tx.R')
 cat(tx_avg_sentence)
 if(length(unique(PointLevel$plot_type))>1){
-  cat(treatment_contrast_clay)
+  cat(treatment_contrast_siltclay)
 }
 ```
 
@@ -565,7 +579,7 @@ TT.plot(
 # z.col.hue = 0.4,
 # z.pch = 1,
  arrows.lty='blank',
- new.mar =c(5.1, 0.1, 0.02, 0.1) #bottom, left, top, right
+ new.mar =c(5.1, 0.1, 0.02, 1) #bottom, left, top, right
 ) 
   }
   
@@ -593,6 +607,7 @@ TextureT_path <- file.path(temp_dir, "TextureT")
 TextureC_path <- file.path(temp_dir, "TextureC")
          
 png(TextureT_path)
+par(mar = c(0.5, 0.5, 1, 0.5))
 TT.plot(
   class.sys = "USDA.TT",
   tri.data = texture_T,
@@ -614,6 +629,7 @@ TT.plot(
 dev.off()
 
 png(TextureC_path)
+par(mar = c(0.5, 0.5, 1, 0.5))
 TT.plot(
   class.sys = "USDA.TT",
   tri.data = texture_C,
