@@ -2,6 +2,7 @@
 project_id,Project ID,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
 ranch_name,Ranch name,Full name of ranch or farm
 ranch_code,Ranch code,First 4 letters of ranch name
+rangec_cropc,Range-C or Crop-C,Indicate whether the project is following the Range-C or Crop-C protocol
 proj_practice_year,Year of practice implementation,Conservation practice implementation year
 conservation_practice,Conservation practice(s),List of conservation practices implemented within project; see options in practice_abbreviations.csv
 indicators,Indicators measured,List of indicators measured
@@ -33,6 +34,8 @@ ahb_num_samples,Number of aboveground herbaceous biomass samples,Number of sampl
 awb_num_samples,Number of aboveground woody biomass samples,Number of samples taken for aboveground woody biomass analysis
 ph_num_samples,Number of pH samples,Number of samples taken for pH analysis
 tx_num_samples,Number of texture samples,Number of samples taken for soil texture analysis
-soc_sampling_depth,SOC sampling depth,Max sampling depth
-soc_depth_increments,SOC depth increments,Number of depth increments
+soc_sampling_depth,SOC sampling depth,Max sampling depth for soil carbon
+soc_depth_increments,SOC depth increments,Number of depth increments for soil carbon
+bd_sampling_depth,Bulk Density sampling depth,Max sampling depth for bulk density
+bd_depth_increments,Bulk Density depth increments,Number of depth increments for bulk density
 inference_score,Ag-C inference score,Inference score calculated using Crop-C or Range-C protocol

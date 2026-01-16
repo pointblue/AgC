@@ -1,17 +1,17 @@
-﻿Practice,Abbreviation,Interval_Range,Interval_Crop
-Soil carbon amendments,SC,1,2
-Windbreak/shelterbelt establishment,WS,NA,3
-Hedgerow planting,HR,NA,3
-Living groundcover,LG,NA,5
-Mulching,MU,NA,5
-Livestock integration,LI,NA,5
-Reduced till / no till,RT,NA,7
-Cover crops,CC,NA,7
-Tree/shrub/vine establishment,TE,NA,8
-Crop rotations,CR,NA,8
-Windbreaks/hedgerows,WH,3,NA
-Conversion to rangeland,CR,3,NA
-Riparian restoration,RR,5,NA
-Range planting,RP,5,NA
-Upland tree planting,UP,10,NA
-Prescribed grazing,PG,10,NA
+﻿Practice,Abbreviation,Interval_Range,Interval_Crop,Range_Ranking,Prac_Ranking,Crop_Range
+Soil carbon amendments,SC,1,2,1,1,"Crop, Range"
+Windbreak/shelterbelt establishment,WS,NA,3,NA,4,Crop
+Hedgerow planting,HR,NA,3,NA,5,Crop
+Living groundcover,LG,NA,5,NA,6,Crop
+Mulching,MU,NA,5,NA,7,Crop
+Livestock integration,LI,NA,5,NA,8,Crop
+Reduced till / no till,RT,NA,7,NA,10,Crop
+Cover crops,CC,NA,7,NA,11,Crop
+Tree/shrub/vine establishment,TE,NA,8,NA,12,Crop
+Crop rotations,CR,NA,8,NA,14,Crop
+Windbreaks/hedgerows,WH,3,NA,2,2,Range
+Conversion to rangeland,CR,3,NA,3,3,Range
+Riparian restoration,RR,5,NA,4,9,Range
+Range planting,RP,5,NA,5,13,Range
+Upland tree planting,UP,10,NA,7,16,Range
+Prescribed grazing,PG,10,NA,6,15,Range
