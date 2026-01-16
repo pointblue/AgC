@@ -51,7 +51,7 @@ BaseMap <- leaflet() %>%
     pal = pal,
     values = border$plot_type,
     title = "Plot Type",
-    position = "bottomleft",
+    position = "topleft",
     labFormat = function(type, cuts, p) {
       c("Treatment", "Control")[match(cuts, c("T", "C"))]
     }

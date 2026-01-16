@@ -1,5 +1,28 @@
 #Prepping project means for LandSteward Reports
 
+#Starting the process for converting ppm to lbs/acre for relevant indicators
+if ('lbs/acre' %in% proj.indicator.table$UnitsTable && "BD" %in% proj.indicator.table$Acronym){
+  
+  #identify indicators that need to be converted
+  to_convert<-proj.indicator.table$CheckCol[
+    !is.na(proj.indicator.table$UnitsTable) &
+      proj.indicator.table$UnitsTable == "lbs/acre"
+  ]  
+
+  #dynamically create the new column names needed
+  cols_lbs<-sub("_ppm$", "_lbs.acre", to_convert)
+  
+  #add them as empty columns to PointLevel
+  PointLevel[cols_lbs] <- NA
+  
+  #populate values based on conversion
+  
+  PointLevel[cols_lbs] <- PointLevel[to_convert] * PointLevel$bulk_density * (PointLevel$e_depth-PointLevel$b_depth) * 0.224
+  
+  
+  }
+
+
 #First, if stocks are included
 if ("bulk_density" %in% proj.indicators.SSC && params$stocks){
   Project.Means <- PointLevel %>%
