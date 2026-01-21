@@ -2,8 +2,11 @@
 
 #prep bd dataframe
 bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, bulk_density)%>%
-  mutate(LU="AgC")%>%
+  select(sample_id, timepoint, plot_type, bulk_density, position) %>%
+  { if (all(is.na(.$position))) select(., -position) else . } %>%  
+  mutate(
+    LU = if ("position" %in% names(.)) position else "AgC"
+  )%>%
   bind_rows( #bind project stocks df to the raca dataset
     raca_data %>%
       mutate(
@@ -15,7 +18,7 @@ bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the 
         .keep = "none"   # keep only these renamed columns
       )
   )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+  filter(LU %in% c("AgC", "Row", "alley",  params$raca_filter)) #filter out values that don't match the correct land use type
 
 #prep NRCS categories based on texture class
 texture <- PointLevel %>% 
@@ -65,3 +68,4 @@ bd_bands <- data.frame(
 #Define the desired order of facets (needs to be done for both datasets)
 bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
 bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
+

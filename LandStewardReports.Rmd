@@ -16,7 +16,7 @@ output:
     self_contained: true
 dev: png
 params:
-  project_name: MAAN.26.SC
+  project_name: MERC.24.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"

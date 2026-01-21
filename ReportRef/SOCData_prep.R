@@ -2,8 +2,15 @@
 
 #prep soc dataframe
 soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select (sample_id, timepoint, plot_type, org_c)%>%
-  mutate(LU="AgC")%>%
+  {
+    #if there is no value for position, "AgC" will distinguish from RaCA crop or range
+    if (all(is.na(.$position))) {
+      mutate(LU = "AgC")
+    } else {
+      mutate(., LU = position)
+    }
+  } %>%
+  select(sample_id, timepoint, plot_type, org_c, LU) %>%
   bind_rows( #bind project stocks df to the raca dataset
     raca_data %>%
       mutate(
@@ -15,7 +22,16 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
         .keep = "none"   #drop all other columns
       )
   )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+  filter(LU %in% c("AgC", "Row", "alley",  params$raca_filter))%>% #filter out values that don't match the correct land use type
+  #mutate( dataset = 
+  #  case_when( 
+  #    LU %in% c("crop", "range") ~ "raca",
+  #    LU %in% c("alley", "Row", "AgC") ~ "AgC"
+  #  )
+  #)
+  mutate(
+    avgcol = "avg"
+  )
 
 
 #Define the desired order of x-axis values

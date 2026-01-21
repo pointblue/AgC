@@ -69,18 +69,19 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
     size = 3.5
   )+
   
-  #Legend settings for sampling points
   scale_color_manual(
     name = "",
     values = c(palette_plot_type, palette_LU),
-    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    breaks = c("T", "C", "raca", "AgC", "range", "crop", "alley", "Row"),
     labels = c(
       str_wrap("Treated site average", width = 21),
       str_wrap("Control site average", width = 21),
       str_wrap(paste0(ecoregion, " average"), width = 21),
       "AgC project sampling point",
       "RaCA rangeland sampling point",
-      "RaCA cropland sampling point"
+      "RaCA cropland sampling point",
+      "Alley sampling point",
+      "Row sampling point"
     )
   ) +
   
