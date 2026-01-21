@@ -32,7 +32,7 @@ Stocksfig<-ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
       )
     },
     geom = "pointrange",
-    aes(color = plot_type),
+    aes(color = avgcol),
     size = 0.7, #size of dot
     linewidth = 1.5, #thickness of CI line
     shape = 16
@@ -47,21 +47,21 @@ Stocksfig<-ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
   scale_color_manual(
     name = "",
     values = c(palette_plot_type, palette_LU),
-    breaks = c("T", "C", "raca", "AgC", "range", "crop"),
+    breaks = c("avg", "AgC", "range", "crop", "alley", "Row"),
     labels = c(
-      str_wrap("Treated site average", width = 21),
-      str_wrap("Control site average", width = 21),
-      str_wrap(paste0(ecoregion, " average"), width = 21),
-      "AgC project sampling point",
-      "RaCA rangeland sampling point",
-      "RaCA cropland sampling point"
+      str_wrap("Plot average", width = 21),
+      "AgC sampling point",
+      str_wrap("RaCA rangeland sampling point", width=21),
+      str_wrap("RaCA cropland sampling point", width=21),
+      "Alley sampling point",
+      "Row sampling point"
     )
   ) +
   
   #Custom x-axis labels
   scale_x_discrete(labels = c(
     setNames(tp_lookup$year_label, tp_lookup$timepoint),
-    "Reference" = "Reference (2010)"
+    "Reference" = "2010"
   )) +
   
   # Text labels for means
@@ -79,9 +79,18 @@ Stocksfig<-ggplot(SOC_stocks_df, aes(x = timepoint, y = Tons.Acre)) +
   )+
   
   # Facet by plot type
-  facet_wrap(~plot_type, scales="free_x") +
+  facet_wrap(~plot_type, scales="free_x",
+             labeller = as_labeller(c(
+               `T` = "Treatment",
+               C = "Control",
+               raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
+             ))
+  ) +
+  
   theme_minimal() +
   
-  theme(strip.text = element_blank())+
+  theme(
+    strip.text = element_text(face = "bold", size=12)
+  )+
   
   expand_limits(y=0)

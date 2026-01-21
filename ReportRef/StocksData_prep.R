@@ -33,26 +33,36 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
     names_to = "Stocks_Indicator",          # Name for the new column
     values_to = "Tons.Acre"              # values to populate the new column
   ) %>%
-  mutate(LU="AgC")%>%
+  {
+    #if there is no value for position, "AgC" will distinguish from RaCA crop or range
+    if (all(is.na(.$position))) {
+      mutate(LU = "AgC")
+    } else {
+      mutate(., LU = position)
+    }
+  } %>%
   bind_rows( #bind project stocks df to the raca dataset
     raca_data %>%
       mutate(
         sample_id = rcasiteid,
         Tons.Acre = SOCstock*0.446092,
         plot_type = "raca",
-        timepoint = "Reference (2010)",
+        timepoint = "2010",
         Stocks_Indicator = "org_c_stocks",
         LU=LU,
         .keep = "none"   # keep only these renamed columns
       )
   )%>%
-  filter(LU %in% c("AgC",   params$raca_filter)) #filter out values that don't match the correct land use type
+  filter(LU %in% c("AgC", "Row", "alley", params$raca_filter)) #filter out values that don't match the correct land use type
 
 #SOC stocks graphic comparing to RaCa baselines
 SOC_stocks_df<-stocks_df%>%
   filter(Stocks_Indicator=="org_c_stocks", #filter the stocks df for only SOC (including raca)
-         LU %in% c("AgC",   params$raca_filter) #this includes raca values from whatever LU types were included in the render function
-  ) 
+         LU %in% c("AgC", "Row", "alley", params$raca_filter) #this includes raca values from whatever LU types were included in the render function
+  ) %>%
+  select(sample_id, timepoint, plot_type, Tons.Acre, LU)%>%
+  mutate(avgcol = "avg") #adding this column is necessary to get one legend entry for all average values across trt, ctrl, and raca
 
 #Define the desired order of x-axis values
 SOC_stocks_df$plot_type <- factor(SOC_stocks_df$plot_type, levels = c("T", "C", "raca"))
+

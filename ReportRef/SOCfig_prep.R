@@ -92,7 +92,6 @@ SOCfig<-ggplot(soc_df, aes(x = timepoint, y = org_c))+
   theme_minimal() +
   
   theme(
-    #strip.placement = "outside",
     strip.text = element_text(face = "bold", size=12)
   )+
   

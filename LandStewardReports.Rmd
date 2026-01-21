@@ -355,7 +355,7 @@ source("ReportRef/PLFAData_prep.R")
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 asis_output("### Soil organic carbon concentrations\\n") #CONDITIONAL HEADER
 ```
-```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis'}
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stocks, results = 'asis', warning=FALSE}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 
 source("ReportRef/SummaryStats_SOC.R")

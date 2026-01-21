@@ -17,23 +17,15 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
         sample_id = rcasiteid,
         org_c = SOC_perc,
         plot_type = "raca",
-        timepoint = "Reference (2010)",
+        timepoint = "2010",
         LU=LU,
         .keep = "none"   #drop all other columns
       )
   )%>%
   filter(LU %in% c("AgC", "Row", "alley",  params$raca_filter))%>% #filter out values that don't match the correct land use type
-  #mutate( dataset = 
-  #  case_when( 
-  #    LU %in% c("crop", "range") ~ "raca",
-  #    LU %in% c("alley", "Row", "AgC") ~ "AgC"
-  #  )
-  #)
-  mutate(
-    avgcol = "avg"
-  )
+  mutate(avgcol = "avg") #adding this column is necessary to get one legend entry for all average values across trt, ctrl, and raca
 
 
 #Define the desired order of x-axis values
 soc_df$plot_type <- factor(soc_df$plot_type, levels = c("T", "C", "raca"))
-soc_df$timepoint <- factor(soc_df$timepoint, levels = c("T0","T1","T2","Reference (2010)"))
+soc_df$timepoint <- factor(soc_df$timepoint, levels = c("T0","T1","T2","2010"))

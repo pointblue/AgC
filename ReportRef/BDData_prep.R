@@ -2,23 +2,28 @@
 
 #prep bd dataframe
 bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the carbon stock pool
-  select(sample_id, timepoint, plot_type, bulk_density, position) %>%
-  { if (all(is.na(.$position))) select(., -position) else . } %>%  
-  mutate(
-    LU = if ("position" %in% names(.)) position else "AgC"
-  )%>%
+  {
+    #if there is no value for position, "AgC" will distinguish from RaCA crop or range
+    if (all(is.na(.$position))) {
+      mutate(LU = "AgC")
+    } else {
+      mutate(., LU = position)
+    }
+  } %>%
+  select(sample_id, timepoint, plot_type, bulk_density, LU) %>%
   bind_rows( #bind project stocks df to the raca dataset
     raca_data %>%
       mutate(
         sample_id = rcasiteid,
         bulk_density = BD,
         plot_type = "raca",
-        timepoint = "Reference 2010",
+        timepoint = "2010",
         LU=LU,
-        .keep = "none"   # keep only these renamed columns
+        .keep = "none"   #drop all other columns
       )
   )%>%
-  filter(LU %in% c("AgC", "Row", "alley",  params$raca_filter)) #filter out values that don't match the correct land use type
+  filter(LU %in% c("AgC", "Row", "alley",  params$raca_filter))%>% #filter out values that don't match the correct land use type
+  mutate(avgcol = "avg") #adding this column is necessary to get one legend entry for all average values across trt, ctrl, and raca
 
 #prep NRCS categories based on texture class
 texture <- PointLevel %>% 
@@ -40,7 +45,6 @@ texture_avg$USDA_texture <- TT.points.in.classes(
 )
 
 av_tx_abv <- colnames(texture_avg$USDA_texture)[texture_avg$USDA_texture == 1]
-
 avg_tx_info<-get_texture_info(av_tx_abv)
 
 #prep threshhold bands dataframe
