@@ -720,16 +720,16 @@ clean_tap_biomass <- function(agc_data_entry_path,
       mutate(across(c(Area_cm2:DryMass_g), as.numeric)) %>%
       select(ProjectID,PointID, Timepoint, SamplingDate, Area_cm2,DryMass_g)
     abh_clean <- abh_clean %>% #Calculate aboveground herb biomass
-      mutate(abh_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
+      mutate(ahb_bio = DryMass_g/1000/(Area_cm2/100000000) #calculate biomass in kg/ha
       ) %>%
-      mutate(abh_plot_area = Area_cm2/10000) %>%
-      select(ProjectID,PointID,Timepoint,SamplingDate,abh_plot_area,abh_bio) %>%
+      mutate(ahb_plot_area = Area_cm2/10000) %>%
+      select(ProjectID,PointID,Timepoint,SamplingDate,ahb_plot_area,ahb_bio) %>%
       rename(project_id = ProjectID,
              sample_id = PointID,
              timepoint = Timepoint,
-             sample_date_abh = SamplingDate) %>%
-      group_by(project_id,sample_id, timepoint, sample_date_abh, abh_plot_area) %>%
-      summarise(abh_bio = mean(abh_bio, na.rm = TRUE))
+             sample_date_ahb = SamplingDate) %>%
+      group_by(project_id,sample_id, timepoint, sample_date_ahb, ahb_plot_area) %>%
+      summarise(ahb_bio = mean(ahb_bio, na.rm = TRUE))
   }
     
   # Herbaceous root biomass: Clean df and calculations
@@ -981,21 +981,30 @@ clean_tap_biomass <- function(agc_data_entry_path,
     as.data.frame
   
   #Create field-level biomass dataframe 
-  add_missing <- function(df) {
-    missing <- setdiff(field_meta, colnames(df))
-    df[missing] <- NA
-    df
+  if(any(sapply(c("abw_plot_res","abw_pcq_res","abw_lch_res"),exists))){
+    add_missing <- function(df) {
+      missing <- setdiff(field_meta, colnames(df))
+      df[missing] <- NA
+      df
+    }
+    df_names <- c("abw_plot_res","abw_pcq_res","abw_lch_res")
+    existing_df_names <- df_names[sapply(df_names, exists)]
+    dfs <- mget(existing_df_names)
+    dfs2 <- lapply(dfs, add_missing)
+    all_rows <- bind_rows(dfs2) %>%
+      select(all_of(field_meta))
+    field_res <- all_rows %>%
+      group_by(project_id,plot_type, timepoint) %>%
+      summarise(across(everything(), ~ first(na.omit(.))), .groups = "drop") %>%
+      as.data.frame
+  } else{
+    field_res <- data.frame(
+      matrix(NA, nrow = length(projects), ncol = length(field_meta)),
+      stringsAsFactors = FALSE)
+    colnames(field_res) <- field_meta
+    field_res$project_id <- projects
   }
-  df_names <- c("abw_plot_res","abw_pcq_res","abw_lch_res")
-  existing_df_names <- df_names[sapply(df_names, exists)]
-  dfs <- mget(existing_df_names)
-  dfs2 <- lapply(dfs, add_missing)
-  all_rows <- bind_rows(dfs2) %>%
-    select(all_of(field_meta))
-  field_res <- all_rows %>%
-    group_by(project_id,plot_type, timepoint) %>%
-    summarise(across(everything(), ~ first(na.omit(.))), .groups = "drop") %>%
-    as.data.frame
+  
   return(list(point_biomass = point_res,field_biomass = field_res))
 }
 
