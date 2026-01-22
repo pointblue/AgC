@@ -73,9 +73,9 @@ if(length(unique(PointLevel$timepoint))>1){
     as.data.frame()%>%
     mutate(
       text = case_when(
-        p.value < 0.05 & estimate > 0 ~ "Bulk density in the treated plot **increased** between the first and most recent monitoring timepoint. Without a control field, we are unable to tell whether this is due to changes in management or other untested changes across years.",
-        p.value < 0.05 & estimate < 0 ~ "Bulk density in the treated plot **decreased** between the first and most recent monitoring timepoint. Though this suggests that the practice is positively affecting soil structure and compaction, it may also be a result of changes in untested changes across years.",
-        TRUE                          ~ "Bulk density **did not meaningfully change** between the two monitoring timepoints. This may be due to soils already being in balance, management changes helping to protect existing soil structure rather than improve it, or high soil variability and/or a short timeframe making changes hard to detect."
+        p.value < 0.05 & estimate > 0 ~ "Bulk density in the treated plot **increased** between the first and most recent monitoring timepoint. Though it may seem the practice is improving soil structure, it may also be a result of other environmental or management changes across years. A longer monitoring timeframe will strengthen our confidence in this result.",
+        p.value < 0.05 & estimate < 0 ~ "Bulk density in the treated plot **decreased** between the first and most recent monitoring timepoint. Without a control field, we are unable to tell whether this is due to environmental or management changes across years. A longer monitoring timeframe will strengthen our confidence in this result.",
+        TRUE                          ~ "Bulk density **did not change** between the two monitoring timepoints. Management either protected existing soil structure, rather than improving it, or high soil variability and/or a short timeframe made changes hard to detect."
       )
     )%>%
     pull(text) %>%          # get vector of strings
@@ -94,7 +94,7 @@ treatment_contrast_bd<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C"))
     text = case_when(
       p.value < 0.05 & estimate > 0 ~ "At the current timepoint, bulk density is **higher in the treated plot** than the control. This difference should be taken into consideration when looking at change in each plot over time.",
       p.value < 0.05 & estimate < 0 ~ "At the current timepoint, bulk density is **lower in the treated plot** than the control. This difference should be taken into consideration when looking at change in each plot over time.",
-      TRUE ~ "There is **no significant difference** between bulk density in the treated and control site at this time. This means that the sites are well-matched, making interpretation of future results straightforward."
+      TRUE ~ "There is **no significant difference** between bulk density in the treated and control site at this time. This means that the sites are well-matched."
     )
   )%>%
   pull(text) %>%          # get vector of strings
@@ -124,7 +124,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     
     #C decrease T increase
     if (all(time_contrasts_bd[time_contrasts_bd$plot_type == "T", ]$condition == "increased") & all(time_contrasts_bd[time_contrasts_bd$plot_type == "C", ]$condition == "decreased")) { 
-      baci_bd<-"While bulk density at your **control site is decreasing**, bulk density at the **treatment site is increasing**. This indicates unexpected negative impacts of the conservation practice on soil structure and compaction."
+      baci_bd<-"While bulk density at your **control site is decreasing**, bulk density at the **treatment site is increasing**. This indicates an unexpected negative impact of the conservation practice or inherent differences between the treatment and control plots. Consider contacting the Point Blue Soils Team for further interpretation."
     }
     
     #C steady T increase
@@ -139,7 +139,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     
     #T decrease C increase
     if (all(time_contrasts_bd[time_contrasts_bd$plot_type == "T", ]$condition == "decreased") & all(time_contrasts_bd[time_contrasts_bd$plot_type == "C", ]$condition == "increased")) {
-      baci_bd<-"While bulk density in the **treatment plot is declining**, bulk density in the **control plot is increasing**. This indicates that the management intervention is both improving soil structure and preventing further compaction as observed in your control site."
+      baci_bd<-"While bulk density in the **treatment plot is decreasing**, bulk density in the **control plot is increasing**. This indicates the management intervention is effectively protecting and enhancing soil structure, as expected. "
     }
     
     #T steady C increase

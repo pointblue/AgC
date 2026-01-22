@@ -14,9 +14,11 @@ output:
     toc_float: true
     toc_depth: 3  # Include up to level 3 headers
     self_contained: true
+    fig_width: 9
+    fig_height: 6
 dev: png
 params:
-  project_name: MERC.24.LI
+  project_name: STAN.25.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -294,7 +296,7 @@ if (length(unique(PointLevel$timepoint))>1){
 timediff<-tp_lookup$sample_date[length(tp_lookup$sample_date)] - tp_lookup$sample_date[1]
 current_interval<-round(as.numeric(timediff)/365) 
 
-cat("\\n We expect to see increased soil organic carbon from your conservation practice ", rec_interval, " year(s) after implementation of the most impactful practice at your site:", impact_pract,". The first and last monitoring timepoint for this project are ", current_interval, " year(s) apart.", sep = "")
+cat("\\n We expect to see increased soil organic carbon from your conservation practice ", rec_interval, " year(s) after implementation of the most impactful practice at your site: ", impact_pract,". The first and last monitoring timepoint for this project are ", current_interval, " year(s) apart.", sep = "")
 
 if (current_interval >= rec_interval){
   cat("We expect this timeframe to be sufficient for detecting change.")
@@ -426,16 +428,17 @@ position_wider%>%
   kbl(
     caption = "Mean SOC% by field position",
     digits=2,
-    col.names = LU_header
+    col.names = LU_header,
+    align     = "c" 
   )%>%
   { 
     if (length(timepoints) > 1) {
-      add_header_above(., timepoints_header)
+      add_header_above(., timepoints_header, align     = "c")
     } else {
       .
     }
   } %>%
-  add_header_above(plot_header)%>%
+  add_header_above(plot_header, align     = "c")%>%
   kable_styling(position = "center", full_width = TRUE)
 
 ```
@@ -524,6 +527,60 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 source("ReportRef/Stocksfig_prep.R")
 Stocksfig
 ```
+``` {r results='asis', eval = !all(is.na(PointLevel$position)) && params$stocks}
+cat("Background points showing unique sample values are color-coded according to whether they fell in the crop row or alley. Refer to the table below for a breakdown of plot averages by field position.")
+
+stocks_by_position<-SOC_stocks_df%>%
+  filter(plot_type %in% c("T", "C"))%>%
+  group_by(plot_type, timepoint, LU)%>%
+  summarise(stocks = mean(Tons.Acre, na.rm = TRUE), .groups = "drop")%>%
+  mutate(
+    plot_type = factor(plot_type, levels = c("T", "C")),
+    LU        = factor(LU, levels = sort(unique(LU))),
+    timepoint = factor(timepoint, levels = tp_lookup$timepoint)
+  )%>%
+  arrange(plot_type, timepoint, LU)#this order is very important and corresponds to the order of the headers
+
+  position_wider<-stocks_by_position%>%pivot_wider(
+    names_from = c("plot_type", "LU", "timepoint"),
+    values_from = stocks,
+    names_sep = ","
+  )
+
+# setup dynamic headers
+plot_types <- unique(stocks_by_position$plot_type)
+LUs <- unique(stocks_by_position$LU)
+timepoints <- unique(stocks_by_position$timepoint)
+
+#switch timepoints to the year labels
+timepoints<- tp_lookup$year_label[
+  match(as.character(timepoints), tp_lookup$timepoint)
+]
+
+LU_header<-rep(LUs, times = length(timepoints)*length(plot_types))
+
+
+timepoints_header<-setNames(rep(length(LUs), times=length(rep(timepoints, times=length(plot_types)))), rep(timepoints, times=length(plot_types)))
+plot_header<-setNames(rep(length(timepoints_header), length(plot_types)),plot_types%>%recode(`T`="Treated plot", C = "Control plot"))
+
+#create table with nested headers
+position_wider%>%
+  kbl(
+    caption = "Mean SOC stocks by field position in tons per acre",
+    digits=2,
+    col.names = LU_header,
+     align     = "c" 
+  )%>%
+  { 
+    if (length(timepoints) > 1) {
+      add_header_above(., timepoints_header,  align     = "c" )
+    } else {
+      .
+    }
+  } %>%
+  add_header_above(plot_header,  align     = "c" )%>%
+  kable_styling(position = "center", full_width = TRUE)
+```
 #### BD Results {.hidden}
 ```{r results='asis', eval = ("bulk_density" %in% proj.indicators.SSC)}
 #This will only evaluate if there is bulk density
@@ -559,6 +616,61 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
 source("ReportRef/BDfig_prep.R")
 BDfig
+```
+``` {r results='asis', eval = !all(is.na(PointLevel$position))}
+cat("Background points showing unique sample values are color-coded according to whether they fell in the crop row or alley. Refer to the table below for a breakdown of plot averages by field position.")
+
+BD_by_position<-bd_df%>%
+  filter(plot_type %in% c("T", "C"))%>%
+  group_by(plot_type, timepoint, LU)%>%
+  summarise(bulk_density = mean(bulk_density, na.rm = TRUE), .groups = "drop")%>%
+  mutate(
+    plot_type = factor(plot_type, levels = c("T", "C")),
+    LU        = factor(LU, levels = sort(unique(LU))),
+    timepoint = factor(timepoint, levels = tp_lookup$timepoint)
+  )%>%
+  arrange(plot_type, timepoint, LU)#this order is very important and corresponds to the order of the headers
+
+  position_wider<-BD_by_position%>%pivot_wider(
+    names_from = c("plot_type", "LU", "timepoint"),
+    values_from = bulk_density,
+    names_sep = ","
+  )
+
+# setup dynamic headers
+plot_types <- unique(BD_by_position$plot_type)
+LUs <- unique(BD_by_position$LU)
+timepoints <- unique(BD_by_position$timepoint)
+
+#switch timepoints to the year labels
+timepoints<- tp_lookup$year_label[
+  match(as.character(timepoints), tp_lookup$timepoint)
+]
+
+LU_header<-rep(LUs, times = length(timepoints)*length(plot_types))
+
+
+timepoints_header<-setNames(rep(length(LUs), times=length(rep(timepoints, times=length(plot_types)))), rep(timepoints, times=length(plot_types)))
+plot_header<-setNames(rep(length(timepoints_header), length(plot_types)),plot_types%>%recode(`T`="Treated plot", C = "Control plot"))
+
+#create table with nested headers
+position_wider%>%
+  kbl(
+    caption = "Mean bulk density by field position in g/cm3",
+    digits=2,
+    col.names = LU_header,
+    align     = "c" 
+  )%>%
+  { 
+    if (length(timepoints) > 1) {
+      add_header_above(., timepoints_header,  align     = "c" )
+    } else {
+      .
+    }
+  } %>%
+  add_header_above(plot_header,  align     = "c" )%>%
+  kable_styling(position = "center", full_width = TRUE)
+
 ```
 #### Other Stocks Results {.hidden}
 ```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
