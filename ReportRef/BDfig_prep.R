@@ -85,7 +85,7 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
   
   #Legend settings for target bands
   scale_fill_manual(
-    name = paste0("Target values for ", avg_tx_info$full_name, " soils"),
+    name = str_wrap(paste0("Target values for ", avg_tx_info$full_name, " soils"), width=21),
     values = c(
       "Ideal" = "#2C6E6F",
       "May affect root growth" = "#C9971A",

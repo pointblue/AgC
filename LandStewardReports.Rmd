@@ -385,6 +385,61 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 source("ReportRef/SOCfig_prep.R")
 SOCfig
 ```
+``` {r results='asis', eval = !all(is.na(PointLevel$position))}
+cat("Background points showing unique sample values are color-coded according to whether they fell in the crop row or alley. Refer to the table below for a breakdown of plot averages by field position.")
+
+soc_by_position<-soc_df%>%
+  filter(plot_type %in% c("T", "C"))%>%
+  group_by(plot_type, timepoint, LU)%>%
+  summarise(org_c = mean(org_c, na.rm = TRUE), .groups = "drop")%>%
+  mutate(
+    plot_type = factor(plot_type, levels = c("T", "C")),
+    LU        = factor(LU, levels = sort(unique(LU))),
+    timepoint = factor(timepoint, levels = tp_lookup$timepoint)
+  )%>%
+  arrange(plot_type, timepoint, LU)#this order is very important and corresponds to the order of the headers
+
+  position_wider<-soc_by_position%>%pivot_wider(
+    names_from = c("plot_type", "LU", "timepoint"),
+    values_from = org_c,
+    names_sep = ","
+  )
+
+# setup dynamic headers
+plot_types <- unique(soc_by_position$plot_type)
+LUs <- unique(soc_by_position$LU)
+timepoints <- unique(soc_by_position$timepoint)
+
+#switch timepoints to the year labels
+timepoints<- tp_lookup$year_label[
+  match(as.character(timepoints), tp_lookup$timepoint)
+]
+
+LU_header<-rep(LUs, times = length(timepoints)*length(plot_types))
+
+
+timepoints_header<-setNames(rep(length(LUs), times=length(rep(timepoints, times=length(plot_types)))), rep(timepoints, times=length(plot_types)))
+plot_header<-setNames(rep(length(timepoints_header), length(plot_types)),plot_types%>%recode(`T`="Treated plot", C = "Control plot"))
+
+#create table with nested headers
+position_wider%>%
+  kbl(
+    caption = "Mean SOC% by field position",
+    digits=2,
+    col.names = LU_header
+  )%>%
+  { 
+    if (length(timepoints) > 1) {
+      add_header_above(., timepoints_header)
+    } else {
+      .
+    }
+  } %>%
+  add_header_above(plot_header)%>%
+  kable_styling(position = "center", full_width = TRUE)
+
+```
+
 #### PLFA Results {.hidden}
 ```{r results='asis', eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC))}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
