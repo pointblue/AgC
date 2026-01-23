@@ -18,7 +18,7 @@ data_dir<-("Z:/Soils Team/AgC Data/")
 agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
 
 # identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
-proj_of_int = c("MAAN.26.SC", "MAAN.27.RP")
+proj_of_int <- c("MAAN.26.SC", "MAAN.27.RP")
 
 ## ---- Import/clean tap biomass  data ---- 
 tap_biomass <- clean_tap_biomass(agc_data_entry, proj_of_int)
