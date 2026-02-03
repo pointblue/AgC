@@ -1716,6 +1716,9 @@ design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced s
     stop("Package 'ggmap' is required for this function.")
   }
   
+  sdesign<-st_transform(sdesign, 4326)
+  border<-st_transform(border, 4326)
+  
   proj_name <- substr(sdesign$name[1], 1, 10)
   
   #this bit determines whether we're dealing with an intial or final design based on whether any oversample points are present
