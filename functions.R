@@ -1357,6 +1357,16 @@ write_zipped_shp <- function (sfobj, dir, file_name, crs=4326){
 ## ---- Write SF object to GPX ----
 write_gpx <- function(sdesign, dir, file_name)
 {
+  if (!require(sf)) {
+    stop("Package 'sf' is required for this function.")
+  }
+  
+  if(st_crs(sdesign)!= 4326){
+  message("Warning: sdesign was not in CRS 4326 (required for the GPX format). The CRS was transformed before writing the file.")
+  }
+  
+  sdesign<-st_transform(sdesign, 4326) #Ensure the correct CRS for GPX
+  
   st_write(sdesign, 
            paste0(dir, "/", file_name, ".GPX"), 
            driver = "GPX", 
