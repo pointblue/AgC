@@ -5,7 +5,6 @@
 # Purpose: Main script for compiling ag-c master database
 
 # test
-# test2
 
 # Load packages
 source('packages.R')
@@ -60,10 +59,15 @@ tap_soils <- clean_tap_soils(agc_data_entry, proj_of_int)
 
 ## ---- Merge lab_clean and tap_soils dataframes ----
 df <- lab_clean %>%
-  left_join(tap_soils, by = c("sample_id","b_depth","e_depth","year")) %>%  # Merge lab and tap field data
+  mutate(sample_id = str_replace_all(sample_id, " ", "")) %>%
+  arrange(year) %>%
+  mutate(timepoint = paste0("T", dense_rank(year) - 1)) %>%
+  left_join(tap_soils, by = c("sample_id","timepoint")) %>%  # Merge lab and tap field data
   mutate(
     texture_name = coalesce(texture_name.x,texture_name.y),
     ph = coalesce(ph.x, ph.y),
+    b_depth = coalesce(b_depth.x, b_depth.y),
+    e_depth = coalesce(e_depth.x, e_depth.y),
     soil_moisture = coalesce(soil_moisture.x, soil_moisture.y),
     dry_soil_g = coalesce(dry_soil_g.x, dry_soil_g.y),
     rocks_g = coalesce(rocks_g.x,rocks_g.y)
@@ -126,9 +130,9 @@ df[is.na(df$total_c) & is.na(df$org_c),]
 df[is.na(df$bulk_density),]$sample_id
 
 # Check for values out of range
-out_of_range(df, "bulk_density", 0.5, 1.8) #Bulk density between 0.5 and 1.8 g/cm3
+out_of_range(df, "bulk_density", 0.5, 2.0) #Bulk density between 0.5 and 1.8 g/cm3
 out_of_range(df, "org_c", 0.1, 20) #total c %
-out_of_range(df, "ph", 4, 9) #pH #CHECK returning NA values
+out_of_range(df[!is.na(df$ph),], "ph", 4, 9) #pH #CHECK returning NA values
 
 #Org + inorg c = total c
 df %>%
