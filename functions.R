@@ -33,8 +33,8 @@ fetch_lab_file <- function(data_path, projects){
       matching_files <- c(matching_files, fw)
     }
   }
-  #Files from OSU lab
-  list_dfs_xlsx<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.xlsx$", full.names = TRUE) #list all the CSVs in folder
+  #Files from OSU and UC Davis labs
+  list_dfs_xlsx<-list.files(paste(data_path,"Raw Data","Lab Data", sep="/"), pattern = "\\.xlsx$", full.names = TRUE, ignore.case = TRUE) #list all the XLSXs in folder
   for (fosu in list_dfs_xlsx[grep("OSU",list_dfs_xlsx)]) {
     target_column <- "Customer ID"
     df <- read_excel(fosu, sheet="Report", col_names=FALSE,
@@ -49,7 +49,16 @@ fetch_lab_file <- function(data_path, projects){
       matching_files <- c(matching_files, fosu)
     }
   }
-  
+  for (fucd in list_dfs_xlsx[grep("UCDavis",list_dfs_xlsx)]){
+    target_column <- "...2"
+    df <- read_excel(fucd, sheet="REPORT", col_names=FALSE, skip = 13,
+                     na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+    if (any(sapply(projects, \(p)
+                   any(grepl(p, df[[target_column]], fixed = TRUE))
+    ))) {
+      matching_files <- c(matching_files, fucd)
+    }
+  }
   return(unique(matching_files))
 }
 
