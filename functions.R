@@ -74,7 +74,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
   
   # Clean dataframes based on lab 
   col_map <- read.csv("lab_column_names.csv")
-  for(f in lab_files[grepl("Ward|Cquester", lab_files)]){
+  for(f in lab_files[grepl("Ward|Cquester|UCDavis", lab_files)]){
     lab <- sub(".*/([^_]+)_.*", "\\1", f)
     if(grepl("Ward",f)==TRUE){
       lab_raw<-read.csv(f)
@@ -125,12 +125,30 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
     }
     if(grepl("Cquester",f)==TRUE){
       lab_raw<-read.csv(f)
-      rename_vec <- setNames(as.character(col_map$Cquester), col_map$Column.Name)
+      rename_vec <- setNames(as.character(col_map$Cquester),col_map$Column.Name)
       rename_vec <- gsub("\\.", "", rename_vec)
       lab_clean <- lab_raw %>%
         slice(-1) %>%
         setNames(gsub("\\.", "", names(.))) %>%
         rename(!!!rename_vec[rename_vec %in% colnames(.)])
+    }
+    if(grepl("UCDavis",f)==TRUE){
+      lab_raw <- read_excel(f, sheet="REPORT", col_names=FALSE, skip = 11,
+                       na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+      lab_clean <- lab_raw %>%
+        slice(1:which(rowSums(is.na(.)) == ncol(.))[1] - 1) %>%  # Remove descriptor rows at bottom of file
+        select(where(~ any(!is.na(.))))  # Get rid of columns with all NAs
+      colnames(lab_clean) <- c("Lab Sample ID", "sample_id", as.character(lab_clean[1, -c(1, 2)]))  # Rename columns
+      lab_clean <- lab_clean[-c(1, 2), ] %>% # Remove the first two rows
+        distinct(sample_id, .keep_all = TRUE) %>%  # Keep the first occurrence of each sample_id
+        filter(!is.na(sample_id)) %>%
+        select(-c("Lab Sample ID"))
+      rename_vec <- setNames(as.character(col_map$UCDavis),col_map$Column.Name)
+      rename_vec <- gsub("\\.", "", rename_vec)
+      lab_clean <-lab_clean %>%
+        setNames(gsub("\\.", "", names(.))) %>%
+        rename(!!!rename_vec[rename_vec %in% colnames(.)])
+        
     }
     #Define column names from cleaned df
     clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
@@ -150,7 +168,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
     
     # Define lab and C analysis method
     lab_clean$lab_name <- lab
-    lab_clean$c_method <- ifelse(lab %in% c("Cquester","Ward"),"Dry Combustion",NA)
+    lab_clean$c_method <- ifelse(lab %in% c("Cquester","Ward","UCDavis"),"Dry Combustion",NA)
     
     #Add required columns that were not in raw lab data 
     cols_to_add <- col_map$Column.Name[!col_map$Column.Name %in% names(lab_clean)]
