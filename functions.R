@@ -151,12 +151,16 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
         
     }
     #Define column names from cleaned df
-    clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
+    if(grepl("Ward",f)==TRUE){
+      clean_col_names <- unname(rename_vec[rename_vec %in% colnames(lab_clean)])
+    }else{
+      clean_col_names <- names(rename_vec)[names(rename_vec) %in% colnames(lab_clean)]
+    }
     clean_col_names <- clean_col_names[!duplicated(clean_col_names)]
     
     # Check for no unexpected columns in lab raw data
     if(length(clean_col_names) != ncol(lab_clean)) {
-      message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% names(rename_vec)]))
+      message("Extra columns in lab df: ", paste(colnames(lab_clean)[!colnames(lab_clean) %in% clean_col_names]))
     }
     
     # Make sure columns are numeric, fill in NAs where blank
