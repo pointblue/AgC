@@ -58,26 +58,44 @@ lab_clean <- clean_lab_df(data_path = data_dir,
 tap_soils <- clean_tap_soils(agc_data_entry, proj_of_int)
 
 ## ---- Merge lab_clean and tap_soils dataframes ----
-df <- lab_clean %>%
+lab_prep <- lab_clean %>%
   mutate(sample_id = str_replace_all(sample_id, " ", "")) %>%
   arrange(year) %>%
-  mutate(timepoint = paste0("T", dense_rank(year) - 1)) %>%
-  left_join(tap_soils, by = c("sample_id","timepoint")) %>%  # Merge lab and tap field data
+  mutate(timepoint = paste0("T", dense_rank(year) - 1))
+
+# rows WITH depth → join using depth
+df_depth <- lab_prep %>%
+  filter(!is.na(b_depth)) %>%
+  left_join(
+    tap_soils,
+    by = c("sample_id", "timepoint", "b_depth", "e_depth")
+  )
+
+# rows WITHOUT depth → join without depth
+df_nodepth <- lab_prep %>%
+  filter(is.na(b_depth)) %>%
+  left_join(
+    tap_soils,
+    by = c("sample_id", "timepoint")
+  ) %>%
+  mutate(    b_depth = coalesce(b_depth.x, b_depth.y),
+             e_depth = coalesce(e_depth.x, e_depth.y)) %>%
+  select(-c(b_depth.x,b_depth.y,e_depth.x,e_depth.y))
+
+df <- bind_rows(df_depth, df_nodepth) %>%
   mutate(
-    texture_name = coalesce(texture_name.x,texture_name.y),
+    texture_name = coalesce(texture_name.x, texture_name.y),
     ph = coalesce(ph.x, ph.y),
-    b_depth = coalesce(b_depth.x, b_depth.y),
-    e_depth = coalesce(e_depth.x, e_depth.y),
     soil_moisture = coalesce(soil_moisture.x, soil_moisture.y),
     dry_soil_g = coalesce(dry_soil_g.x, dry_soil_g.y),
-    rocks_g = coalesce(rocks_g.x,rocks_g.y)
+    rocks_g = coalesce(rocks_g.x, rocks_g.y)
   ) %>%
   mutate(ph_method = case_when(
     !is.na(ph.x) ~ "lab",
     is.na(ph.x) & !is.na(ph.y) ~ "field",
     TRUE ~ NA_character_
   )) %>%
-  select(-ends_with(c(".y",".x"))) %>%
+  select(-ends_with(c(".x", ".y"))) %>%
   mutate(across(c(total_n:cec_na_perc), as.numeric))
 
 #Check for sample_ids not found in tap_soils
