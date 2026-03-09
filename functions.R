@@ -87,6 +87,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
         select(sample_id_col[1]:ncol(lab_raw)) %>% # Remove extra identifying columns
         select(where(~ !all(is.na(.)))) %>% # Remove columns with no data
         select(-matches("lbs", ignore.case = TRUE)) %>%  # Remove columns containing "lbs"
+        select(-any_of("Texture.No")) %>%
         rename_with(~ {
           # This function will return a vector of new names for all columns
           sapply(., function(col_name) {
