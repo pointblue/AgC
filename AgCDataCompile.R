@@ -68,14 +68,20 @@ lab_prep <- lab_clean %>%
   group_by(prj) %>%
   arrange(prj, year, .by_group = TRUE) %>%
   mutate(
-    # Assign timepoint: T0 for adoption year, T1, T2, etc. for subsequent years
-    timepoint = case_when(
-      year < adoption_year + 2 ~ "T0",  # Label T0 for the adoption year
-      year > adoption_year + 1~ paste0("T", dense_rank(year))  # Label subsequent years as T1, T2, etc.
-    )
+    # Determine if start_rank is 0 or 1 per project
+    start_rank = if_else(min(year) <= adoption_year + 1, 0, 1),
+    
+    # Assign dense rank to years within group, subtract 1 to start at 0
+    year_rank = dense_rank(year) - 1,
+    
+    # Calculate adjusted rank with offset
+    adj_rank = year_rank + start_rank,
+    
+    # Create timepoint labels
+    timepoint = paste0("T", adj_rank)
   ) %>%
   ungroup() %>%
-  select(-prj, -adoption_year)
+  select(-prj, -adoption_year, -start_rank, -year_rank, -adj_rank)
 
 # rows WITH depth → join using depth
 df_depth <- lab_prep %>%
@@ -181,28 +187,31 @@ df %>%
 # Select only columns needed for master database
 final_cols <- read.csv("point_db_metadata.csv") #Metadata file for master point-level database
 df <- df[,final_cols$column_name]
-#df<-df[!is.na(df$sample_date),]
-#df$sample_date <- as.POSIXct(paste(df$sample_date, "12:00:00"), tz = "UTC")
+
+# Convert sample_date to timestamp for compatibility with FarmOS
+df<-df[!is.na(df$sample_date),]
+df$sample_date <- as.character(as.POSIXct(paste(df$sample_date, "12:00:00"), tz = "UTC"))
+
 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
 df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
-df_current$sample_date<-as.Date(df_current$sample_date) #make sure the date column is in date format
-
-# Add any new columns
-cols_to_add <- setdiff(colnames(df),colnames(df_current))
-df_current[,cols_to_add] <- NA
-df_current <- df_current[,final_cols$column_name]
+#df_current$sample_date<-as.Date(df_current$sample_date) #make sure the date column is in date format
 
 # Add rows 
 master_df <- rbind(df_current, df)
 
 # Change NA values to empty cells
-master_df[is.na(master_df)] <- ""
-
-# Convert sample_date to timestamp for compatibility with FarmOS
-master_df<-master_df[!is.na(master_df$sample_date),]
-master_df$sample_date <- as.POSIXct(paste(master_df$sample_date, "12:00:00"), tz = "UTC")
+master_df <- master_df %>%
+  mutate(
+    across(1:7, ~ .),
+    # For all other columns, convert to character and replace NA with ""
+    across(8:ncol(master_df), ~ {
+      x <- as.character(.)
+      x[is.na(x)] <- ""
+      x
+    })
+  )
 
 # Save
 write.csv(master_df, paste0(data_dir, "/Master Datasheets/PointLevel/PointLevel_Master_Datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
