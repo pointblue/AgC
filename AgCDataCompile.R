@@ -59,9 +59,23 @@ tap_soils <- clean_tap_soils(agc_data_entry, proj_of_int)
 
 ## ---- Merge lab_clean and tap_soils dataframes ----
 lab_prep <- lab_clean %>%
-  mutate(sample_id = str_replace_all(sample_id, " ", "")) %>%
-  arrange(year) %>%
-  mutate(timepoint = paste0("T", dense_rank(year) - 1))
+  mutate(
+    sample_id = str_replace_all(sample_id, " ", ""),
+    prj = str_sub(sample_id, 1, 10),  # Extract project ID
+    adoption_year = as.numeric(paste0(20,str_sub(sample_id, 6, 7))),  # Extract adoption year from sample_id
+    year = as.numeric(year)
+  ) %>%
+  group_by(prj) %>%
+  arrange(prj, year, .by_group = TRUE) %>%
+  mutate(
+    # Assign timepoint: T0 for adoption year, T1, T2, etc. for subsequent years
+    timepoint = case_when(
+      year < adoption_year + 2 ~ "T0",  # Label T0 for the adoption year
+      year > adoption_year + 1~ paste0("T", dense_rank(year))  # Label subsequent years as T1, T2, etc.
+    )
+  ) %>%
+  ungroup() %>%
+  select(-prj, -adoption_year)
 
 # rows WITH depth → join using depth
 df_depth <- lab_prep %>%
