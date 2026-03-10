@@ -5,11 +5,11 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
   {
     #if there is no value for position, "AgC" will distinguish from RaCA crop or range
     if (all(is.na(.$position))) {
-      mutate(LU = "AgC")
+      mutate(.,LU = "AgC")
     } else {
       mutate(., LU = position)
     }
-  } %>%
+  }%>%
   select(sample_id, timepoint, plot_type, org_c, LU) %>%
   bind_rows( #bind project stocks df to the raca dataset
     raca_data %>%

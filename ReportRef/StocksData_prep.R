@@ -36,7 +36,7 @@ stocks_df <- PointLevel %>% #reformats so the dataframe is long with respect to 
   {
     #if there is no value for position, "AgC" will distinguish from RaCA crop or range
     if (all(is.na(.$position))) {
-      mutate(LU = "AgC")
+      mutate(., LU = "AgC")
     } else {
       mutate(., LU = position)
     }
