@@ -287,7 +287,7 @@ clean_tap_soils <- function(agc_data_entry_path,
     mutate(
       soil_moisture = case_when(
         # a) If DrySievedMass_g is available
-        !is.na(DrySievedMass_g) ~ 
+        !is.na(DrySievedMass_g) & !is.na(WetSievedMass_g)~ 
           (WetSievedMass_g - DrySievedMass_g) / DrySievedMass_g * 100,
         # b) If DryMass_g is available
         !is.na(DryMass_g) ~ 
