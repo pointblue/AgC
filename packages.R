@@ -4,6 +4,8 @@
 # Date updated: 20250924
 
 suppressPackageStartupMessages({
+  library(readr)
+  library(tibble)
   library(dplyr)
   library(tidyr)
   library(stringr)
