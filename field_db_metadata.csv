@@ -1,7 +1,6 @@
 ﻿column_name,description
 project_id,"Unique project ID with first 4 letters of ranch name, year (YY) of practice implementation, and conservation practice abbreviation (see practice_abbreviations.csv)"
 protocol,Indicate whether projects followed Point Blue's Range-C or Crop-C protocol
-submission_id,Submission ID of management survey as defined by Jotform
 submission_date,Date that management questionnaire was completed
 cons_practice,List of conservation practices implemented within project
 practice_year,Conservation practice implementation year
@@ -21,10 +20,14 @@ hist_ls_paddocks,Number of paddocks in grazed area under current management
 hist_ls_resttime,Average rest time per paddock under current management
 hist_ls_ada,Average animal days per acre under current management
 hist_crop_details,List of crops planted within the study area over last 5 years
-hist_till_details,Tillage details for study area over last 5 years
+till_hist_yr0,"Tillage details for study area the year of survey submission. Includes tillage type, number of events, and depth in inches "
+till_hist_yr1,"Tillage details for study area 1 year prior to survey submission. Includes tillage type, number of events, and depth in inches "
+till_hist_yr2,"Tillage details for study area 2 years prior to survey submission. Includes tillage type, number of events, and depth in inches "
+till_hist_yr3,"Tillage details for study area 3 years prior to survey submission. Includes tillage type, number of events, and depth in inches "
+till_hist_yr4,"Tillage details for study area 4 years prior to survey submission. Includes tillage type, number of events, and depth in inches "
 hist_notes,Notes for historical management input by producer or technical assistance provider
 cr_desc,Brief description of planned crop rotation
-cr_list,List of cash crops and cover crops in planned rotation
+cr_list,"List of cash crops and cover crops in planned rotation. Includes Crop name, Approx. planting month, Approx. harvest/termination month, termination method (if cover crop), planting method, and seeding rate (lb/acre)"
 ls_type,Type(s) of livestock planned to be present in the study area
 ls_utilization,Percent of forage planned to be utilized by grazing animals in the study area 
 ls_season_start,Planned month for grazing season start after practice adoption
@@ -46,7 +49,11 @@ oa_incorp,Indicates whether organic amendment will be incorporated into soil
 oa_c_conc,C concentration of organic amendment
 oa_n_conc,N concentration of organic amendment
 oa_rate,Organic amendment application rate
-cons_till_details,Planned tillage over next 5 years if adopting conservation tillage
+cons_till_yr1,"Planned tillage for year 1 following survey submission if adopting conservation tillage. Includes tillage type, number of events, and depth in inches."
+cons_till_yr2,"Planned tillage for year 2 following survey submission if adopting conservation tillage. Includes tillage type, number of events, and depth in inches."
+cons_till_yr3,"Planned tillage for year 3 following survey submission if adopting conservation tillage. Includes tillage type, number of events, and depth in inches."
+cons_till_yr4,"Planned tillage for year 4 following survey submission if adopting conservation tillage. Includes tillage type, number of events, and depth in inches."
+cons_till_yr5,"Planned tillage for year 5 following survey submission if adopting conservation tillage. Includes tillage type, number of events, and depth in inches."
 ripar_method,Indicates whether riparian area will be restored through removal of livestock and/or riparian plantings
 wood_species_list,Lists all woody species that will be planted in the study area
 wood_replant_notes,Indicates whether replanting occurred for woody species
