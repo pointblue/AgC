@@ -236,6 +236,7 @@ clean_tap_soils <- function(agc_data_entry_path,
   #Remove extra columns, define column types
   soils_clean <- tap_soils %>%
     slice(-1) %>% # remove unit row
+    filter(ProjectID %in% projects) %>%
     mutate(SamplingDate = case_when(
       !is.na(as.numeric(SamplingDate)) & !grepl("/", SamplingDate) ~ as.Date(as.numeric(SamplingDate), origin = "1899-12-30"),
       TRUE ~ as.Date(SamplingDate, format = "%m/%d/%Y")
@@ -246,7 +247,9 @@ clean_tap_soils <- function(agc_data_entry_path,
            ) %>%
     filter(!is.null(PointID))%>% #filter out empty rows
     filter(!is.na(PointID))%>% #filter out empty rows
-    mutate(across(c(Volume1_mL:Depth4_cm), as.numeric))
+    mutate(across(c(Volume1_mL:Depth4_cm, WetMass_g:DryMass_g,
+                    RocksRemovedMass_g:WHC_VolCollected_mL), as.numeric)) %>%
+    as.data.frame
   
   #Determine bulk density method  
   tap_clean <- soils_clean %>%
@@ -275,11 +278,32 @@ clean_tap_soils <- function(agc_data_entry_path,
     message("Sample IDs with vol/depth input but no calculated volume:", paste(na_rows$Sample.ID))
   }
   
-  #Calculate soil moisture and dry soil mass
+  #Calculate soil moisture
+    # Soil moisture may be calculated from: 
+    # a) (WetSievedMass_g-DrySievedMass_g)/DrySievedMass_g*100 (if DrySievedMass_g not NA)
+    # b) (WetMass_g - DryMass_g)/DryMass_g*100 + (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100 (if DryMass_g is not NA)
+    # c) (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100 
   tap_clean <- tap_clean %>%
-    mutate(across(c(WetMass_g, RocksRemovedMass_g:MoistureSubsDryMass_g), as.numeric)) %>%
-    mutate(soil_moisture = (MoistureSubsWetMass_g-MoistureSubsDryMass_g)/MoistureSubsDryMass_g*100,
+    mutate(
+      soil_moisture = case_when(
+        # a) If DrySievedMass_g is available
+        !is.na(DrySievedMass_g) ~ 
+          (WetSievedMass_g - DrySievedMass_g) / DrySievedMass_g * 100,
+        # b) If DryMass_g is available
+        !is.na(DryMass_g) ~ 
+          (WetMass_g - DryMass_g) / DryMass_g * 100 +
+          (MoistureSubsWetMass_g - MoistureSubsDryMass_g) / MoistureSubsDryMass_g * 100,
+        # c) Otherwise use moisture subsample
+        TRUE ~ 
+          (MoistureSubsWetMass_g - MoistureSubsDryMass_g) / MoistureSubsDryMass_g * 100
+      )
+    )
+
+  #Calculate dry soil mass 
+  tap_clean <- tap_clean %>%
+    mutate(
            dry_soil_g = (WetMass_g - RocksRemovedMass_g - RootsRemovedMass_g)*((100-soil_moisture)/100))
+  
   
   #Select rows
   tap_clean <- tap_clean %>%
@@ -306,11 +330,9 @@ clean_tap_soils <- function(agc_data_entry_path,
              b_depth_plfa, e_depth_plfa,
              bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
              rocks_g, vol_cm3
-             #,sample_date_abh, abh_bio, sample_date_hrb, e_depth_hrb, hrb_fine, hrb_coarse, hrb_total
-             )) %>%
+              )) %>%
     mutate(year = str_sub(sample_date, 1,4)) %>%
-    filter(!is.na(project_id)) %>%
-    filter(project_id %in% projects)
+    filter(!is.na(project_id))
     #as.data.frame()
     
   return(tap_clean)
