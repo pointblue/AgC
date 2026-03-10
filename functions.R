@@ -10,8 +10,9 @@
 #   5) clean_tap_biomass: Processes all biomass columns in tap data entry and returns cleaned point and field-level biomass db
 #   6) coord_extract: Extracts coordinates for sampling points from projects of interest
 #   7) out_of_range: verify required columns and check for data outside expected ranges
-#   8) proj_design: Extracts project design data required for inference score calculation from point level db
-#   9) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
+#   8) clean_management: Cleans raw downloads from jotform and converts in to field-level datasheet
+#   9) proj_design: Extracts project design data required for inference score calculation from point level db
+#   10) reg_baseline: Associates regional soil carbon baselines with field polygon for producer reports. Returns the 
 #       mean, 95% confidence interval and n points for all RACA crop and rangeland points (excluding outliers) 
 #       within the Level 3 ecoregion associated with the polygon you read in. The confidence interval is the
 #       value +/- the mean, so for example if mean = 5 and ci = 2, the confidence interval would be from 3 to 7
@@ -1062,7 +1063,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
   return(list(point_biomass = point_res,field_biomass = field_res))
 }
 
-## ---- Extract point coordinates for sampling points ----
+## ---- coord_extract: Extract point coordinates for sampling points ----
 coord_extract <- function(projects){
   # Create df to store results
   coord_df <- data.frame(
@@ -1109,6 +1110,147 @@ out_of_range <- function(df, var, min, max){
   df %>% 
     filter(.data[[var]] < min | .data[[var]] > max | is.na(.data[[var]]))%>%
     select(sample_id, all_of(var))
+}
+
+## ---- clean_management function ----
+clean_management <- function(raw_file){
+
+  # Read in raw management data, field_db_metadata, and jotform column map
+  jotform <- read_csv(
+    raw_file,
+    col_types = cols(.default = col_character())
+  )
+  
+  metadata <- read_csv(
+    "field_db_metadata.csv",
+    col_types = cols(.default = col_character())
+  )
+  
+  name_key <- read_csv(
+    "jotform_column_names.csv",
+    col_types = cols(.default = col_character())
+  )
+  
+  # Clean blanks to NA
+  jotform <- jotform %>%
+    mutate(across(everything(), ~ na_if(str_squish(.x), "")))
+  
+  # Build lookup list:
+  #    new_name -> one or more raw columns
+  name_map <- name_key %>%
+    filter(!is.na(new_name), !is.na(raw_name)) %>%
+    group_by(new_name) %>%
+    summarise(raw_cols = list(unique(raw_name)), .groups = "drop")
+  
+  # Coalesce raw columns
+  coalesce_from_cols <- function(df, cols) {
+    cols_present <- cols[cols %in% names(df)]
+    
+    if (length(cols_present) == 0) {
+      return(rep(NA_character_, nrow(df)))
+    }
+    
+    if (length(cols_present) == 1) {
+      return(df[[cols_present]])
+    }
+    
+    df %>%
+      select(all_of(cols_present)) %>%
+      pmap_chr(function(...) {
+        vals <- c(...)
+        vals <- vals[!is.na(vals) & vals != ""]
+        if (length(vals) == 0) NA_character_ else vals[1]
+      })
+  }
+  
+  # Create cleaned table
+  cleaned <- map2_dfc(
+    name_map$new_name,
+    name_map$raw_cols,
+    ~ tibble(!!.x := coalesce_from_cols(jotform, .y))
+  )
+  
+  # Fix accidental Excel-style date conversions
+  #    e.g. "4-Feb" -> "2-4"
+  #    Add more replacements if needed
+  fix_depth_value <- function(x) {
+    case_when(
+      is.na(x) ~ NA_character_,
+      x == "4-Feb" ~ "2-4",
+      x == "6-Apr" ~ "4-6",
+      x == "8-Jun" ~ "6-8",
+      x == "10-Aug" ~ "8-10",
+      TRUE ~ x
+    )
+  }
+  
+  if (!"protocol" %in% names(cleaned)) {
+    cleaned <- cleaned %>%
+      mutate(protocol = rangec_cropc)
+  }
+  
+  # Expand historical tillage details
+  make_till_detail <- function(df, prefix, year_num) {
+    type_col   <- paste0(prefix, "_yr", year_num, "_type")
+    events_col <- paste0(prefix, "_yr", year_num, "_events")
+    depth_col  <- paste0(prefix, "_yr", year_num, "_depth")
+    
+    type_val <- if (type_col %in% names(df)) df[[type_col]] else rep(NA_character_, nrow(df))
+    events_val <- if (events_col %in% names(df)) df[[events_col]] else rep(NA_character_, nrow(df))
+    depth_val <- if (depth_col %in% names(df)) fix_depth_value(df[[depth_col]]) else rep(NA_character_, nrow(df))
+    
+    pmap_chr(
+      list(type_val, events_val, depth_val),
+      function(type, events, depth) {
+        vals <- c(type = type, events = events, depth = depth)
+        keep <- !is.na(vals) & vals != ""
+        
+        if (!any(keep)) return(NA_character_)
+        
+        paste(
+          c(
+            if (!is.na(type) && type != "") paste0("type=", type),
+            if (!is.na(events) && events != "") paste0("events=", events),
+            if (!is.na(depth) && depth != "") paste0("depth=", depth)
+          ),
+          collapse = "; "
+        )
+      }
+    )
+  }
+  
+  for (yr in 0:4) {
+    cleaned[[paste0("till_hist_yr", yr)]] <- make_till_detail(cleaned, "till_hist", yr)
+  }
+  
+  # Expand conservation tillage details
+  #    cons_till_yr1 ... cons_till_yr5
+  for (yr in 1:5) {
+    cleaned[[paste0("cons_till_yr", yr)]] <- make_till_detail(cleaned, "cons_till", yr)
+  }
+  
+  # Select only columns in field_db_metadata
+  detail_component_cols <- names(cleaned)[
+    str_detect(names(cleaned), "^(till_hist|cons_till)_yr[0-9]+_(type|events|depth)$")
+  ]
+  
+  cleaned <- cleaned %>%
+    select(-any_of(detail_component_cols))
+  
+  # Match metadata order and add missing columns as NA
+  target_cols <- metadata$column_name
+  
+  missing_cols <- setdiff(target_cols, names(cleaned))
+  for (col in missing_cols) {
+    cleaned[[col]] <- NA_character_
+  }
+  
+  cleaned_final <- cleaned %>%
+    select(all_of(target_cols))
+  
+  return(cleaned_final)
+  
+  
 }
 
 ## ---- Store project design info ----
