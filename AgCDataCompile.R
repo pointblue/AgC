@@ -4,8 +4,6 @@
 # Date updated: 20251202
 # Purpose: Main script for compiling ag-c master database
 
-# test
-
 # Load packages
 source('packages.R')
 
@@ -66,22 +64,15 @@ lab_prep <- lab_clean %>%
     year = as.numeric(year)
   ) %>%
   group_by(prj) %>%
-  arrange(prj, year, .by_group = TRUE) %>%
+  arrange(year, .by_group = TRUE) %>%
   mutate(
-    # Determine if start_rank is 0 or 1 per project
-    start_rank = if_else(min(year) <= adoption_year + 1, 0, 1),
-    
-    # Assign dense rank to years within group, subtract 1 to start at 0
+    first_year = min(year, na.rm = TRUE),
+    start_rank = if_else(first_year <= first(adoption_year) + 1, 0, 1),
     year_rank = dense_rank(year) - 1,
-    
-    # Calculate adjusted rank with offset
-    adj_rank = year_rank + start_rank,
-    
-    # Create timepoint labels
-    timepoint = paste0("T", adj_rank)
+    timepoint = paste0("T", year_rank + start_rank)
   ) %>%
   ungroup() %>%
-  select(-prj, -adoption_year, -start_rank, -year_rank, -adj_rank)
+  select(-prj, -adoption_year, -first_year, -start_rank, -year_rank)
 
 # rows WITH depth → join using depth
 df_depth <- lab_prep %>%
