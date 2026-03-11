@@ -18,11 +18,11 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: STAN.25.LI
+  project_name: ENGL.24.SC
   raca_filter:
-    - crop
-  author: "Avalon Cook, Lisa Eash, and Erika Foster"
-  stocks: TRUE
+    - range
+  author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
+  stocks: FALSE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 #Created by: Avalon Cook
@@ -74,11 +74,11 @@ points<- read_sf(points_file)
 list_dfs_field<-list.files(file.path(data_path, "FieldLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 FieldLevel<-list_dfs_field[which.max(as.Date(gsub("\\D","", list_dfs_field), format = "%Y%m%d"))]%>%
   read.csv()%>%
-  filter(project_name == params$project_name)
+  filter(project_id == params$project_name)
 
 list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
-  read.csv()%>%
+  read.csv(na.strings="")%>%
   filter(project_id == params$project_name)%>%
   mutate(plot_type = substr(sample_id, 12, 12)) #add the plot_type column
 
@@ -90,7 +90,7 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
 #add project design datasheet, then assign all the variables created above
 
 #Establishing variables for report structure
-proj.protocol <- FieldLevel$rangec_cropc[1]
+proj.protocol <- FieldLevel$protocol[1]
 proj.inscore <- ProjectDesign$inference_score[1]
 proj.propertyname <- ProjectDesign$ranch_name[1]
 proj.implementationyear <- if(is.na(ProjectDesign$proj_practice_year[1])){""}
@@ -114,13 +114,13 @@ if ("Tx" %in% proj.indicators) { #create a vector of value names that match the 
 ```
 
 # `r proj.propertyname` {.unlisted .unnumbered}
-#### Project Code: `r FieldLevel$project_name[1]` {.unlisted .unnumbered}
+#### Project Code: `r FieldLevel$project_id[1]` {.unlisted .unnumbered}
 #### Conservation practice(s): `r proj.practicetype` {.unlisted .unnumbered}
 
 ## Background
-Thank you for participating in the Agricultural Conservation “Ag-C” Monitoring Program, developed to evaluate ecosystem impacts of common conservation practices on farms and ranches. The Ag-C program supports transparent, fit-for-purpose monitoring of multiple indicators, focuses on carbon as a primary indicator of ecosystem health. Ag-C monitoring tracks management impacts at the farm scale and also aggregates data to evaluate management effects at regional scales. With specified data-sharing permission, the collected information, from management history to field measurements, can support greater understanding of commonly incentivized practice impact on ecosystem carbon.
+Thank you for participating in the Agricultural Conservation “Ag-C” Monitoring Program, developed to evaluate ecosystem impacts of common conservation practices on farms and ranches. The Ag-C program supports transparent, fit-for-purpose monitoring of multiple indicators and focuses on carbon as a primary indicator of ecosystem health. Ag-C monitoring tracks management impacts at the farm scale and also aggregates data to evaluate management effects at regional scales. With specified data-sharing permission, the collected information, from management history to field measurements, can support greater understanding of commonly incentivized practice impact on ecosystem carbon.
 
-This report reviews the values for the carbon indicators measured at your agricultural site. Over time, continued use of the Ag-C protocols will allow assessment of your conservation management impacts. Find additional information and updates the Ag-C Monitoring Program on [our landing page](https://www.pointblue.org/ag-c/) or sign up for important email updates [here](https://forms.office.com/r/TANxB68bAb). 
+This report reviews the values for the carbon indicators measured at your agricultural site. Over time, continued use of the Ag-C protocols will allow assessment of your conservation management impacts. Find additional information and updates about the Ag-C Monitoring Program on [our landing page](https://www.pointblue.org/ag-c/) or sign up for important email updates [here](https://forms.office.com/r/TANxB68bAb). 
 
 ## Project Design
 The Ag-C program offers a flexible monitoring approach, with options to select indicators of interest, tailor methods to your goals and resources, and match project design elements to your context. Ag-C is made of two major protocols: Range-C to accommodate monitoring in rangeland systems and Crop-C to accommodate monitoring in cropland systems. At your site, `r proj.protocol` was used to create a monitoring plan.^[To learn more about designing a monitoring program with `r proj.protocol`, consult the [`r proj.protocol` Handbook](`r ifelse(proj.protocol=='Range-C', 'https://www.pointblue.org/?sdm_process_download=1&download_id=19991', 'https://www.pointblue.org/?sdm_process_download=1&download_id=20943')`)]
@@ -301,7 +301,7 @@ current_interval<-round(as.numeric(timediff)/365)
 cat("\\n We expect to see increased soil organic carbon from your conservation practice ", rec_interval, " year(s) after implementation of the most impactful practice at your site: ", impact_pract,". The first and last monitoring timepoint for this project are ", current_interval, " year(s) apart.", sep = "")
 
 if (current_interval >= rec_interval){
-  cat("We expect this timeframe to be sufficient for detecting change.")
+  cat(" We expect this timeframe to be sufficient for detecting change.")
 } else {
   cat("**This monitoring timeframe may be too soon to detect change from the conservation practice.**")
 }

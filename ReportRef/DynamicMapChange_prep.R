@@ -34,7 +34,8 @@ DataMap.proj_change <- DataMap.proj_joined %>%
     DataMap.proj_lastT %>% select(sample_id, geometry),
     by = "sample_id"
   ) %>%
-  st_as_sf()
+  st_as_sf() %>%
+  dplyr::filter(!(is.na(org_c))) #this step removes any rows for samples that weren't measured at both timepoints to avoid errors (a la Engler ranch)
 
 #Set up a new color scheme that makes sense for showing directional change
 pal_change <- colorRampPalette(c("#3B4CC0", "white", "#B40426"))  
@@ -48,6 +49,7 @@ legends_names_change <- setNames( #edit legend names
 df_forpopup_change <- DataMap.proj_change %>%
   mutate(across(any_of(valid_inds), ~round(.x, 2))) %>%
   rename_with(~ legends_names_change[.x], .cols = any_of(names(legends_names_change)))
+
 popupcols_change <- setdiff(names(df_forpopup_change), c("sample_id", "geometry", "plot_type"))
 df_forpopup_firstT$popup_html <- apply(df_forpopup_change, 1, function(r)
   build_popup_html(r, popupcols_change))

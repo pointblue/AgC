@@ -40,15 +40,19 @@ raca_compare_bd<-Project.Means%>%
          plot_full = case_when(plot_type=="T"~"treatment", plot_type=="C"~"control"),
          text = case_when(
            
-           raca_percentile>0 ~ paste0("The most recent mean value in the ", 
-                                      plot_full, 
-                                      " plot is in the **", 
-                                      english::ordinal(raca_percentile), 
-                                      " percentile** of the comparison dataset for your ecoregion."
+           raca_percentile > 0 & raca_percentile < 100 ~ paste0("The most recent mean value in the ", 
+                                                                plot_full, 
+                                                                " plot is in the **", 
+                                                                english::ordinal(raca_percentile), 
+                                                                " percentile** of the comparison dataset for your ecoregion."
            ),
            raca_percentile<=0 ~ paste0("The most recent mean value in the ", 
                                        plot_full, 
                                        " plot is **less than any value** in the comparison dataset for your ecoregion."
+           ),
+           raca_percentile>=100 ~ paste0("The most recent mean value in the ", 
+                                       plot_full, 
+                                       " plot is **more than any value** in the comparison dataset for your ecoregion."
            )
          ) )
 
