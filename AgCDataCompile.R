@@ -116,8 +116,8 @@ df[is.na(df$project_id),]$sample_id #CHECK! Returns
 
 # Bulk density
 df <- df %>%
-  mutate(bulk_density =   
-    dry_soil_g / vol_cm3 # Calculate as Dry.Mass / Volume
+  mutate(
+    bulk_density = coalesce(bulk_density, dry_soil_g / vol_cm3) # Calculate as Dry.Mass / Volume
   )
 
 ## ---- Fill in all identifying columns ----
@@ -160,7 +160,7 @@ df[is.na(df$bulk_density),]$sample_id
 
 # Check for values out of range
 out_of_range(df, "bulk_density", 0.5, 2.0) #Bulk density between 0.5 and 1.8 g/cm3
-out_of_range(df, "org_c", 0.1, 20) #total c %
+out_of_range(df[!is.na(df$org_c),], "org_c", 0.1, 20) #total c %
 out_of_range(df[!is.na(df$ph),], "ph", 4, 9) #pH #CHECK returning NA values
 
 #Org + inorg c = total c
@@ -214,13 +214,13 @@ man_df_list <- list.files(paste(data_dir,"Raw Data","Management Data", sep="/"),
 man_raw <- man_df_list[which.max(as.Date(gsub("\\D","", man_df_list), format = "%Y%m%d"))]
 
 # Run function to clean management data
-man_clean <- clean_management(man_raw)
+man_clean <- clean_management(man_raw) # specify file path
 
 # Bind new management data to master field-level database and save
 field_db_list <- list.files(paste(data_dir,"Master Datasheets","FieldLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE)
 field_db_current <- read.csv(field_db_list[which.max(as.Date(gsub("\\D","", field_db_list), format = "%Y%m%d"))])
 field_df <- rbind(field_db_current, man_clean) # Append to original df
-write.csv(field_df, paste0(data_dir, "/Master Datasheets/FieldLevel/FieldLevel_Master_Datasheet_",  Sys.Date(), ".csv"))
+write.csv(field_df, paste0(data_dir, "/Master Datasheets/FieldLevel/FieldLevel_Master_Datasheet_",  Sys.Date(), ".csv"), row.names = FALSE)
 
 
 ## ---- Store project design info ----
