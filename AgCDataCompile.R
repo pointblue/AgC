@@ -28,16 +28,35 @@ for(df_name in names(tap_biomass)){
   bio_df <- tap_biomass[[df_name]]
   
   # Convert sample_date to timestamp for compatibility with FarmOS
-  for (col in names(bio_df)[names(bio_df) %in% c("sample_date_abh","sample_date_hrb","sample_date_awb")]) {
-    bio_df[[col]] <- ifelse(bio_df[[col]] == "", NA, bio_df[[col]])
-    bio_df[[col]] <- as.POSIXct(paste(bio_df[[col]], "12:00:00"), format="%Y-%m-%d %H:%M:%S", tz="UTC")
-  }
+  date_cols <- c("sample_date_ahb","sample_date_hrb","sample_date_awb")
+  
+  bio_df <- bio_df %>%
+    dplyr::mutate(
+      dplyr::across(
+        dplyr::any_of(date_cols),
+        ~ {
+          x <- as.character(.x)
+          x[x %in% c("", "NA")] <- NA
+          as.POSIXct(
+            paste(x, "12:00:00"),
+            format = "%Y-%m-%d %H:%M:%S",
+            tz = "UTC"
+          )
+        }
+      )
+    )
   
   # Change NA values to empty cells
-  bio_df[] <- replace(as.matrix(bio_df), is.na(bio_df), "")
+  bio_export <- bio_df %>%
+    dplyr::mutate(
+      dplyr::across(
+        everything(),
+        ~ ifelse(is.na(.x), "", as.character(.x))
+      )
+    )
   
   # Write files 
-  write.csv(bio_df, paste0(data_dir, "/Master Datasheets/Biomass/", df_name,"_datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
+  write.csv(bio_export, paste0(data_dir, "/Master Datasheets/Biomass/", df_name,"_datasheet_",  Sys.Date(), ".csv"), row.names=FALSE)
 }
 
 
