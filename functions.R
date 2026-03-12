@@ -744,6 +744,15 @@ wood_biomass <- function(Genusspecies, DBH, HT){
 # Still need to input calculations for orchards and hedgerows and do more testing 
 clean_tap_biomass <- function(agc_data_entry_path,
                               projects){
+  #Initialize res dfs to null
+  abh_clean <- NULL
+  root_bio_clean <- NULL
+  abw_plot_res <- NULL
+  abw_pcq_res <- NULL
+  abw_pcq_res_point <- NULL
+  abw_lch_res <- NULL
+  abw_lch_res_point <- NULL
+  
   # Read in column names for point and field level biomass db
   point_meta <- read.csv("biomass_point_metadata.csv", stringsAsFactors = FALSE)[,1]
   field_meta <- read.csv("biomass_field_metadata.csv", stringsAsFactors = FALSE)[,1]
@@ -1024,10 +1033,9 @@ clean_tap_biomass <- function(agc_data_entry_path,
     df[missing] <- NA
     df
   }
-  df_names <- c("abh_clean","root_bio_clean","abw_pcq_res_point","abw_lch_res_point")
-  existing_df_names <- df_names[sapply(df_names, exists)]
-  dfs <- mget(existing_df_names)
-  dfs2 <- lapply(dfs, add_missing)
+  point_dfs <- list(abh_clean, root_bio_clean, abw_pcq_res_point, abw_lch_res_point)
+  point_dfs <- point_dfs[!sapply(point_dfs, is.null)]
+  dfs2 <- lapply(point_dfs, add_missing)
   all_rows <- bind_rows(dfs2) %>%
     select(all_of(point_meta))
   point_res <- all_rows %>%
@@ -1042,10 +1050,9 @@ clean_tap_biomass <- function(agc_data_entry_path,
       df[missing] <- NA
       df
     }
-    df_names <- c("abw_plot_res","abw_pcq_res","abw_lch_res")
-    existing_df_names <- df_names[sapply(df_names, exists)]
-    dfs <- mget(existing_df_names)
-    dfs2 <- lapply(dfs, add_missing)
+    field_dfs <- list(abw_plot_res, abw_pcq_res, abw_lch_res)
+    field_dfs <- point_dfs[!sapply(field_dfs, is.null)]
+    dfs2 <- lapply(field_dfs, add_missing)
     all_rows <- bind_rows(dfs2) %>%
       select(all_of(field_meta))
     field_res <- all_rows %>%
