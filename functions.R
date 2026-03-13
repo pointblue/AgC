@@ -1051,7 +1051,7 @@ clean_tap_biomass <- function(agc_data_entry_path,
       df
     }
     field_dfs <- list(abw_plot_res, abw_pcq_res, abw_lch_res)
-    field_dfs <- point_dfs[!sapply(field_dfs, is.null)]
+    field_dfs <- field_dfs[!sapply(field_dfs, is.null)]
     dfs2 <- lapply(field_dfs, add_missing)
     all_rows <- bind_rows(dfs2) %>%
       select(all_of(field_meta))
