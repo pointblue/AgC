@@ -16,6 +16,7 @@
 #       mean, 95% confidence interval and n points for all RACA crop and rangeland points (excluding outliers) 
 #       within the Level 3 ecoregion associated with the polygon you read in. The confidence interval is the
 #       value +/- the mean, so for example if mean = 5 and ci = 2, the confidence interval would be from 3 to 7
+#   11) filter_projects_DSA: Filters compiled datasheets by data sharing agreement level to share data with external collaborators
 
 ## ---- fetch_lab_file ----
 fetch_lab_file <- function(data_path, projects){
@@ -1432,6 +1433,69 @@ reg_baseline <- function(polygon, #Specify polygon of project
   RACA_res$SOC_perc <- ifelse(RACA_res$SOC_perc %in% SOC_out, NA, RACA_res$SOC_perc)
   return(list(RACA_res, RACA_soc, region_name))
   }
+
+## ---- filter_projects_dsa: Filter compiled datasheets by DSA level
+filter_projects_DSA <- function(data_path, # file path to AgC Data folder on Z drive
+                                DSA_metadata_path, # file path for DSA metadata
+                                DSA_levels, # DSA level(s) to share
+                                soils, # Select whether you want to include soils data "Y"/"N"
+                                biomass, # Biomass data "Y"/"N"
+                                management # Management data "Y"/"N"
+){
+  
+  # Get all AgC project codes that have a DSA
+  
+  DSAs<-read_excel(DSA_metadata_path, sheet = "DSAs") %>%
+    separate_rows(Proj_ID, sep = ";") %>%   # split into rows
+    mutate(Proj_ID = str_remove_all(Proj_ID, "\\s+"))
+  
+  # Filter DSA and return codes
+  
+  proj_to_share<-DSAs%>%
+    filter(DSA_level %in% DSA_levels) %>%
+    pull(Proj_ID)
+  proj_to_share <- proj_to_share[!is.na(proj_to_share)]
+  
+  # Read in current compiled datasheets and filter by project id
+  if(soils == "Y"){
+    point_df_list <- list.files(paste(data_path,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+    pointlevel_current <- read.csv(point_df_list[which.max(as.Date(gsub("\\D","", point_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    pointlevel_sel <- pointlevel_current[pointlevel_current$project_id %in% proj_to_share,]
+    if(nrow(pointlevel_sel)==0){
+      pointlevel_sel <- NA
+    }
+  }else{ pointlevel_sel <- NA }
+  if(biomass == "Y"){
+    bio_df_list <- list.files(paste(data_path,"Master Datasheets","Biomass", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+    point_bio_list <- bio_df_list[str_detect(bio_df_list, "point_biomass")]
+    field_bio_list <- bio_df_list[str_detect(bio_df_list, "field_biomass")]
+    pointbio_current <- read.csv(point_bio_list[which.max(as.Date(gsub("\\D","", point_bio_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    pointbio_sel <- pointbio_current[pointbio_current$project_id %in% proj_to_share,]
+    fieldbio_current <- read.csv(field_bio_list[which.max(as.Date(gsub("\\D","", field_bio_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    fieldbio_sel <- fieldbio_current[fieldbio_current$project_id %in% proj_to_share,]
+    if(nrow(pointbio_sel)==0){
+      pointbio_sel <- NA
+    }
+    if(nrow(fieldbio_sel)==0){
+      fieldbio_sel <- NA
+    }
+  }else{ 
+    pointbio_sel <- NA
+    fieldbio_sel <- NA
+  }
+  if(management == "Y"){
+    field_df_list <- list.files(paste(data_path,"Master Datasheets","FieldLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
+    field_current <- read.csv(field_df_list[which.max(as.Date(gsub("\\D","", field_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    field_sel <- field_current[field_current$project_id %in% proj_to_share,]
+    if(nrow(field_sel)==0){
+      field_sel <- NA
+    }
+  } else{
+    field_sel <- NA
+  }
+  df_to_share <- list(PointLevel = pointlevel_sel, FieldLevel = field_sel, PointBiomass = pointbio_sel, FieldBiomass = fieldbio_sel)
+  return(df_to_share) 
+}
 
 ## ---- format text function ----
 #takes in a vector of strings and formats it into a list sentence with oxford comma where relevant
