@@ -39,7 +39,7 @@ cropc,all,hist_crop_details,Please fill out the following cropping information f
 cropc,all,cons_practice,Which conservation practice(s) is/are being implemented in the study area?,Chist.conservation.practice
 rangec,all,hist_currentlu_yrs,"To your knowledge, how many years has the property been managed as rangeland?",Rhist.yrs.rangeland
 rangec,all,hist_currentman_yrs,How many years ago did grazing begin under current management?,Rhist.yrs.grazed
-cropc,all,hist_ls_utilization,"On average, what percent of forage is used by grazing animals in the study area? (Under current management, before practice implementation)",NA
+all,all,hist_ls_utilization,"On average, what percent of forage is used by grazing animals in the study area? (Under current management, before practice implementation)",NA
 rangec,all,hist_flood_yr,"Please enter the year of the last major flood within the study area, if applicable",Rhist.flood
 cropc,all,hist_ls_season_start,"Grazing season start (Under current management, before practice implementation)",Chist.livestock.table >> Livestock details >> Grazing duration per season (days)
 rangec,all,hist_fire_yr,"Please enter the year of the last major fire within the study area, if applicable",Rhist.fire
@@ -54,7 +54,7 @@ rangec,all,hist_ls_season_start,"Grazing season start (Under current management,
 rangec,all,hist_ls_season_end,"Grazing season end (Under current management, before practice implementation)",Rhist.end.graze
 rangec,all,hist_ls_paddocks,"Number of paddocks in the grazed area (Under current management, before practice implementation)",Rhist.num.paddocks
 rangec,all,hist_ls_resttime,"Average rest time per paddock within the grazing season (Under current management, before practice implementation)",Rhist.paddock.rest
-cropc,all,hist_ls_notes,Provide any other relevant historical management details here,Rhist.other.notes
+all,all,hist_ls_notes,Provide any other relevant historical management details here,Rhist.other.notes
 rangec,all,cons_practice,Which conservation practice is being implemented through the Ag-C project?,Range.practice
 cropc,cr,cr_desc,Describe the cover cropping system or crop rotation you're switching to below. Make sure to include cover crops and fallow periods within the rotation if applicable.,CR.crop.rotation
 cropc,cr,cr_list,Please create a row for each cash crop or cover crop type in your planned crop rotation.,CR.crop.rotation.table

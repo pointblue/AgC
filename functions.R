@@ -1121,13 +1121,66 @@ out_of_range <- function(df, var, min, max){
 
 ## ---- clean_management function ----
 clean_management <- function(raw_file){
-
-  # Read in raw management data, field_db_metadata, and jotform column map
-  jotform <- read_csv(
+  
+  # ----------------------------
+  # Helper: normalize names for matching
+  # ----------------------------
+  normalize_name <- function(x) {
+    x %>%
+      str_replace_all("[\r\n]+", " ") %>%      # remove line breaks
+      str_replace("\\.[0-9]+$", "") %>%        # remove .1, .2, etc.
+      str_to_lower() %>%                       # lowercase
+      str_replace_all("[^a-z0-9]+", " ") %>%   # remove punctuation / odd chars
+      str_squish()                             # collapse repeated spaces
+  }
+  
+  # ----------------------------
+  # Read raw Jotform file
+  # ----------------------------
+  jotform_raw <- read_csv(
     raw_file,
     col_types = cols(.default = col_character())
   )
   
+  # Clean blanks to NA
+  jotform_raw <- jotform_raw %>%
+    mutate(across(everything(), ~ na_if(str_squish(.x), "")))
+  
+  # ----------------------------
+  # Build normalized raw-column map
+  # ----------------------------
+  raw_name_map <- tibble(
+    original_name = names(jotform_raw),
+    norm_name = normalize_name(names(jotform_raw))
+  )
+  
+  # ----------------------------
+  # Coalesce duplicate raw Jotform columns
+  # after normalization
+  # ----------------------------
+  jotform <- map_dfc(unique(raw_name_map$norm_name), function(nm) {
+    cols_this <- raw_name_map %>%
+      filter(norm_name == nm) %>%
+      pull(original_name)
+    
+    vals <- jotform_raw %>% select(all_of(cols_this))
+    
+    if (length(cols_this) == 1) {
+      tibble(!!nm := vals[[1]])
+    } else {
+      tibble(
+        !!nm := pmap_chr(vals, function(...) {
+          x <- c(...)
+          x <- x[!is.na(x) & x != ""]
+          if (length(x) == 0) NA_character_ else x[1]
+        })
+      )
+    }
+  })
+  
+  # ----------------------------
+  # Read metadata and column key
+  # ----------------------------
   metadata <- read_csv(
     "field_db_metadata.csv",
     col_types = cols(.default = col_character())
@@ -1136,20 +1189,24 @@ clean_management <- function(raw_file){
   name_key <- read_csv(
     "jotform_column_names.csv",
     col_types = cols(.default = col_character())
-  )
+  ) %>%
+    mutate(
+      raw_name = normalize_name(raw_name),
+      new_name = str_squish(new_name)
+    )
   
-  # Clean blanks to NA
-  jotform <- jotform %>%
-    mutate(across(everything(), ~ na_if(str_squish(.x), "")))
-  
+  # ----------------------------
   # Build lookup list:
-  #    new_name -> one or more raw columns
+  # new_name -> one or more normalized raw columns
+  # ----------------------------
   name_map <- name_key %>%
-    filter(!is.na(new_name), !is.na(raw_name)) %>%
+    filter(!is.na(new_name), !is.na(raw_name), new_name != "", raw_name != "") %>%
     group_by(new_name) %>%
     summarise(raw_cols = list(unique(raw_name)), .groups = "drop")
   
-  # Coalesce raw columns
+  # ----------------------------
+  # Helper to coalesce mapped columns
+  # ----------------------------
   coalesce_from_cols <- function(df, cols) {
     cols_present <- cols[cols %in% names(df)]
     
@@ -1164,22 +1221,24 @@ clean_management <- function(raw_file){
     df %>%
       select(all_of(cols_present)) %>%
       pmap_chr(function(...) {
-        vals <- c(...)
-        vals <- vals[!is.na(vals) & vals != ""]
-        if (length(vals) == 0) NA_character_ else vals[1]
+        x <- c(...)
+        x <- x[!is.na(x) & x != ""]
+        if (length(x) == 0) NA_character_ else x[1]
       })
   }
   
+  # ----------------------------
   # Create cleaned table
+  # ----------------------------
   cleaned <- map2_dfc(
     name_map$new_name,
     name_map$raw_cols,
     ~ tibble(!!.x := coalesce_from_cols(jotform, .y))
   )
   
-  # Fix accidental Excel-style date conversions
-  #    e.g. "4-Feb" -> "2-4"
-  #    Add more replacements if needed
+  # ----------------------------
+  # Fix Excel-style tillage depth dates
+  # ----------------------------
   fix_depth_value <- function(x) {
     case_when(
       is.na(x) ~ NA_character_,
@@ -1191,37 +1250,36 @@ clean_management <- function(raw_file){
     )
   }
   
-  if (!"protocol" %in% names(cleaned)) {
+  # ----------------------------
+  # Add protocol
+  # ----------------------------
+  if (!"protocol" %in% names(cleaned) && "rangec_cropc" %in% names(cleaned)) {
     cleaned <- cleaned %>%
       mutate(protocol = rangec_cropc)
   }
   
-  # Expand historical tillage details
+  # ----------------------------
+  # Collapse tillage detail fields
+  # ----------------------------
   make_till_detail <- function(df, prefix, year_num) {
     type_col   <- paste0(prefix, "_yr", year_num, "_type")
     events_col <- paste0(prefix, "_yr", year_num, "_events")
     depth_col  <- paste0(prefix, "_yr", year_num, "_depth")
     
-    type_val <- if (type_col %in% names(df)) df[[type_col]] else rep(NA_character_, nrow(df))
+    type_val   <- if (type_col %in% names(df)) df[[type_col]] else rep(NA_character_, nrow(df))
     events_val <- if (events_col %in% names(df)) df[[events_col]] else rep(NA_character_, nrow(df))
-    depth_val <- if (depth_col %in% names(df)) fix_depth_value(df[[depth_col]]) else rep(NA_character_, nrow(df))
+    depth_val  <- if (depth_col %in% names(df)) fix_depth_value(df[[depth_col]]) else rep(NA_character_, nrow(df))
     
     pmap_chr(
       list(type_val, events_val, depth_val),
       function(type, events, depth) {
-        vals <- c(type = type, events = events, depth = depth)
-        keep <- !is.na(vals) & vals != ""
-        
-        if (!any(keep)) return(NA_character_)
-        
-        paste(
-          c(
-            if (!is.na(type) && type != "") paste0("type=", type),
-            if (!is.na(events) && events != "") paste0("events=", events),
-            if (!is.na(depth) && depth != "") paste0("depth=", depth)
-          ),
-          collapse = "; "
+        out <- c(
+          if (!is.na(type)   && type   != "") paste0("type=", type),
+          if (!is.na(events) && events != "") paste0("events=", events),
+          if (!is.na(depth)  && depth  != "") paste0("depth=", depth)
         )
+        
+        if (length(out) == 0) NA_character_ else paste(out, collapse = "; ")
       }
     )
   }
@@ -1230,13 +1288,11 @@ clean_management <- function(raw_file){
     cleaned[[paste0("till_hist_yr", yr)]] <- make_till_detail(cleaned, "till_hist", yr)
   }
   
-  # Expand conservation tillage details
-  #    cons_till_yr1 ... cons_till_yr5
   for (yr in 1:5) {
     cleaned[[paste0("cons_till_yr", yr)]] <- make_till_detail(cleaned, "cons_till", yr)
   }
   
-  # Select only columns in field_db_metadata
+  # Remove component tillage columns
   detail_component_cols <- names(cleaned)[
     str_detect(names(cleaned), "^(till_hist|cons_till)_yr[0-9]+_(type|events|depth)$")
   ]
@@ -1244,7 +1300,9 @@ clean_management <- function(raw_file){
   cleaned <- cleaned %>%
     select(-any_of(detail_component_cols))
   
-  # Match metadata order and add missing columns as NA
+  # ----------------------------
+  # Match metadata order and add missing cols
+  # ----------------------------
   target_cols <- metadata$column_name
   
   missing_cols <- setdiff(target_cols, names(cleaned))
@@ -1256,8 +1314,6 @@ clean_management <- function(raw_file){
     select(all_of(target_cols))
   
   return(cleaned_final)
-  
-  
 }
 
 ## ---- Store project design info ----
