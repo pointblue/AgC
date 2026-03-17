@@ -1434,7 +1434,7 @@ reg_baseline <- function(polygon, #Specify polygon of project
   return(list(RACA_res, RACA_soc, region_name))
   }
 
-## ---- filter_projects_dsa: Filter compiled datasheets by DSA level
+## ---- filter_projects_dsa: Filter compiled datasheets by DSA level ----
 filter_projects_DSA <- function(data_path, # file path to AgC Data folder on Z drive
                                 DSA_metadata_path, # file path for DSA metadata
                                 DSA_levels, # DSA level(s) to share
@@ -1459,19 +1459,24 @@ filter_projects_DSA <- function(data_path, # file path to AgC Data folder on Z d
   # Read in current compiled datasheets and filter by project id
   if(soils == "Y"){
     point_df_list <- list.files(paste(data_path,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
-    pointlevel_current <- read.csv(point_df_list[which.max(as.Date(gsub("\\D","", point_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    pointlevel_name <- point_df_list[which.max(as.Date(gsub("\\D","", point_df_list), format = "%Y%m%d"))]
+    pointlevel_current <- read.csv(pointlevel_name) #this indexing patterns makes sure we're using the most recent master datasheet
     pointlevel_sel <- pointlevel_current[pointlevel_current$project_id %in% proj_to_share,]
     if(nrow(pointlevel_sel)==0){
       pointlevel_sel <- NA
     }
-  }else{ pointlevel_sel <- NA }
+  }else{ 
+    pointlevel_name <- NA
+    pointlevel_sel <- NA }
   if(biomass == "Y"){
     bio_df_list <- list.files(paste(data_path,"Master Datasheets","Biomass", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
     point_bio_list <- bio_df_list[str_detect(bio_df_list, "point_biomass")]
     field_bio_list <- bio_df_list[str_detect(bio_df_list, "field_biomass")]
-    pointbio_current <- read.csv(point_bio_list[which.max(as.Date(gsub("\\D","", point_bio_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    pointbio_name <- point_bio_list[which.max(as.Date(gsub("\\D","", point_bio_list), format = "%Y%m%d"))]
+    pointbio_current <- read.csv(pointbio_name) #this indexing patterns makes sure we're using the most recent master datasheet
     pointbio_sel <- pointbio_current[pointbio_current$project_id %in% proj_to_share,]
-    fieldbio_current <- read.csv(field_bio_list[which.max(as.Date(gsub("\\D","", field_bio_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    fieldbio_name <- field_bio_list[which.max(as.Date(gsub("\\D","", field_bio_list), format = "%Y%m%d"))]
+    fieldbio_current <- read.csv(fieldbio_name) #this indexing patterns makes sure we're using the most recent master datasheet
     fieldbio_sel <- fieldbio_current[fieldbio_current$project_id %in% proj_to_share,]
     if(nrow(pointbio_sel)==0){
       pointbio_sel <- NA
@@ -1480,20 +1485,25 @@ filter_projects_DSA <- function(data_path, # file path to AgC Data folder on Z d
       fieldbio_sel <- NA
     }
   }else{ 
+    pointbio_name <- NA
+    fieldbio_name <- NA
     pointbio_sel <- NA
     fieldbio_sel <- NA
   }
   if(management == "Y"){
     field_df_list <- list.files(paste(data_path,"Master Datasheets","FieldLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
-    field_current <- read.csv(field_df_list[which.max(as.Date(gsub("\\D","", field_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
+    field_name <- field_df_list[which.max(as.Date(gsub("\\D","", field_df_list), format = "%Y%m%d"))]
+    field_current <- read.csv(field_name) #this indexing patterns makes sure we're using the most recent master datasheet
     field_sel <- field_current[field_current$project_id %in% proj_to_share,]
     if(nrow(field_sel)==0){
       field_sel <- NA
     }
   } else{
+    field_name <- NA
     field_sel <- NA
   }
-  df_to_share <- list(PointLevel = pointlevel_sel, FieldLevel = field_sel, PointBiomass = pointbio_sel, FieldBiomass = fieldbio_sel)
+  dsa_tracker_row <- c(max(DSA_levels),pointlevel_name,field_name,fieldbio_name,pointbio_name)
+  df_to_share <- list(ForDSATracker = dsa_tracker_row,PointLevel = pointlevel_sel, FieldLevel = field_sel, PointBiomass = pointbio_sel, FieldBiomass = fieldbio_sel)
   return(df_to_share) 
 }
 
