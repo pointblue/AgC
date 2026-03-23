@@ -1731,7 +1731,7 @@ AgC_GRTS <- function (polygon, proj_name = NA, sdensity, osdensity, plot_type_co
   }
   
   if (is.na(proj_name)){
-    proj_name <- polyon$proj_name[1]
+    proj_name <- polygon$proj_name[1]
   } else proj_name<-proj_name
   
   if(is.null(polygon[[plot_type_col]]) || 
