@@ -12,18 +12,18 @@ bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the 
   } %>%
   select(sample_id, timepoint, plot_type, bulk_density, LU) %>%
   bind_rows( #bind project stocks df to the raca dataset
-    raca_data %>%
+    ComparisonData %>%
+      select(sample_id, plot_type, bulk_density)%>%
       mutate(
-        sample_id = rcasiteid,
-        bulk_density = BD,
-        plot_type = "raca",
-        timepoint = "2010",
-        LU=LU,
-        .keep = "none"   #drop all other columns
+        plot_type = "comparison",
+        LU="comparison",
+        timepoint="comparison"
+        #.keep = "none"   #drop all other columns
       )
   )%>%
-  filter(LU %in% c("AgC", "Row", "alley",  params$raca_filter))%>% #filter out values that don't match the correct land use type
+  filter(LU %in% c("AgC", "Row", "alley", "comparison", params$raca_filter))%>% #filter out values that don't match the correct land use type
   mutate(avgcol = "avg") #adding this column is necessary to get one legend entry for all average values across trt, ctrl, and raca
+
 
 #prep NRCS categories based on texture class
 texture <- PointLevel %>% 
@@ -49,7 +49,7 @@ avg_tx_info<-get_texture_info(av_tx_abv)
 
 #prep threshhold bands dataframe
 non_ref<-unique(bd_df$plot_type)
-non_ref <- non_ref[non_ref != "raca"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
+non_ref <- non_ref[non_ref != "raca" & non_ref != "comparison"] #this step is necessary so the bands dont appear in the raca facet (incorrect comparison by texture)
 bd_bands <- data.frame(
   plot_type = rep(non_ref, each = 3),
   zone = rep(c(
@@ -70,6 +70,6 @@ bd_bands <- data.frame(
 )
 
 #Define the desired order of facets (needs to be done for both datasets)
-bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "raca"))
+bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "comparison"))
 bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
 

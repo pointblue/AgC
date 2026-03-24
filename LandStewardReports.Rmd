@@ -73,18 +73,18 @@ points<- read_sf(points_file)
 #Reading in master datasheets and filtering by project of interest
 list_dfs_field<-list.files(file.path(data_path, "FieldLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 FieldLevel<-list_dfs_field[which.max(as.Date(gsub("\\D","", list_dfs_field), format = "%Y%m%d"))]%>%
-  read.csv()%>%
+  read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
   filter(project_id == params$project_name)
 
 list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
-  read.csv(na.strings="")%>%
+  read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
   filter(project_id == params$project_name)%>%
   mutate(plot_type = substr(sample_id, 12, 12)) #add the plot_type column
 
 list_dfs_design<-list.files(file.path(data_path, "ProjectDesign", ""), pattern = "\\.csv$", full.names = TRUE)
 ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design), format = "%Y%m%d"))]%>%
-  read.csv()%>%
+  read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
   filter(project_id == params$project_name)
 
 #add project design datasheet, then assign all the variables created above
