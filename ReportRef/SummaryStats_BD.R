@@ -26,7 +26,7 @@ if(length(unique(PointLevel$timepoint))>1){
 
 #Calculate and verbalize raca-mean percentiles for the most recent timepoint in any presnt plot
 raca_ecdf_bd <- bd_df %>% 
-  filter(plot_type == "raca") %>% 
+  filter(plot_type == "comparison") %>% 
   pull(bulk_density) %>% 
   ecdf()    
 

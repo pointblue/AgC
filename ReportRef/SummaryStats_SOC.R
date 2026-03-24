@@ -26,7 +26,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
   
   #Calculate and verbalize raca-mean percentiles for the most recent timepoint in any presnt plot
     raca_ecdf_soc <- soc_df %>% 
-      filter(plot_type == "raca") %>% 
+      filter(plot_type == "comparison") %>% 
       pull(org_c) %>% 
       ecdf()    
     

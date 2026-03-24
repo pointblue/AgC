@@ -93,12 +93,12 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
 proj.protocol <- FieldLevel$protocol[1]
 proj.inscore <- ProjectDesign$inference_score[1]
 proj.propertyname <- ProjectDesign$ranch_name[1]
-proj.implementationyear <- if(is.na(ProjectDesign$proj_practice_year[1])){""}
+proj.implementationyear <- as.character(ifelse(is.na(ProjectDesign$proj_practice_year[1]), "",ProjectDesign$proj_practice_year[1]))
 pract_codes<-read.csv('practice_abbreviations.csv')
 practs_vec<-strsplit(ProjectDesign$conservation_practice[1], ",\\s*")[[1]]
 practs_full<-pract_codes$Practice[match(practs_vec, pract_codes$Abbreviation)]
 proj.practicetype <- format_list(practs_full)
-proj.title <- paste0(proj.propertyname, ": ", proj.implementationyear, proj.practicetype)
+proj.title <- paste0(proj.propertyname, ": ", proj.implementationyear, " ", proj.practicetype)
 
 #Defining project indicators
 indicator.db<-read.csv("ReportRef/indicator_descriptions.csv", check.names=FALSE)#read in the indicator descriptions reference sheet
