@@ -93,13 +93,32 @@ lab_prep <- lab_clean %>%
   ungroup() %>%
   select(-prj, -adoption_year, -first_year, -start_rank, -year_rank)
 
-# rows WITH depth → join using depth
-df_depth <- lab_prep %>%
-  filter(!is.na(b_depth)) %>%
-  left_join(
-    tap_soils,
-    by = c("sample_id", "timepoint", "b_depth", "e_depth")
+lab_prep <- lab_prep %>%
+  mutate(
+    b_depth = as.character(b_depth),
+    e_depth = as.character(e_depth)
   )
+tap_soils <- tap_soils %>%
+  mutate(
+    b_depth = as.character(b_depth),
+    e_depth = as.character(e_depth)
+  )
+
+if (sum(!is.na(lab_prep$b_depth)) > 0) {
+  
+  # rows WITH depth → join using depth
+  df_depth <- lab_prep %>%
+    filter(!is.na(b_depth)) %>%
+    left_join(
+      tap_soils,
+      by = c("sample_id", "timepoint", "b_depth", "e_depth")
+    )
+  
+} else {
+
+  df_depth <- lab_prep %>%
+    filter(!is.na(b_depth))
+}
 
 # rows WITHOUT depth → join without depth
 df_nodepth <- lab_prep %>%
