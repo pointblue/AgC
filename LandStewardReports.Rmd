@@ -252,14 +252,14 @@ timepoint_dates<-PointLevel %>%
   arrange(timepoint) #make sure timpoints are in order for indexing
 
 timepoint_sentence <- timepoint_dates %>%
-  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date), "%B %d, %Y"), ".")) %>%
+  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date, format = "%m/%d/%Y"), "%B %d, %Y"), ".")) %>%
   pull(text) %>%          # get vector of strings
   paste(collapse = " ")
 
 #setting up a table for ggplot labels
-tp_lookup<- timepoint_dates %>%
+tp_lookup <- timepoint_dates %>%
   mutate(
-    sample_date = as.Date(sample_date),
+    sample_date = as.Date(sample_date, format = "%m/%d/%Y"),
     year_label = format(sample_date, "%Y")
   )
 
@@ -321,11 +321,7 @@ cat("\\n We expect to see increased soil organic carbon from your conservation p
 source("ReportRef/RaCAData_prep.R")
 ```
 ```{r, results='asis'}
-cat("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: ", 
-       ecoregion,
-       ". These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset](https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca), and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration.", sep=""
-
-)
+cat("The following graph(s) compare data collected at your site to baseline data from **other participating ranches** in Northern California and Oregon that monitored a compost project between 2022 and 2024.")
 ```
 
 #### ~Prepping results data{.hidden}
@@ -384,7 +380,7 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
   cat(baci_soc)
 }
 ```
-```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion."}
+```{r eval = !("bulk_density" %in% proj.indicators.SSC) || !params$stock, fig.cap="Average soil organic carbon content. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to participating Ag-C ranches in Northern California and Oregon that conducted baseline monitoring for a compost amendment between 2022 and 2024."}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 source("ReportRef/SOCfig_prep.R")
 SOCfig
@@ -614,7 +610,7 @@ if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type
 }
 
 ```
-```{r eval = ("bulk_density" %in% proj.indicators.SSC), fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to USDA Rapid Carbon Assessment values for other agricultural lands in your ecoregion. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
+```{r eval = ("bulk_density" %in% proj.indicators.SSC), fig.cap="Average soil bulk density. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to participating Ag-C ranches in Northern California and Oregon that conducted baseline monitoring for a compost amendment between 2022 and 2024. Points in the background show individual sampling point values. Colored bands in the background show how these values compare to thresholds that apply to USDA recommended bulk density targets for the average soil texture measured at your site."}
 #This will only evaluate if there is bulk density AND  the user opted not to show stocks in the report
 source("ReportRef/BDfig_prep.R")
 BDfig

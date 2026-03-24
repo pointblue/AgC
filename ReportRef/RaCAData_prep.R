@@ -20,4 +20,3 @@ ComparisonData<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point),
   filter(str_detect(project_id, ".SC"))%>%
   filter(timepoint=="T0")%>%
   filter(project_id != params$project_name)
-View(ComparisonData)
