@@ -175,15 +175,25 @@ SpatialDesignMapFinal
 ```{r Dynamic text generation 1, results='asis'}
 #this section states which, if any, indicators were measured at every sampling point and removes them from the following legend table
 
-#Start with a filtering step so we're only comparing among the first timepoint, otherwise things will get weird as we often don't measure certain indicators more than once
-PointLevel_firstT<- PointLevel %>%
-  mutate(time_suffix = as.numeric(str_sub(timepoint, -1))) %>%
-  filter(time_suffix == min(time_suffix, na.rm = TRUE)) %>%
-  select(-time_suffix)
+#Start by coalescing across timepoints so that indicators that didnt need to be measured more than once don't get flagged
+timepoints_coalesced <- PointLevel %>%
+  mutate(
+    time_num = as.numeric(gsub("^T", "", timepoint))
+  ) %>%
+  arrange(sample_id, time_num) %>%
+  group_by(sample_id) %>%
+  summarise(
+    across(
+      all_of(proj.indicators.SSC),
+      ~ do.call(coalesce, as.list(.x))
+    ),
+    .groups = "drop"
+  )
+
 
 allpoints.list <- proj.indicator.table$CheckCol[
-  proj.indicator.table$CheckCol %in% names(PointLevel_firstT) &    # must exist
-    sapply(proj.indicator.table$CheckCol, function(col) all(!is.na(PointLevel_firstT[[col]])))
+  proj.indicator.table$CheckCol %in% names(timepoints_coalesced) &    # must exist
+    sapply(proj.indicator.table$CheckCol, function(col) all(!is.na(timepoints_coalesced[[col]])))
 ]
 
 allpoints.table <- proj.indicator.table %>%

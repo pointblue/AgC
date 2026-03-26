@@ -132,7 +132,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     }
     
     #C steady T increase
-    if (all(time_contrasts_bd[time_contrasts_bd$plot_type == "T", ]$condition == "increase") & all(time_contrasts_bd[time_contrasts_bd$plot_type == "C", ]$condition == "no change")) { 
+    if (all(time_contrasts_bd[time_contrasts_bd$plot_type == "T", ]$condition == "increased") & all(time_contrasts_bd[time_contrasts_bd$plot_type == "C", ]$condition == "no change")) { 
       baci_bd<-"INSERT TEXT"
     }
     
@@ -171,34 +171,35 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
         mutate(
           text = case_when(
             p.value < 0.05 & estimate > 0 ~
-              "Bulk density at the treated site **declined less** relative to the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **declined more** relative to the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
             
             p.value < 0.05 & estimate < 0 ~
-              "Bulk density at the treated site **decreased at a greater rate** than the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **declined less** than the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
             
             TRUE ~
-              "Decreases in bulk density were observed in your field but were **not due to practice changes**, since these decreases were observed in both the treatment and control sites. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+              "Decreases in bulk density were observed in both treatment and control plots but were **not due to practice changes**, since these decreases occurred in both. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
           )
-        )%>%
+        ) %>%
         pull(text) %>%          # get vector of strings
         paste(collapse = " ")
     }
     
     #Both plots increasing
-    if (all(unique(time_contrasts_bd$condition) == "increased")){
+    if(all(unique(time_contrasts_bd$condition) == "increased")){
       baci_bd <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(
             p.value < 0.05 & estimate > 0 ~
-              "Bulk density at the treated site **increased more** relative to the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **increased less** relative to the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
             
             p.value < 0.05 & estimate < 0 ~
-              "Bulk density at the treated site **increased less** than the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **increased more** than the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
             
             TRUE ~
-              "Increases in bulk density were observed in your field but were **not due to practice changes**, since these increases were observed in both the treatment and control sites. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe.")
-        )%>%
+              "Increases in bulk density were observed in both treatment and control plots but were **not due to practice changes**, since these increases occurred in both. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+          )
+        ) %>%
         pull(text) %>%          # get vector of strings
         paste(collapse = " ")
     }
