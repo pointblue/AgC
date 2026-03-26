@@ -132,7 +132,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
       }
       
       #C steady T increase
-      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increase") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) { 
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increased") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) { 
         baci_soc<-"INSERT TEXT"
       }
       

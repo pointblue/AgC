@@ -12,7 +12,8 @@ DataMap.proj_joined <- DataMap.proj_lastT %>%
 #Identify indicators where lastT is not all NA
 valid_inds <- dynamicmap.inds[
   sapply(dynamicmap.inds, function(col) {
-    !all(is.na(DataMap.proj_joined[[paste0(col, ".last")]]))
+    !all(is.na(DataMap.proj_joined[[paste0(col, ".last")]])) &&
+      !all(is.na(DataMap.proj_joined[[paste0(col, ".first")]]))
   })
 ]
 valid_last_cols  <- paste0(valid_inds, ".last")

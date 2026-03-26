@@ -161,7 +161,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     
     #Both plots steady (no further test needed, just text)  
     if (all(unique(time_contrasts_bd$condition) == "no change")){
-      baci_bd<-"Bulk density in both plots is steady over time. This tells us that general conditions have not altered structure and compaction over the monitoring timeline, and the impact of the conservation practice is not currently detectable. The adopted practice might still be beneficial, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+      baci_bd<-"Bulk density in both plots is **steady over time**. This tells us that general conditions have not altered structure and compaction over the monitoring timeline, and the impact of the conservation practice is not currently detectable. The adopted practice might still be beneficial, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
     }
     
     #Both plots decreasing
