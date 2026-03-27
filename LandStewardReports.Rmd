@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: ENGL.24.SC
+  project_name: MERC.24.LI
   raca_filter:
     - range
   author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
@@ -259,7 +259,7 @@ timepoint_sentence <- timepoint_dates %>%
 #setting up a table for ggplot labels
 tp_lookup<- timepoint_dates %>%
   mutate(
-    sample_date = as.Date(sample_date),
+    sample_date = as.Date(sample_date, format="%m/%d/%Y"),
     year_label = format(sample_date, "%Y")
   )
 
