@@ -26,7 +26,7 @@ texture_name,NA,NA,NA,Texture.By.Feel,NA,NA,NA,NA,NA
 sand,percent,Sand.content,percent,Sand,percent,NA,NA,Sand,percent
 silt,percent,Silt.content,percent,Silt,percent,NA,NA,Silt,percent
 clay,percent,Clay.content,percent,Clay,percent,NA,NA,Clay,percent
-ph,ph,NA,NA,Soil.pH,ph,NA,NA,pH,NA
+ph,ph,pH,NA,Soil.pH,ph,NA,NA,pH,NA
 buffer_ph,ph,NA,NA,WDRF,ph,NA,NA,NA,NA
 coarse_g,g,Biomass.removed,g,Roots.grams,g,NA,NA,NA,NA
 rocks_g,g,Rocks.removed,g,Rocks.grams,g,NA,NA,NA,NA
