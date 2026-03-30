@@ -212,14 +212,43 @@ if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){ #only proc
     subset.inds.name<-proj.indicator.table$Indicator[proj.indicator.table$CheckCol %in% subset.inds]
     cat(paste0("The following indicators were measured at points ", format_list(substr(subset_points, 12, 15)), ": ", format_list(subset.inds.name),"<br><br>"))
   }
-  
-  #CHECK Here is where we go back to generating the table for when not all subset inds were measured at the same point. Not relevant for current report deadline. Model based on pilot reports code when ready
+}
+
+  #If not all subset indicators were measured at the same exact points, we'll go ahead and list what was measured where in a table
+if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){
   if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))==FALSE){ 
     cat("Indicators that were only measured at some sampling points are listed in the table below.")
-    
-    #might have to generate the table in a different chunk, don't remember
   }
+}
+```
+``` {r}
   
+  #If not all subset indicators were measured at the same exact points, we'll go ahead and list what was measured where in a table
+if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){
+  if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))==FALSE){ 
+    
+sample_id_vec <-unname( sapply(subset.inds, function(col) {
+  paste(
+    substring(PointLevel$sample_id[!is.na(PointLevel[[col]])], 12, 15),
+    collapse = ", "
+  )
+}))
+    Indicator.Allocation.Table <- data.frame(
+  Indicator = (proj.indicator.table %>%filter(CheckCol %in% subset.inds))$Acronym,
+  "Sample IDs measured" = sample_id_vec
+) %>%
+  kbl(align = c("l", "l"), 
+      booktabs = TRUE, 
+      caption = "For indicators that were not measured at every point, a breakdown of what was measured where.",
+      col.names = c("Indicators", "Sample IDs Measured")) %>%
+  kable_styling(position = "center", full_width = FALSE) %>%
+  column_spec(1, width = "2in") %>%
+  column_spec(2, width = "4in") %>%
+  row_spec(0, bold = TRUE)
+
+  Indicator.Allocation.Table
+    
+  }
 }
 
 ```
@@ -681,6 +710,46 @@ position_wider%>%
   kable_styling(position = "center", full_width = TRUE)
 
 ```
+#### SIC% Results {.hidden}
+```{r results='asis', eval = !("bulk_density" %in% proj.indicators.SSC) || (!params$stocks & ("inorg_c" %in% proj.indicators.SSC))}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+cat("### Soil inorganic carbon concentrations\\n") #CONDITIONAL HEADER
+```
+```{r, results='asis', eval = !("bulk_density" %in% proj.indicators.SSC) || (!params$stocks & ("inorg_c" %in% proj.indicators.SSC))}
+sic_overall_perc<-round(mean(PointLevel$inorg_c/PointLevel$total_c)*100)
+
+
+cat(paste0(
+  "In arid environments with alkaline soils, inorganic carbon can make up a large portion of carbon stored in the soil. Across the sampled area, inorganic carbon made up **",
+sic_overall_perc,
+"% of all carbon** present in soils. The following figure shows how soil organic and inorganic carbon pools stack up at each sampling point."
+  )
+  )
+
+```
+```{r, fig.cap="Soil organic carbon and inorganic carbon at each sampling point."}
+SIC_df<-PointLevel%>%select(sample_id, org_c, inorg_c)%>%pivot_longer(cols=c("org_c", "inorg_c"), names_to = "metric", values_to = "values")%>%arrange(sample_id)%>%
+  mutate(sample_id_short=substring(sample_id, 12, 15))
+
+ggplot(SIC_df, aes(fill=metric, y=values, x=sample_id_short)) + 
+  geom_bar(position="stack", stat="identity")+theme_bw()+ theme(text = element_text(size = 20))+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ ylab("Soil carbon %")+xlab("")+
+  scale_fill_manual(name = "Soil carbon pool", 
+                    values=c("#5B6FAE", "#9FBF88"),
+                    labels=c("inorganic carbon",
+                             "organic carbon")
+                    )+
+  theme(
+  axis.text.x = element_text(
+    angle = 45,      # tilt labels
+    hjust = 1,       # align nicely with ticks
+    vjust = 1,
+    face = "bold",
+    size =6        # make text smaller
+  )
+)
+ 
+```
+
 #### Other Stocks Results {.hidden}
 ```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
 #CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
@@ -833,6 +902,159 @@ grid.arrange(imgT, imgC, ncol = 2)
   }
   
 }
+```
+#### Bare ground Results {.hidden}
+```{r, results='asis', eval= params$proj_name=="JEME.24.PG"}
+#CHECK!!! Currently a one-off for Jemez Pueblo
+asis_output("### Bare ground\\n") #CONDITIONAL HEADER
+```
+```{r bare ground, results='asis', eval= params$proj_name=="JEME.24.PG"}
+#CHECK!!! Currently a one-off for Jemez Pueblo
+cat("At each sampling point, the percent of ground area with bare soil exposed was measured. The figure below shows bare ground data collected at your site compared to the average bare ground value calculated from satellite data for rangelands in your county. County average data comes from the [Rangeland Analysis Platform](https://rangelands.app/).") 
+```
+``` {r, eval= params$proj_name=="JEME.24.PG", fig.cap="Average bare ground percentage. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to a county-wide average from Rangeland Analysis Platform data."}
+#CHECK!!! Currently a one-off for Jemez Pueblo
+
+library(rapr)
+library(tigris)
+
+border.c <- st_transform(border, 4269)
+counties_sf <- counties(state = "NM", cb = TRUE, class = "sf") %>%
+  st_transform(st_crs(border.c))  # match CRS
+county <- counties_sf %>%
+  st_filter(border.c, .predicate = st_intersects)
+  
+  rap_region<-get_rap(county,
+                      product = "vegetation-cover",
+                      years = as.numeric(tp_lookup$year_label[length(tp_lookup$year_label)]), #takes the most recent year
+                      verbose = FALSE
+                      )
+  
+  rap_region_avg<-mean(terra::values(rap_region$bare_ground))
+
+  #rap_region_course <- aggregate(rap_region$bare_ground, fact = 400, fun = mean, na.rm = TRUE)
+
+  bareground<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE,
+             na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%filter(ProjectID == "JEME.24.PG")%>%select(PointID, Bareground_prop)%>%rename("sample_id"=PointID)%>%mutate(Bareground_perc=Bareground_prop*100)%>%select(-Bareground_prop)
+  
+  Bareground_df<-bareground%>%
+    #rbind(data.frame(
+    #"sample_id" = rep("rap", length(values(rap_region_course))),
+    #"Bareground_perc" = (unname(values(rap_region_course)))))%>%
+    mutate(timepoint="T0")%>%
+    mutate(plot_type=substring(sample_id, 12, 12))%>%
+    mutate(LU=case_when(
+      sample_id=="rap"~"comparison", 
+      TRUE       ~ "AgC"
+      ),
+      avgcol = "avg")
+  
+  
+  ggplot(Bareground_df, aes(x = timepoint, y = Bareground_perc))+
+    
+  # Horizontal line for county average
+  geom_hline(aes(yintercept = rap_region_avg, linetype = "County average value"),
+             color = "#C9971A", size = 1, alpha=.5) +
+  
+  #legend for h line  
+  scale_linetype_manual(name = "", values = "dashed") +
+  
+  # Jittered black points
+  geom_point(aes(color = LU),
+             alpha = 0.8,
+             size = 3,
+             position = position_jitter(width = 0.2, height = 0)
+  ) +
+  
+  #lines connecting plot averages
+  stat_summary(
+    fun = mean,
+    geom = "line",
+    aes(color=plot_type, group=plot_type), 
+    col="black",
+    linewidth = 1 
+  ) +
+  
+  # Mean + 95% CI (colored by plot_type)
+  stat_summary(
+    fun.data = function(x) {
+      mean_x <- mean(x, na.rm = TRUE)
+      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+      ci <- 1.96 * se_x
+      data.frame(
+        y = mean_x,
+        ymin = mean_x - ci,
+        ymax = mean_x + ci
+      )
+    },
+    geom = "pointrange",
+    aes(color = avgcol),
+    size = .7, #size of dot
+    linewidth = 1.5, #thickness of CI line
+    shape = 16
+  ) +
+  
+  # Labels, axes, theme
+  labs(
+    x = "",
+    y = "Bare ground %",
+  ) +
+  
+  scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU),
+    breaks = c("avg", "AgC", "range", "crop", "alley", "Row"),
+    labels = c(
+      str_wrap("Plot average", width = 21),
+      "AgC sampling point",
+      str_wrap("RaCA rangeland sampling point", width=21),
+      str_wrap("RaCA cropland sampling point", width=21),
+      "Alley sampling point",
+      "Row sampling point"
+    )
+  ) +
+  
+  #Custom x-axis labels
+  scale_x_discrete(labels = c(
+    setNames(tp_lookup$year_label, tp_lookup$timepoint), "2010"
+  )) +
+  
+  # Text labels for means
+  stat_summary(
+    fun = mean,
+    geom = "shadowtext", #requires package shadowtext
+    bg.color = "black", #text outline color
+    bg.r = 0.15,  #thickness of outline
+    aes(
+      label = sprintf("%.2f", after_stat(y)),
+      group = timepoint
+    ), #change decimal places printed by altering the digit
+    color = "#FFD700", #text color
+    hjust = 1.2,
+    vjust = -1.2,
+    fontface = "bold",
+    size = 3.5
+  )+
+  
+  # Facet by plot type
+  facet_wrap(~plot_type, scales="free_x",
+             labeller = as_labeller(c(
+               `T` = "Treatment",
+               C = "Control",
+               raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
+             ))
+  ) +
+
+  theme_minimal() +
+  
+  theme(
+    strip.text = element_text(face = "bold", size=12)
+  )+
+  
+  expand_limits(y=0)
+
+  
+
 ```
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
