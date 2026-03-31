@@ -778,7 +778,7 @@ ggplot(SIC_df, aes(fill=metric, y=values, x=sample_id_short)) +
 asis_output("### Microbial biomass carbon\\n") #CONDITIONAL HEADER
 ```
 ```{r, results='asis', eval = "microbial_c" %in% proj.indicators.SSC}
-cat("While microbial biomass carbon is a useful indicator for tracking changes in microbial activity over time, relatively little 'benchmark' data is available for comparing to results at this site. For a general sense of the range of possible values, averages from other sampled locations are provided, represented by horizontal lines in the figure below.")
+cat("While microbial biomass carbon is a useful indicator for tracking changes in microbial abundance over time, relatively little 'benchmark' data is available for comparing to results at this site. For a general sense of the range of possible values, averages from other sampled locations are provided, represented by horizontal lines in the figure below.")
 ```
 ```{r, eval = "microbial_c" %in% proj.indicators.SSC, fig.cap="Average microbial biomass carbon. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to average values from Ag-C sampling locations within three different ecosystem types."}
 
@@ -1073,7 +1073,7 @@ asis_output("### Bare ground\\n") #CONDITIONAL HEADER
 #CHECK!!! Currently a one-off for Jemez Pueblo
 cat("At each sampling point, the percent of ground area with bare soil exposed was measured. The figure below shows bare ground data collected at your site compared to the average bare ground value calculated from satellite data for rangelands in your county. County average data comes from the [Rangeland Analysis Platform](https://rangelands.app/).") 
 ```
-``` {r, eval= "Bareground_perc" %in% proj.indicators.SSC, fig.cap="Average bare ground percentage. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to a county-wide average from Rangeland Analysis Platform data."}
+``` {r, message=FALSE, warning=FALSE, eval= "Bareground_perc" %in% proj.indicators.SSC, fig.cap="Average bare ground percentage. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to a county-wide average from Rangeland Analysis Platform data."}
 
 source('ReportRef/RAPData_prep.R')
 
