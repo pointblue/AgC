@@ -8,6 +8,7 @@ counties_sf <- counties(cb = TRUE, class = "sf") %>%
   st_transform(st_crs(border.c))  # match CRS
 county <- counties_sf %>%
   st_filter(border.c, .predicate = st_intersects)
+county_name<-county$NAME
 
 rap_region<-get_rap(county,
                     product = "vegetation-cover",

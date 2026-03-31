@@ -513,7 +513,6 @@ cat("PLFA (phospholipid fatty acid) analysis measures the microbial community in
 ```
 
 ```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), results = 'asis'}
-#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 
 #source("ReportRef/SummaryStats_PLFA.R")
 
@@ -545,6 +544,7 @@ PLFAfig_biomass
 ```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), fig.cap="Average fungal to bacterial ratio. The error bars around average values show the range of confidence based on data variability (95% confidence intervals)."}
 PLFAfig_ratio
 ```
+
 
 #### SOC Stocks Results {.hidden}
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
@@ -772,6 +772,144 @@ ggplot(SIC_df, aes(fill=metric, y=values, x=sample_id_short)) +
 )
  
 ```
+#### Microbial biomass Results {.hidden}
+```{r results='asis', eval = "microbial_c" %in% proj.indicators.SSC}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+asis_output("### Microbial biomass carbon\\n") #CONDITIONAL HEADER
+```
+```{r, results='asis', eval = "microbial_c" %in% proj.indicators.SSC}
+cat("While microbial biomass carbon is a useful indicator for tracking changes in microbial activity over time, relatively little 'benchmark' data is available for comparing to results at this site. For a general sense of the range of possible values, averages from other sampled locations are provided, represented by horizontal lines in the figure below.")
+```
+```{r, eval = "microbial_c" %in% proj.indicators.SSC, fig.cap="Average microbial biomass carbon. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to average values from Ag-C sampling locations within three different ecosystem types."}
+
+mcb_comps<-data.frame(
+  "site" = c("Southwestern Tablelands rangeland", "Great Plains prarie", "California Valley cropland"),
+  "avg_mbc" = c(3392, 4269, 649)
+  
+)
+
+  MCB_df<-PointLevel%>%
+  select(sample_id, timepoint, plot_type, microbial_c) %>%
+  mutate( LU="AgC", #keep formatting consistent
+    avgcol = "avg",) #adding this column is necessary in other plots to get one legend entry for all average values across trt, ctrl, and raca. just keeping it here for consistently
+  
+  MCB_df$plot_type <- factor(MCB_df$plot_type, levels = c("T", "C", "raca"))
+  MCB_df$timepoint <- factor(MCB_df$timepoint, levels = c("T0","T1","T2","2010"))
+
+  MCBfig<-ggplot(MCB_df, aes(x = timepoint, y = microbial_c))+
+  
+  # Horizontal line for comparison avgs
+  geom_hline(
+    data = mcb_comps,
+    aes(
+      yintercept = avg_mbc,
+      color = site,
+    ),
+    linewidth = 1,
+    linetype = "dashed",
+    alpha = 0.6
+  )+
+  
+
+  # Jittered black points
+  geom_point(aes(color = LU),
+             alpha = 0.8,
+             size = 3,
+             position = position_jitter(width = 0.2, height = 0)
+  ) +
+  
+  #lines connecting plot averages
+  stat_summary(
+    fun = mean,
+    geom = "line",
+    aes(color=plot_type, group=plot_type), 
+    col="black",
+    linewidth = 1 
+  ) +
+  
+  # Mean + 95% CI (colored by plot_type)
+  stat_summary(
+    fun.data = function(x) {
+      mean_x <- mean(x, na.rm = TRUE)
+      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
+      ci <- 1.96 * se_x
+      data.frame(
+        y = mean_x,
+        ymin = mean_x - ci,
+        ymax = mean_x + ci
+      )
+    },
+    geom = "pointrange",
+    aes(color = avgcol),
+    size = .7, #size of dot
+    linewidth = 1.5, #thickness of CI line
+    shape = 16
+  ) +
+  
+  # Labels, axes, theme
+  labs(
+    x = "",
+    y = "Microbial biomass carbon μg/g",
+  ) +
+  
+  scale_color_manual(
+    name = "",
+    values = c(palette_plot_type, palette_LU, "Southwestern Tablelands rangeland" = "#2C6E6F", "Great Plains prarie" = "#C9971A", "California Valley cropland"="#A67FA4"),
+    breaks = c("avg", "AgC", "range", "crop", "alley", "Row", "Southwestern Tablelands rangeland", "Great Plains prarie", "California Valley cropland"),
+    labels = c(
+      str_wrap("Plot average", width = 21),
+      "AgC sampling point",
+      str_wrap("RaCA rangeland sampling point", width=21),
+      str_wrap("RaCA cropland sampling point", width=21),
+      "Alley sampling point",
+      "Row sampling point",
+      "Southwestern Tablelands rangeland average", "Great Plains prarie average", "California Valley cropland average"
+    )
+  ) +
+  
+  #Custom x-axis labels
+  scale_x_discrete(labels = c(
+    setNames(tp_lookup$year_label, tp_lookup$timepoint), "2010"
+  )) +
+  
+  # Text labels for means
+  stat_summary(
+    fun = mean,
+    geom = "shadowtext", #requires package shadowtext
+    bg.color = "black", #text outline color
+    bg.r = 0.15,  #thickness of outline
+    aes(
+      label = sprintf("%.f", after_stat(y)),
+      group = timepoint
+    ), #change decimal places printed by altering the digit
+    color = "#FFD700", #text color
+    hjust = 1.2,
+    vjust = -1.2,
+    fontface = "bold",
+    size = 3.5
+  )+
+  
+  # Facet by plot type
+  facet_wrap(~plot_type, scales="free_x",
+             labeller = as_labeller(c(
+               `T` = "Treatment",
+               C = "Control"#,
+               # raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
+             ))
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    strip.text = element_text(face = "bold", size=12)
+  )+
+  
+  expand_limits(y=0)
+
+  MCBfig
+
+
+```
 
 #### Other Stocks Results {.hidden}
 ```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
@@ -937,119 +1075,20 @@ cat("At each sampling point, the percent of ground area with bare soil exposed w
 ```
 ``` {r, eval= "Bareground_perc" %in% proj.indicators.SSC, fig.cap="Average bare ground percentage. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to a county-wide average from Rangeland Analysis Platform data."}
 
-source('RAPData_prep.R')
+source('ReportRef/RAPData_prep.R')
 
   
   Bareground_df<-PointLevel%>%
   select(sample_id, timepoint, plot_type, Bareground_perc) %>%
   mutate( LU="AgC", #keep formatting consistent
     avgcol = "avg",) #adding this column is necessary in other plots to get one legend entry for all average values across trt, ctrl, and raca. just keeping it here for consistently
+  
+  Bareground_df$plot_type <- factor(Bareground_df$plot_type, levels = c("T", "C", "raca"))
+  Bareground_df$timepoint <- factor(Bareground_df$timepoint, levels = c("T0","T1","T2","2010"))
 
   
-  
-  ggplot(Bareground_df, aes(x = timepoint, y = Bareground_perc))+
-    
-  # Horizontal line for county average
-  geom_hline(aes(yintercept = rap_region_avg, linetype = "County average value"),
-             color = "#C9971A", size = 1, alpha=.5) +
-  
-  #legend for h line  
-  scale_linetype_manual(name = "", values = "dashed") +
-  
-  # Jittered black points
-  geom_point(aes(color = LU),
-             alpha = 0.8,
-             size = 3,
-             position = position_jitter(width = 0.2, height = 0)
-  ) +
-  
-  #lines connecting plot averages
-  stat_summary(
-    fun = mean,
-    geom = "line",
-    aes(color=plot_type, group=plot_type), 
-    col="black",
-    linewidth = 1 
-  ) +
-  
-  # Mean + 95% CI (colored by plot_type)
-  stat_summary(
-    fun.data = function(x) {
-      mean_x <- mean(x, na.rm = TRUE)
-      se_x <- sd(x, na.rm = TRUE) / sqrt(length(x[!is.na(x)]))
-      ci <- 1.96 * se_x
-      data.frame(
-        y = mean_x,
-        ymin = mean_x - ci,
-        ymax = mean_x + ci
-      )
-    },
-    geom = "pointrange",
-    aes(color = avgcol),
-    size = .7, #size of dot
-    linewidth = 1.5, #thickness of CI line
-    shape = 16
-  ) +
-  
-  # Labels, axes, theme
-  labs(
-    x = "",
-    y = "Bare ground %",
-  ) +
-  
-  scale_color_manual(
-    name = "",
-    values = c(palette_plot_type, palette_LU),
-    breaks = c("avg", "AgC", "range", "crop", "alley", "Row"),
-    labels = c(
-      str_wrap("Plot average", width = 21),
-      "AgC sampling point",
-      str_wrap("RaCA rangeland sampling point", width=21),
-      str_wrap("RaCA cropland sampling point", width=21),
-      "Alley sampling point",
-      "Row sampling point"
-    )
-  ) +
-  
-  #Custom x-axis labels
-  scale_x_discrete(labels = c(
-    setNames(tp_lookup$year_label, tp_lookup$timepoint), "2010"
-  )) +
-  
-  # Text labels for means
-  stat_summary(
-    fun = mean,
-    geom = "shadowtext", #requires package shadowtext
-    bg.color = "black", #text outline color
-    bg.r = 0.15,  #thickness of outline
-    aes(
-      label = sprintf("%.2f", after_stat(y)),
-      group = timepoint
-    ), #change decimal places printed by altering the digit
-    color = "#FFD700", #text color
-    hjust = 1.2,
-    vjust = -1.2,
-    fontface = "bold",
-    size = 3.5
-  )+
-  
-  # Facet by plot type
-  facet_wrap(~plot_type, scales="free_x",
-             labeller = as_labeller(c(
-               `T` = "Treatment",
-               C = "Control"#,
-              # raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
-             ))
-  ) +
-
-  theme_minimal() +
-  
-  theme(
-    strip.text = element_text(face = "bold", size=12)
-  )+
-  
-  expand_limits(y=0)
-
+source('ReportRef/BGfig_prep.R')
+BGfig
 ```
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
