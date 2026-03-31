@@ -87,8 +87,29 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
   read.csv()%>%
   filter(project_id == params$project_name)
 
-#add project design datasheet, then assign all the variables created above
+```
+```{r}
+#Adding indicators that are not stored in the Ag-C database to the PointLevel dataframe
+#Conditional statements are currently being handled on a project-level basis, but could be parameterized in the render function
 
+  ## Bare ground (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
+  if (params$project_name == "JEME.24.PG"){
+
+  bareground_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    filter(ProjectID == "JEME.24.PG")%>%
+    select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, Bareground_prop)%>% #alter so its joinable with PointLevel
+    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
+    select(-c(BdepthTarget_cm, EdepthTarget_cm))%>%
+    mutate(Bareground_perc=Bareground_prop*100)%>%
+    select(-Bareground_prop) #convert from a proportion to a percentage
+  
+  PointLevel<-PointLevel%>%left_join(bareground_df, by=c("sample_id", "timepoint", "target_depth"))
+    
+  }
+
+```
+``` {r}
 #Establishing variables for report structure
 proj.protocol <- FieldLevel$protocol[1]
 proj.inscore <- ProjectDesign$inference_score[1]
@@ -112,6 +133,8 @@ if ("Tx" %in% proj.indicators) { #create a vector of value names that match the 
   proj.indicators.SSC<-c(proj.indicator.table$CheckCol, "sand", "silt")
 } else {proj.indicators.SSC <- proj.indicator.table$CheckCol}
 ```
+
+
 
 # `r proj.propertyname` {.unlisted .unnumbered}
 #### Project Code: `r FieldLevel$project_id[1]` {.unlisted .unnumbered}
@@ -285,7 +308,7 @@ timepoint_sentence <- timepoint_dates %>%
     text = paste0(
       timepoint,
       " was sampled on ",
-      format(as.Date(sample_date, format = "%m/%d/%Y"), "%B %d, %Y"),
+      format(as.Date(sample_date, format = "%Y-%m-%d %H:%M:%S"), "%B %d, %Y"),
       "."
     )
   ) %>%
@@ -904,50 +927,24 @@ grid.arrange(imgT, imgC, ncol = 2)
 }
 ```
 #### Bare ground Results {.hidden}
-```{r, results='asis', eval= params$proj_name=="JEME.24.PG"}
+```{r, results='asis', eval= "Bareground_perc" %in% proj.indicators.SSC}
 #CHECK!!! Currently a one-off for Jemez Pueblo
 asis_output("### Bare ground\\n") #CONDITIONAL HEADER
 ```
-```{r bare ground, results='asis', eval= params$proj_name=="JEME.24.PG"}
+```{r bare ground, results='asis', eval= "Bareground_perc" %in% proj.indicators.SSC}
 #CHECK!!! Currently a one-off for Jemez Pueblo
 cat("At each sampling point, the percent of ground area with bare soil exposed was measured. The figure below shows bare ground data collected at your site compared to the average bare ground value calculated from satellite data for rangelands in your county. County average data comes from the [Rangeland Analysis Platform](https://rangelands.app/).") 
 ```
-``` {r, eval= params$proj_name=="JEME.24.PG", fig.cap="Average bare ground percentage. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to a county-wide average from Rangeland Analysis Platform data."}
-#CHECK!!! Currently a one-off for Jemez Pueblo
+``` {r, eval= "Bareground_perc" %in% proj.indicators.SSC, fig.cap="Average bare ground percentage. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Data collected at your site are compared to a county-wide average from Rangeland Analysis Platform data."}
 
-library(rapr)
-library(tigris)
+source('RAPData_prep.R')
 
-border.c <- st_transform(border, 4269)
-counties_sf <- counties(state = "NM", cb = TRUE, class = "sf") %>%
-  st_transform(st_crs(border.c))  # match CRS
-county <- counties_sf %>%
-  st_filter(border.c, .predicate = st_intersects)
   
-  rap_region<-get_rap(county,
-                      product = "vegetation-cover",
-                      years = as.numeric(tp_lookup$year_label[length(tp_lookup$year_label)]), #takes the most recent year
-                      verbose = FALSE
-                      )
-  
-  rap_region_avg<-mean(terra::values(rap_region$bare_ground))
+  Bareground_df<-PointLevel%>%
+  select(sample_id, timepoint, plot_type, Bareground_perc) %>%
+  mutate( LU="AgC", #keep formatting consistent
+    avgcol = "avg",) #adding this column is necessary in other plots to get one legend entry for all average values across trt, ctrl, and raca. just keeping it here for consistently
 
-  #rap_region_course <- aggregate(rap_region$bare_ground, fact = 400, fun = mean, na.rm = TRUE)
-
-  bareground<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE,
-             na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%filter(ProjectID == "JEME.24.PG")%>%select(PointID, Bareground_prop)%>%rename("sample_id"=PointID)%>%mutate(Bareground_perc=Bareground_prop*100)%>%select(-Bareground_prop)
-  
-  Bareground_df<-bareground%>%
-    #rbind(data.frame(
-    #"sample_id" = rep("rap", length(values(rap_region_course))),
-    #"Bareground_perc" = (unname(values(rap_region_course)))))%>%
-    mutate(timepoint="T0")%>%
-    mutate(plot_type=substring(sample_id, 12, 12))%>%
-    mutate(LU=case_when(
-      sample_id=="rap"~"comparison", 
-      TRUE       ~ "AgC"
-      ),
-      avgcol = "avg")
   
   
   ggplot(Bareground_df, aes(x = timepoint, y = Bareground_perc))+
@@ -1040,8 +1037,8 @@ county <- counties_sf %>%
   facet_wrap(~plot_type, scales="free_x",
              labeller = as_labeller(c(
                `T` = "Treatment",
-               C = "Control",
-               raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
+               C = "Control"#,
+              # raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
              ))
   ) +
 
@@ -1052,8 +1049,6 @@ county <- counties_sf %>%
   )+
   
   expand_limits(y=0)
-
-  
 
 ```
 ### Other measured properties
