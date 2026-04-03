@@ -60,8 +60,10 @@ df_csu <- CSUdata %>%
     ph_method = "lab",
     ph = pH,
     org_c = tsoc,
-    pom = per_POM,
-    maom = per_MAOM,
+    pom = f_poc,
+    poc = pom_perc,
+    maom = f_maoc,
+    maoc = maom_perc,
     sand = per_sand,
     silt = per_silt,
     clay = per_clay,
@@ -74,7 +76,7 @@ df_csu <- CSUdata %>%
     b_depth_mic_c, e_depth_mic_c,
     b_depth_plfa, e_depth_plfa,
     position, lab_name, c_method,
-    total_n, org_c, pom, maom,
+    total_n, org_c, pom, poc, maom, maoc,
     sand, silt, clay,
     ph_method, ph, bulk_density
   )
