@@ -1735,7 +1735,7 @@ AgC_GRTS <- function (polygon, proj_name = NA, sdensity, osdensity, plot_type_co
   } else proj_name<-proj_name
   
   if(is.null(polygon[[plot_type_col]]) || 
-     sum(!is.na(polygon[[plot_type_col]])) < 2) {
+     sum(unique(!is.na(polygon[[plot_type_col]]))) < 2) {
     GRTS_out<-polygon%>%st_transform(5070)%>%#polygon has to be in a projected CRS to run through GRTS
       st_buffer(dist=-buffer)%>%
       grts(n_base=sdensity, n_over=osdensity, mindis = mindis, maxtry=maxtry)
@@ -2041,7 +2041,7 @@ AgC_GRTS_strat <- function (polygon, soils, sdensity, osdensity=NULL, proj_name 
 }
 
 ## ---- Create PDF map of sampling design ----
-design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced sampling", plot_type_col="plot_type"){
+design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced sampling", plot_type_col="plot_type", proj_name=NULL){
   
   if (!require(dplyr)) {
     stop("Package 'dplyr' is required for this function.")
@@ -2062,7 +2062,11 @@ design_map <- function(sdesign, border, dir, key, subtitle="Spatially balanced s
   sdesign<-st_transform(sdesign, 4326)
   border<-st_transform(border, 4326)
   
-  proj_name <- substr(sdesign$name[1], 1, 10)
+  if (is.null(proj_name)) {
+    proj_name <- substr(sdesign$name[1], 1, 10)
+  } else {
+    proj_name <- proj_name
+  }  
   
   #this bit determines whether we're dealing with an intial or final design based on whether any oversample points are present
   if(any(str_detect(sdesign$name, fixed("T.OS")))){

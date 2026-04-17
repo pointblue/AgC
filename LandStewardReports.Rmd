@@ -80,7 +80,8 @@ list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
   read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
   filter(project_id == params$project_name)%>%
-  mutate(plot_type = substr(sample_id, 12, 12)) #add the plot_type column
+  mutate(plot_type = substr(sample_id, 12, 12))%>% #add the plot_type column
+  select(-any_of(if (all(is.na(.$inorg_c) | .$inorg_c < 0.1)) "inorg_c")) #if inorg_c values are negligible, drop them so they don't show up as an indicator. 
 
 list_dfs_design<-list.files(file.path(data_path, "ProjectDesign", ""), pattern = "\\.csv$", full.names = TRUE)
 ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design), format = "%Y%m%d"))]%>%
