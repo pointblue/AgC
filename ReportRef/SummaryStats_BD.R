@@ -166,7 +166,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     
     #Both plots decreasing
     if(all(unique(time_contrasts_bd$condition) == "decreased")){
-      baci_bd <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
+      baci_bd <- contrast(emm, method = setNames(list(c(1, -1, -1, 1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(

@@ -15,10 +15,11 @@ PointLevel_stats<-PointLevel%>%
   mutate(timepoint_digit = readr::parse_number(timepoint))%>%
   filter(timepoint_digit %in% c(min(timepoint_digit), max(timepoint_digit)))%>%
   arrange(timepoint)%>%
-  mutate(timepoint = factor(timepoint, levels = c(first(timepoint), last(timepoint))))
+  mutate(timepoint = factor(timepoint, levels = c(first(timepoint), last(timepoint))))%>%
+  arrange(plot_type)
 tp_first <- first(PointLevel_stats$timepoint)
 tp_last  <- last(PointLevel_stats$timepoint)
-} else {PointLevel_stats<-PointLevel}
+} else {PointLevel_stats<-PointLevel%>%arrange(plot_type)}
 
 # ---- SOC% ----
 
@@ -166,7 +167,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
       
       #Both plots decreasing
       if(all(unique(time_contrasts_soc$condition) == "decreased")){
-      baci_soc <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
+      baci_soc <- contrast(emm, method = setNames(list(c(1, -1, -1, 1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(

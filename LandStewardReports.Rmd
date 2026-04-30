@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: HEPU.23.SC
+  project_name: SHRA.24.SC
   raca_filter:
     - range
   author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"

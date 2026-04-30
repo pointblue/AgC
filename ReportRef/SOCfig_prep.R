@@ -61,7 +61,7 @@ SOCfig<-ggplot(soc_df, aes(x = timepoint, y = org_c))+
   
   #Custom x-axis labels
   scale_x_discrete(labels = c(
-    setNames(c(tp_lookup$year_label, "comparison"), c(tp_lookup$timepoint, "comparison"))
+    setNames(c(tp_lookup$year_label, "2022-2024"), c(tp_lookup$timepoint, "comparison"))
   )) +
   
   # Text labels for means
