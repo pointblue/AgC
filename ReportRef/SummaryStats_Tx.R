@@ -8,7 +8,7 @@ library(soiltexture)
 
 # ---- Data prep ----
 
-texture <- PointLevel %>% 
+texture <- PointLevel_stats %>% 
   rename(SAND=sand, SILT=silt, CLAY=clay) %>%
   filter(!is.na(CLAY)) %>%
   filter(!is.na(SAND)) %>%
@@ -25,6 +25,7 @@ texture_avg <- texture %>%
 
 
 #get average texture types for T and C plot
+if(length(unique(PointLevel_stats$plot_type))>1){
 texture_avg_list <- split(texture, texture$plot_type) %>%
   lapply(function(df){
     df_avg <- df %>%
@@ -41,6 +42,7 @@ texture_avg_list <- split(texture, texture$plot_type) %>%
     )
     df_avg
   })
+}
 
 avg_tx_t<-get_texture_info(texture_avg_list$T$USDA_texture)$full_name
 
@@ -61,7 +63,7 @@ avg_tx_c<-get_texture_info(texture_avg_list$C$USDA_texture)$full_name
   )
 
     #Treatment contrast
-    if (length(unique(PointLevel$plot_type))>1){
+    if (length(unique(PointLevel_stats$plot_type))>1){
     model <- lm(siltclay ~ plot_type, data = texture)
     anova(model)
     emm <- emmeans(model, ~ plot_type)

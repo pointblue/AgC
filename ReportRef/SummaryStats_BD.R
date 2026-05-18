@@ -16,8 +16,15 @@ if(length(unique(PointLevel$timepoint))>1){
     filter(timepoint_digit %in% c(min(timepoint_digit), max(timepoint_digit)))%>%
     arrange(timepoint)%>%
     mutate(timepoint = factor(timepoint, levels = c(first(timepoint), last(timepoint))))
-  tp_first <- first(PointLevel_stats$timepoint)
-  tp_last  <- last(PointLevel_stats$timepoint)
+  tp_first <- min(as.character(PointLevel_stats$timepoint))
+  tp_last  <- max(as.character(PointLevel_stats$timepoint))
+  
+  #this section for handling a special case where there is a control at T1 but not at baseline
+  PointLevel_stats <-  PointLevel_stats %>%
+    group_by(plot_type) %>%
+    filter(all(c(tp_first, tp_last) %in% as.character(timepoint))) %>%
+    ungroup()
+  
 } else {PointLevel_stats<-PointLevel}
 
 # ---- Bulk Density ----
@@ -70,7 +77,7 @@ percentile_scentence_bd<-raca_compare_bd%>%
 ### ---- >1TP, T only ----
 
 #Time contrast
-if(length(unique(PointLevel$timepoint))>1){
+if(length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))==1){
   model <- lmer(bulk_density ~ timepoint + (1 | sample_id), data = PointLevel_stats)
   emm <- emmeans(model, ~ timepoint, ddf="Kenward-Roger")
   time_change_bd <- contrast(emm, method = setNames(list(c(-1, 1)),paste0(tp_last, " - ", tp_first))) %>%
@@ -89,7 +96,7 @@ if(length(unique(PointLevel$timepoint))>1){
 
 ### ---- 1TP, T&C ----
 #Treatment contrast
-if (length(unique(PointLevel$plot_type))>1){
+if (length(unique(PointLevel_stats$plot_type))>1 & length(unique(PointLevel_stats$timepoint))==1){
 model <- lm(bulk_density ~ plot_type, data = PointLevel_stats)
 emm <- emmeans(model, ~ plot_type, ddf="Kenward-Roger")
 treatment_contrast_bd<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C")) %>%
@@ -109,7 +116,7 @@ treatment_contrast_bd<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C"))
 ### ---- >1TP, T&C ----
 
 #Plot-wise change over time 
-if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type))>1){
+if(length(unique(PointLevel_stats$timepoint))>1 && length(unique(PointLevel_stats$plot_type))>1){
   
   model <- lmer(bulk_density ~ plot_type * timepoint + (1 | sample_id),data = PointLevel_stats)
   emm <- emmeans(model, ~ plot_type * timepoint, at=list(plot_type = c("C", "T"), timepoint = c(tp_first, tp_last)), ddf="Kenward-Roger")

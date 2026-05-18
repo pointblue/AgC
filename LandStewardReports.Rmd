@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: SHRA.24.SC
+  project_name: NAPA.24.SC
   raca_filter:
     - range
   author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
@@ -372,21 +372,21 @@ asis_output("### Soil organic carbon concentrations\\n") #CONDITIONAL HEADER
 source("ReportRef/SummaryStats_SOC.R")
 
 
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+if ( length(unique(PointLevel_stats$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
   cat(percentile_scentence_soc)
 }
 
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+if ( length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))==1 ){
   cat(percentile_scentence_soc, "\n\n")
   cat(time_change_soc)
 }
 
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+if ( length(unique(PointLevel_stats$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
   cat(percentile_scentence_soc, "\n\n")
   cat(treatment_contrast_soc)
 }
 
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+if ( length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))>1 ){
   cat(percentile_scentence_soc, "\n\n")
   cat(baci_soc)
 }
@@ -600,21 +600,21 @@ asis_output("### Soil bulk density\\n") #CONDITIONAL HEADER
 
 source("ReportRef/SummaryStats_BD.R")
 
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
+if ( length(unique(PointLevel_stats$timepoint))==1 & length(unique(PointLevel_stats$plot_type))==1 ){
   cat(percentile_scentence_bd)
 }
 
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
+if ( length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))==1 ){
   cat(percentile_scentence_bd, "\n\n")
   cat(time_change_bd)
 }
 
-if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
+if ( length(unique(PointLevel_stats$timepoint))==1 & length(unique(PointLevel_stats$plot_type))>1 ){
   cat(percentile_scentence_bd, "\n\n")
   cat(treatment_contrast_bd)
 }
 
-if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
+if ( length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))>1 ){
   cat(percentile_scentence_bd, "\n\n")
   #cat(time_contrasts_bd, "\n\n")
   cat(baci_bd)
@@ -709,7 +709,7 @@ if ("Tx" %in% proj.indicators){cat("The graphic below represents where each soil
 
 ```
 ```{r Texture T and C, results='asis'}
-if ("Tx" %in% proj.indicators & length(unique(border$plot_type))==2){cat("Since this project includes a treated and control site, it's also important to note how well the texture values between plots 'match' one another - this helps us interpret differences in carbon dynamics between the sites. Two texture triangles are shown, one for the treated site, and one for the control site.")}
+if ("Tx" %in% proj.indicators & length(unique(PointLevel_stats$plot_type))==2){cat("Since this project includes a treated and control site, it's also important to note how well the texture values between plots 'match' one another - this helps us interpret differences in carbon dynamics between the sites. Two texture triangles are shown, one for the treated site, and one for the control site.")}
 
 ```
 ```{r texture timepoints, eval="Tx" %in% proj.indicators, results='asis'}
@@ -724,7 +724,7 @@ if ("Tx" %in% proj.indicators & (length(unique(PointLevel$timepoint)) > 1)) {
 #INSERT TEXT ABOUT TEXTURE T-C MATCH AND AVG SOIL TEXTURE
 source('ReportRef/SummaryStats_Tx.R')
 cat(tx_avg_sentence)
-if(length(unique(PointLevel$plot_type))>1){
+if(length(unique(PointLevel_stats$plot_type))>1){
   cat(treatment_contrast_siltclay)
 }
 ```
@@ -732,7 +732,7 @@ if(length(unique(PointLevel$plot_type))>1){
 ```{r fig.height=6, fig.cap="Texture triangle(s) showing texture classifications for samples in the study area."}
 if ("Tx" %in% proj.indicators){ #only do any of this if texture was included as an indicator
 
-  if (length(unique(border$plot_type))==1){ #make one triangle for plots with only T site
+  if (length(unique(PointLevel_stats$plot_type))==1){ #make one triangle for plots with only T site
     
   texture <- PointLevel %>% 
     rename(SAND=sand, SILT=silt, CLAY=clay) %>%
@@ -759,7 +759,7 @@ TT.plot(
 ) 
   }
   
-  if (length(unique(border$plot_type))==2){ #make 2 triangles for plots with a T and a C site
+  if (length(unique(PointLevel_stats$plot_type))==2){ #make 2 triangles for plots with a T and a C site
   
 
     texture_T <- PointLevel %>% 
