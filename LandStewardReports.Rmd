@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: NAPA.24.SC
+  project_name: MERC.24.LI
   raca_filter:
     - range
   author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
@@ -73,23 +73,113 @@ points<- read_sf(points_file)
 #Reading in master datasheets and filtering by project of interest
 list_dfs_field<-list.files(file.path(data_path, "FieldLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 FieldLevel<-list_dfs_field[which.max(as.Date(gsub("\\D","", list_dfs_field), format = "%Y%m%d"))]%>%
-  read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
+  read.csv()%>%
   filter(project_id == params$project_name)
 
 list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
-  read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
+  read.csv(na.strings="")%>%
   filter(project_id == params$project_name)%>%
-  mutate(plot_type = substr(sample_id, 12, 12))%>% #add the plot_type column
-  select(-any_of(if (all(is.na(.$inorg_c) | .$inorg_c < 0.1)) "inorg_c")) #if inorg_c values are negligible, drop them so they don't show up as an indicator. 
+  mutate(plot_type = substr(sample_id, 12, 12)) #add the plot_type column
 
 list_dfs_design<-list.files(file.path(data_path, "ProjectDesign", ""), pattern = "\\.csv$", full.names = TRUE)
 ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design), format = "%Y%m%d"))]%>%
-  read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
+  read.csv()%>%
   filter(project_id == params$project_name)
 
-#add project design datasheet, then assign all the variables created above
+```
+```{r}
+#Adding indicators that are not stored in the Ag-C database to the PointLevel dataframe
+#Conditional statements are currently being handled on a project-level basis, but could be parameterized in the render function
 
+  ## Bare ground (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
+  if (params$project_name %in% c("JEME.24.PG")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
+  #CHECK! May need a way to show that this is not a depth-specific measurement. May be better not to join to PointLevel. 
+  bareground_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    filter(ProjectID == "JEME.24.PG")%>%
+    select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, Bareground_prop)%>% #alter so its joinable with PointLevel
+    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
+    select(-c(BdepthTarget_cm, EdepthTarget_cm))%>%
+    mutate(Bareground_perc=Bareground_prop*100)%>%
+    select(-Bareground_prop) #convert from a proportion to a percentage
+  
+  PointLevel<-PointLevel%>%left_join(bareground_df, by=c("sample_id", "timepoint", "target_depth"))
+    
+  }
+
+  ## WHC (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
+  if (params$project_name %in% c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
+
+  WHC_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    filter(ProjectID == params$project_name)%>%
+    select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, WHC_mass_g, WHC_VolAdded_mL, WHC_VolCollected_mL)%>% 
+    #alter so its joinable with PointLevel
+    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
+    select(-c(BdepthTarget_cm, EdepthTarget_cm))%>%
+    #Perform WHC calcs
+    mutate(
+      WHC_VolAdded_mL = as.numeric(WHC_VolAdded_mL),
+      WHC_VolCollected_mL= as.numeric(WHC_VolCollected_mL),
+      WHC_mass_g = as.numeric(WHC_mass_g),
+      WCH_perc=(WHC_VolAdded_mL-WHC_VolCollected_mL)/WHC_mass_g*100)%>%
+    select(-WHC_VolAdded_mL, -WHC_VolCollected_mL, -WHC_mass_g) #convert from a proportion to a percentage
+  
+  PointLevel<-PointLevel%>%left_join(WHC_df, by=c("sample_id", "timepoint", "target_depth"))
+    
+  }
+
+  ## Slakes index (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
+  if (params$project_name %in% c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
+
+  Slakes_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    filter(ProjectID == params$project_name)%>%
+    select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, Slakes_index)%>% 
+    #alter so its joinable with PointLevel
+    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
+    select(-c(BdepthTarget_cm, EdepthTarget_cm))
+  
+  PointLevel<-PointLevel%>%left_join(Slakes_df, by=c("sample_id", "timepoint", "target_depth"))
+    
+  }
+
+  ## Saturated hydraulic conductivity (Data from AgC_Auxilliary_Data)
+  if (params$project_name %in% c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
+    #CHECK! May need a way to show that this is not a depth-specific measurement. May be better not to join to PointLevel. 
+  DRI_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgC_Auxilliary_DataEntry.xlsx", sheet="DRI", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    filter(ProjectID == params$project_name)%>%
+    select(PointID, Timepoint, `StartTime_hr:mn`, `IntervalTime_hr:min`, RefillVolStart_mL, RefillVolEnd_mL)%>% 
+    #alter so its joinable with PointLevel
+    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    #Perform calcs
+    mutate(
+    `StartTime_hr:mn` = as.numeric(`StartTime_hr:mn`),
+      `IntervalTime_hr:min`= as.numeric(`IntervalTime_hr:min`),
+      RefillVolStart_mL = as.numeric(RefillVolStart_mL),
+     RefillVolEnd_mL = as.numeric(RefillVolEnd_mL),
+    )%>%
+    group_by(sample_id, timepoint) %>%
+    arrange(`IntervalTime_hr:min`, .by_group = TRUE) %>%
+    mutate(IntLen_min = 
+           (`IntervalTime_hr:min` - coalesce(lag(`IntervalTime_hr:min`), `StartTime_hr:mn`)) * 1440,
+         VolAdded_mL =  RefillVolStart_mL - RefillVolEnd_mL,
+         InfilRate_cm.hr = VolAdded_mL / 176.7 / IntLen_min * 60,
+         TimeSinceFirst_min = (`IntervalTime_hr:min` - first(`IntervalTime_hr:min`)) *1440,
+         TimeSinceStart_min = (`IntervalTime_hr:min` - `StartTime_hr:mn`) *1440
+    
+         )%>%
+  ungroup()
+  
+  PointLevel<-PointLevel%>%left_join(DRI_df, by=c("sample_id", "timepoint", "target_depth"))
+    
+  }
+
+
+
+```
+``` {r}
 #Establishing variables for report structure
 proj.protocol <- FieldLevel$protocol[1]
 proj.inscore <- ProjectDesign$inference_score[1]
