@@ -79,8 +79,9 @@ FieldLevel<-list_dfs_field[which.max(as.Date(gsub("\\D","", list_dfs_field), for
 list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
   read.csv(na.strings="")%>%
-  filter(project_id == params$project_name)%>%
+  filter(project_id == params$project_name)%>% 
   mutate(plot_type = substr(sample_id, 12, 12)) #add the plot_type column
+         
 
 list_dfs_design<-list.files(file.path(data_path, "ProjectDesign", ""), pattern = "\\.csv$", full.names = TRUE)
 ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design), format = "%Y%m%d"))]%>%
@@ -373,14 +374,21 @@ timepoint_dates<-PointLevel %>%
   arrange(timepoint) #make sure timpoints are in order for indexing
 
 timepoint_sentence <- timepoint_dates %>%
-  mutate(text = paste0(timepoint, " was sampled on ", format(as.Date(sample_date, format = "%m/%d/%Y"), "%B %d, %Y"), ".")) %>%
-  pull(text) %>%          # get vector of strings
+  mutate(
+    text = paste0(
+      timepoint,
+      " was sampled on ",
+      format(as.Date(sample_date), "%B %d, %Y"),
+      "."
+    )
+  ) %>%
+  pull(text) %>% #get vector of strings
   paste(collapse = " ")
 
 #setting up a table for ggplot labels
 tp_lookup <- timepoint_dates %>%
   mutate(
-    sample_date = as.Date(sample_date, format = "%m/%d/%Y"),
+    sample_date = as.Date(sample_date),
     year_label = format(sample_date, "%Y")
   )
 
