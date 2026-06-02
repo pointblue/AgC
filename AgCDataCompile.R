@@ -225,7 +225,9 @@ df$sample_date <- as.character(as.POSIXct(paste(df$sample_date, "12:00:00"), tz 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
 df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
-#df_current$sample_date<-as.Date(df_current$sample_date) #make sure the date column is in date format
+df_current <- df_current[!df_current$project_id %in% proj_of_int,]
+#df_current$sample_date<-as.Date(df_current$sample_date,format = "%m/%d/%Y") #make sure the date column is in date format
+#df_current$sample_date <- as.POSIXct(df_current$sample_date, tz = "UTC") + 12 * 60 * 60
 
 # Add rows 
 master_df <- rbind(df_current, df)
