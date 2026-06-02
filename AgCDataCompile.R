@@ -18,7 +18,7 @@ data_dir<-("Z:/Soils Team/AgC Data/")
 agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
 
 # identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
-proj_of_int <- c("MAAN.26.SC", "MAAN.27.RP")
+proj_of_int <- c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")
 
 ## ---- Import/clean tap biomass  data ---- 
 tap_biomass <- clean_tap_biomass(agc_data_entry, proj_of_int)
@@ -206,7 +206,6 @@ df$sample_date <- as.character(as.POSIXct(paste(df$sample_date, "12:00:00"), tz 
 # Import current master database
 master_df_list <- list.files(paste(data_dir,"Master Datasheets","PointLevel", sep="/"), pattern = "\\.csv$", full.names = TRUE) #list all the CSVs in folder
 df_current <- read.csv(master_df_list[which.max(as.Date(gsub("\\D","", master_df_list), format = "%Y%m%d"))]) #this indexing patterns makes sure we're using the most recent master datasheet
-#df_current$sample_date<-as.Date(df_current$sample_date) #make sure the date column is in date format
 
 # Add rows 
 master_df <- rbind(df_current, df)
