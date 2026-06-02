@@ -92,22 +92,6 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
 #Adding indicators that are not stored in the Ag-C database to the PointLevel dataframe
 #Conditional statements are currently being handled on a project-level basis, but could be parameterized in the render function
 
-  ## Bare ground (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
-  if (params$project_name %in% c("JEME.24.PG")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
-  #CHECK! May need a way to show that this is not a depth-specific measurement. May be better not to join to PointLevel. 
-  bareground_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
-    filter(ProjectID == "JEME.24.PG")%>%
-    select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, Bareground_prop)%>% #alter so its joinable with PointLevel
-    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
-    mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
-    select(-c(BdepthTarget_cm, EdepthTarget_cm))%>%
-    mutate(Bareground_perc=Bareground_prop*100)%>%
-    select(-Bareground_prop) #convert from a proportion to a percentage
-  
-  PointLevel<-PointLevel%>%left_join(bareground_df, by=c("sample_id", "timepoint", "target_depth"))
-    
-  }
-
   ## WHC (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
   if (params$project_name %in% c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
 
@@ -126,6 +110,8 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
       WCH_perc=(WHC_VolAdded_mL-WHC_VolCollected_mL)/WHC_mass_g*100)%>%
     select(-WHC_VolAdded_mL, -WHC_VolCollected_mL, -WHC_mass_g) #convert from a proportion to a percentage
   
+  #caluclate any other metrics to report on? Field capacity, wilting point, etc?
+    
   PointLevel<-PointLevel%>%left_join(WHC_df, by=c("sample_id", "timepoint", "target_depth"))
     
   }
@@ -137,7 +123,7 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
     filter(ProjectID == params$project_name)%>%
     select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, Slakes_index)%>% 
     #alter so its joinable with PointLevel
-    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    rename("sample_id"=PointID, "timepoint"=Timepoint, "slakes" = Slakes_index)%>%
     mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
     select(-c(BdepthTarget_cm, EdepthTarget_cm))
   
@@ -145,13 +131,23 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
     
   }
 
+```
+```{r}
+#Use this section to create a dataframe for non-agc point level data that is not associated with a soil depth
+
+#Setting up base scrutrcture for PointLevel_nd
+PointLevel_nd<-data.frame(
+  "sample_id" = character(),
+  "timepoint" = character()
+)
+
   ## Saturated hydraulic conductivity (Data from AgC_Auxilliary_Data)
   if (params$project_name %in% c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
     #CHECK! May need a way to show that this is not a depth-specific measurement. May be better not to join to PointLevel. 
   DRI_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgC_Auxilliary_DataEntry.xlsx", sheet="DRI", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
     filter(ProjectID == params$project_name)%>%
     select(PointID, Timepoint, `StartTime_hr:mn`, `IntervalTime_hr:min`, RefillVolStart_mL, RefillVolEnd_mL)%>% 
-    #alter so its joinable with PointLevel
+    #alter so its joinable with PointLevel_nd
     rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
     #Perform calcs
     mutate(
@@ -170,15 +166,39 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
          TimeSinceStart_min = (`IntervalTime_hr:min` - `StartTime_hr:mn`) *1440
     
          )%>%
-  ungroup()
+  ungroup()%>%
+    select(sample_id, timepoint, InfilRate_cm.hr, TimeSinceStart_min)
   
-  PointLevel<-PointLevel%>%left_join(DRI_df, by=c("sample_id", "timepoint", "target_depth"))
+  #Next need to decide to how get to Ksat
+  
+  #PointLevel_nd<-PointLevel_nd%>%full_join(DRI_df, by=c("sample_id", "timepoint"))
     
   }
 
+  ## Bare ground (AC created a column in AgCDataEntry.xlsx, but it is not included in the master database)
+  if (params$project_name %in% c("JEME.24.PG")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
+  #CHECK! May need a way to show that this is not a depth-specific measurement. May be better not to join to PointLevel. 
+  bareground_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx", sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    filter(ProjectID == "JEME.24.PG")%>%
+    select(PointID, Timepoint, BdepthTarget_cm, EdepthTarget_cm, Bareground_prop)%>% #alter so its joinable with PointLevel
+    rename("sample_id"=PointID, "timepoint"=Timepoint)%>%
+    mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))%>%
+    select(-c(BdepthTarget_cm, EdepthTarget_cm))%>%
+    mutate(bareground_perc=Bareground_prop*100)%>%
+    select(-Bareground_prop) #convert from a proportion to a percentage
+  
+  PointLevel_nd<-PointLevel_nd%>%full_join(bareground_df, by=c("sample_id", "timepoint"))
+    
+  }
 
+  ## Aboveground Herbaceous biomass
+
+  ## Aboveground Woody Biomass
+
+  ## Woody Root Biomass
 
 ```
+
 ``` {r}
 #Establishing variables for report structure
 proj.protocol <- FieldLevel$protocol[1]
