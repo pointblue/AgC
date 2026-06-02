@@ -11,16 +11,32 @@ bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the 
     }
   } %>%
   select(sample_id, timepoint, plot_type, bulk_density, LU) %>%
-  bind_rows( #bind project stocks df to the raca dataset
-    ComparisonData %>%
-      select(sample_id, plot_type, bulk_density)%>%
-      mutate(
-        plot_type = "comparison",
-        LU="comparison",
-        timepoint="comparison"
-        #.keep = "none"   #drop all other columns
+  {
+    if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC")) {
+      bind_rows(
+        .,
+        ComparisonData %>%
+          select(sample_id, plot_type, bulk_density) %>%
+          mutate(
+            plot_type = "comparison",
+            LU = "comparison",
+            timepoint = "comparison"
+          )
       )
-  )%>%
+    } else {
+      bind_rows(
+        .,
+        raca_data %>%
+          transmute(
+            sample_id = rcasiteid,
+            org_c = BD,
+            plot_type = "raca",
+            timepoint = "2010",
+            LU = LU
+          )
+      )
+    }
+  } %>%
   filter(LU %in% c("AgC", "Row", "alley", "comparison", params$raca_filter))%>% #filter out values that don't match the correct land use type
   mutate(avgcol = "avg") #adding this column is necessary to get one legend entry for all average values across trt, ctrl, and raca
 

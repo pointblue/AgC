@@ -9,7 +9,6 @@ library(pbkrtest)
 # ---- Data prep ----
 
 #For all stats, we need to look at either the only existing timepoint, or the first vs last timepoint
-#This is only relevant for when we have 3 or more timepoints (we don't), but future-proofing now
 if(length(unique(PointLevel$timepoint))>1){
 PointLevel_stats<-PointLevel%>%
   mutate(timepoint_digit = readr::parse_number(timepoint))%>%
@@ -34,10 +33,20 @@ PointLevel_stats <-  PointLevel_stats %>%
   ## ---- RACA Percentiles ----
   
   #Calculate and verbalize raca-mean percentiles for the most recent timepoint in any presnt plot
-    raca_ecdf_soc <- soc_df %>% 
-      filter(plot_type == "comparison") %>% 
-      pull(org_c) %>% 
-      ecdf()    
+raca_ecdf_soc <- soc_df %>% 
+  filter(
+    plot_type == if (
+      params$project_name %in% c(
+        "ENGL.24.SC",
+        "KELA.24.SC",
+        "HEPU.23.SC",
+        "NAPA.24.SC",
+        "SHRA.24.SC"
+      )
+    ) "comparison" else "raca"
+  ) %>% 
+  pull(org_c) %>% 
+  ecdf()
     
     raca_compare_soc<-Project.Means%>%
       mutate(timepoint_digit = readr::parse_number(timepoint))%>%

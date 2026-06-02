@@ -20,7 +20,7 @@ dev: png
 params:
   project_name: MERC.24.LI
   raca_filter:
-    - range
+    - crop
   author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
   stocks: FALSE
 ---
@@ -80,7 +80,13 @@ list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
   read.csv(na.strings="")%>%
   filter(project_id == params$project_name)%>% 
-  mutate(plot_type = substr(sample_id, 12, 12)) #add the plot_type column
+  mutate(plot_type = substr(sample_id, 12, 12), #add the plot_type column
+         org_c = case_when( # if inorg_c wasn't measured, use total_c as org_c
+           !is.na(org_c) ~ org_c,
+           is.na(org_c) & is.na(inorg_c) ~ total_c,
+           TRUE ~ org_c
+    )
+         ) 
          
 
 list_dfs_design<-list.files(file.path(data_path, "ProjectDesign", ""), pattern = "\\.csv$", full.names = TRUE)
