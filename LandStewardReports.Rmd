@@ -117,7 +117,7 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
       WCH_perc=(WHC_VolAdded_mL-WHC_VolCollected_mL)/WHC_mass_g*100)%>%
     select(-WHC_VolAdded_mL, -WHC_VolCollected_mL, -WHC_mass_g) #convert from a proportion to a percentage
   
-  #caluclate any other metrics to report on? Field capacity, wilting point, etc?
+  #calculate any other metrics to report on? Field capacity, wilting point, etc?
     
   PointLevel<-PointLevel%>%left_join(WHC_df, by=c("sample_id", "timepoint", "target_depth"))
     
@@ -151,6 +151,77 @@ PointLevel_nd<-data.frame(
   ## Saturated hydraulic conductivity (Data from AgC_Auxilliary_Data)
   if (params$project_name %in% c("MERC.24.LI", "STAN.25.LI", "KERN.25.LI")){#CHECK! Change this to a render parameter where you can specify the "extra" metrics that need to be included
     #CHECK! May need a way to show that this is not a depth-specific measurement. May be better not to join to PointLevel. 
+    
+    #define functions for calculating Ksat
+    find_flat_tail <- function(time, y, min_window = 2) {
+  
+  n <- length(y)
+  
+  best_start <- n - min_window + 1
+  best_score <- Inf
+  
+  for (start in 1:(n - min_window + 1)) {
+    
+    idx <- start:n
+    
+    x <- time[idx]
+    yy <- y[idx]
+    
+    # remove NA pairs safely
+    ok <- complete.cases(x, yy)
+    x <- x[ok]
+    yy <- yy[ok]
+    
+    if (length(yy) < min_window) next
+    if (length(unique(x)) < 2) next  # avoid singular lm
+    
+    slope <- tryCatch(
+      coef(lm(yy ~ x))[2],
+      error = function(e) NA_real_
+    )
+    
+    # skip invalid slopes
+    if (is.na(slope)) next
+    
+    score <- abs(slope)
+    
+    if (score < best_score) {
+      best_score <- score
+      best_start <- start
+    }
+  }
+  
+  best_start:n
+}
+
+    calc_Ksat <- function(time, rate, roc) {
+      
+      rate <- na.omit(rate)
+      roc  <- na.omit(roc)
+      
+      n <- length(rate)
+      
+      if (n == 0) return(NA_real_)
+      
+      final_rate <- rate[n]
+      final_roc  <- roc[length(roc)]
+      
+      # 1. perfect stabilization
+      if (!is.na(final_roc) && final_roc == 0) {
+        return(final_rate)
+      }
+      
+      # 2. all negative ROC
+      if (all(roc < 0, na.rm = TRUE)) {
+        return(final_rate)
+      }
+      
+      # 3. flat tail method
+      idx <- find_flat_tail(time, rate)
+      
+      return(mean(rate[idx], na.rm = TRUE))
+    }
+    
   DRI_df<-read_excel("C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgC_Auxilliary_DataEntry.xlsx", sheet="DRI", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
     filter(ProjectID == params$project_name)%>%
     select(PointID, Timepoint, `StartTime_hr:mn`, `IntervalTime_hr:min`, RefillVolStart_mL, RefillVolEnd_mL)%>% 
@@ -165,20 +236,26 @@ PointLevel_nd<-data.frame(
     )%>%
     group_by(sample_id, timepoint) %>%
     arrange(`IntervalTime_hr:min`, .by_group = TRUE) %>%
-    mutate(IntLen_min = 
+  mutate(IntLen_min = 
            (`IntervalTime_hr:min` - coalesce(lag(`IntervalTime_hr:min`), `StartTime_hr:mn`)) * 1440,
          VolAdded_mL =  RefillVolStart_mL - RefillVolEnd_mL,
-         InfilRate_cm.hr = VolAdded_mL / 176.7 / IntLen_min * 60,
+         InfilRate_cm.hr = round(VolAdded_mL / 176.7 / IntLen_min * 60, 1),
          TimeSinceFirst_min = (`IntervalTime_hr:min` - first(`IntervalTime_hr:min`)) *1440,
-         TimeSinceStart_min = (`IntervalTime_hr:min` - `StartTime_hr:mn`) *1440
-    
+         TimeSinceStart_min = (`IntervalTime_hr:min` - `StartTime_hr:mn`) *1440,
+         roc = round(((InfilRate_cm.hr - lag(InfilRate_cm.hr)) / lag(InfilRate_cm.hr))*100, 1)
          )%>%
-  ungroup()%>%
-    select(sample_id, timepoint, InfilRate_cm.hr, TimeSinceStart_min)
+  arrange(TimeSinceStart_min, .by_group = TRUE) %>%
+  summarise(
+    Ksat = calc_Ksat(
+      time = TimeSinceStart_min,
+      rate = InfilRate_cm.hr,
+      roc  = roc
+    ),
+    .groups = "drop"
+  )
   
-  #Next need to decide to how get to Ksat
   
-  #PointLevel_nd<-PointLevel_nd%>%full_join(DRI_df, by=c("sample_id", "timepoint"))
+  PointLevel_nd<-PointLevel_nd%>%full_join(DRI_df, by=c("sample_id", "timepoint"))
     
   }
 
