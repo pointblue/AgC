@@ -29,7 +29,7 @@ bd_df <- PointLevel %>% #reformats so the dataframe is long with respect to the 
         raca_data %>%
           transmute(
             sample_id = rcasiteid,
-            org_c = BD,
+            bulk_density = BD,
             plot_type = "raca",
             timepoint = "2010",
             LU = LU
@@ -86,6 +86,9 @@ bd_bands <- data.frame(
 )
 
 #Define the desired order of facets (needs to be done for both datasets)
-bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "comparison"))
+bd_df$plot_type <- factor(bd_df$plot_type, levels = c("T", "C", "comparison", "raca"))
+bd_df$timepoint <- factor(bd_df$timepoint, levels = c("T0","T1","T2","2010", "comparison"))
+
+
 bd_bands$plot_type <- factor(bd_bands$plot_type, levels = levels(bd_df$plot_type))
 

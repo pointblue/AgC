@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: MERC.24.LI
+  project_name: KERN.25.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
@@ -86,7 +86,10 @@ PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), for
            is.na(org_c) & is.na(inorg_c) ~ total_c,
            TRUE ~ org_c
     )
-         ) 
+         )%>%
+    mutate(
+    position = if_else(position == "row", "Row", position)
+  )
          
 
 list_dfs_design<-list.files(file.path(data_path, "ProjectDesign", ""), pattern = "\\.csv$", full.names = TRUE)
@@ -471,7 +474,7 @@ timepoint_sentence <- timepoint_dates %>%
 #setting up a table for ggplot labels
 tp_lookup <- timepoint_dates %>%
   mutate(
-    sample_date = as.Date(sample_date),
+    sample_date = as.POSIXct(sample_date, format = "%m/%d/%Y %H:%M", tz = "UTC"),
     year_label = format(sample_date, "%Y")
   )
 

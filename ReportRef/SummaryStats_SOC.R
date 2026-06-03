@@ -151,7 +151,7 @@ raca_ecdf_soc <- soc_df %>%
       
       #C steady T increase
       if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increased") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) { 
-        baci_soc<-"INSERT TEXT"
+        baci_soc<-"While SOC% at your **control site stayed steady**, SOC% at the **treatment site increased**. This indicates the management intervention is effectively protecting and enhancing soil organic matter, as expected."
       }
       
       #C decrease T steady
