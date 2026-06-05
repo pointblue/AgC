@@ -67,7 +67,8 @@ fetch_lab_file <- function(data_path, projects){
 ## ---- clean_lab_df function ----
 
 clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data)
-                         projects #projects of interest
+                         projects, #projects of interest
+                         ref_path = NULL #define a path for reference docs if needed -- defaults to NULL for working inside the repo
                          ){
   # Create empty df to store all results
   lab_clean_final <- data.frame()
@@ -75,7 +76,12 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
   lab_files <- fetch_lab_file(data_path,projects)
   
   # Clean dataframes based on lab 
-  col_map <- read.csv("lab_column_names.csv")
+  
+  if (is.null(ref_path)){
+    ref_path<-getwd()
+  } else ref_path <-ref_path
+  col_map <- read.csv(file.path(ref_path, "lab_column_names.csv"))
+  
   for(f in lab_files[grepl("Ward|Cquester|UCDavis", lab_files)]){
     lab <- sub(".*/([^_]+)_.*", "\\1", f)
     if(grepl("Ward",f)==TRUE){
