@@ -67,15 +67,21 @@ fetch_lab_file <- function(data_path, projects){
 ## ---- clean_lab_df function ----
 
 clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data)
-                         projects #projects of interest
-                         ){
+                         projects, #projects of interest
+                         ref_path = NULL #define a path for reference docs if needed -- defaults to NULL for working inside the repo
+){
   # Create empty df to store all results
   lab_clean_final <- data.frame()
   # Identify which raw lab file(s) contain project(s) of interest
   lab_files <- fetch_lab_file(data_path,projects)
   
   # Clean dataframes based on lab 
-  col_map <- read.csv("lab_column_names.csv")
+  
+  if (is.null(ref_path)){
+    ref_path<-getwd()
+  } else ref_path <-ref_path
+  col_map <- read.csv(file.path(ref_path, "lab_column_names.csv"))
+  
   for(f in lab_files[grepl("Ward|Cquester|UCDavis", lab_files)]){
     lab <- sub(".*/([^_]+)_.*", "\\1", f)
     if(grepl("Ward",f)==TRUE){
@@ -113,8 +119,8 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
                e_depth = round(e_depth*2.54,0))
       if("total_n" %in% colnames(lab_clean)){ 
         if(max(lab_clean$total_n, na.rm=TRUE)>100){ # Convert ppm to percent
-        lab_clean <- lab_clean %>%
-          mutate(total_n = total_n/10000)
+          lab_clean <- lab_clean %>%
+            mutate(total_n = total_n/10000)
         }
       }
       if("rocks_g" %in% colnames(lab_clean)){
@@ -137,7 +143,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
     }
     if(grepl("UCDavis",f)==TRUE){
       lab_raw <- read_excel(f, sheet="REPORT", col_names=FALSE, skip = 11,
-                       na = c("NA", "na", "ND", "nd", "-", "--","", " "))
+                            na = c("NA", "na", "ND", "nd", "-", "--","", " "))
       lab_clean <- lab_raw %>%
         slice(1:which(rowSums(is.na(.)) == ncol(.))[1] - 1) %>%  # Remove descriptor rows at bottom of file
         select(where(~ any(!is.na(.))))  # Get rid of columns with all NAs
@@ -151,7 +157,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
       lab_clean <-lab_clean %>%
         setNames(gsub("\\.", "", names(.))) %>%
         rename(!!!rename_vec[rename_vec %in% colnames(.)])
-        
+      
     }
     #Define column names from cleaned df
     if(grepl("Ward",f)==TRUE){
@@ -325,13 +331,14 @@ clean_tap_soils <- function(agc_data_entry_path,
            position = Position,
            texture_name = Texture_infield,
            ph = pH_infield,
-           rocks_g = RocksRemovedMass_g) %>%
+           rocks_g = RocksRemovedMass_g,
+           rocks_ml = RocksRemovedVolume_mL) %>%
     select(c(project_id,sample_id,plot_type,
              timepoint, sample_date, b_depth, e_depth, 
              b_depth_meas,e_depth_meas,b_depth_mic_c, e_depth_mic_c,
              b_depth_plfa, e_depth_plfa,
              bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
-             rocks_g, vol_cm3
+             rocks_g, rocks_ml, vol_cm3
               )) %>%
     mutate(year = str_sub(sample_date, 1,4)) %>%
     filter(!is.na(project_id))
