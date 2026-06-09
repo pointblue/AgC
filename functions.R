@@ -249,8 +249,7 @@ clean_tap_soils <- function(agc_data_entry_path,
            ) %>%
     filter(!is.null(PointID))%>% #filter out empty rows
     filter(!is.na(PointID))%>% #filter out empty rows
-    mutate(across(c(Volume1_mL:Depth4_cm, WetMass_g:DryMass_g,
-                    RocksRemovedMass_g:WHC_VolCollected_mL), as.numeric)) %>%
+    mutate(across(c(Volume1_mL:Depth4_cm, WetMass_g:DryMass_g, RocksRemovedMass_g:DrySievedMass_g), as.numeric)) %>%
     as.data.frame
   
   #Determine bulk density method  
@@ -290,10 +289,10 @@ clean_tap_soils <- function(agc_data_entry_path,
     mutate(
       soil_moisture = case_when(
         # a) If DrySievedMass_g is available
-        !is.na(DrySievedMass_g) & !is.na(WetSievedMass_g)~ 
+        !all(is.na(DrySievedMass_g)) & !all(is.na(WetSievedMass_g))~ 
           (WetSievedMass_g - DrySievedMass_g) / DrySievedMass_g * 100,
         # b) If DryMass_g is available
-        !is.na(DryMass_g) ~ 
+        !all(is.na(DryMass_g)) ~ 
           (WetMass_g - DryMass_g) / DryMass_g * 100 +
           (MoistureSubsWetMass_g - MoistureSubsDryMass_g) / MoistureSubsDryMass_g * 100,
         # c) Otherwise use moisture subsample
