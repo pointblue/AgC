@@ -13,9 +13,18 @@ source('functions.R')
 # Define data directory
 data_dir<-("Z:/Soils Team/AgC Data/")
 
-# Define path for Ag C data entry spreadsheet - you should have sharepoint synced to your onedrive so that it can be accessed on remote desktop
-#agc_data_entry <-"C:/Users/leash/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for lisa
-agc_data_entry <- "C:/Users/acook-SEA/OneDrive - Point Blue/PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx" #for avalon
+# Connect to sharepoint for AgC Data entry spreadsheet
+    # Authenticate sharepoint in web browser
+    site <- get_sharepoint_site(site_url = "https://pointblue.sharepoint.com/sites/Programs")
+    # Locate file
+    drive <- site$get_drive("Informatics")
+    file_item <- drive$get_item("Shared Soils Program/Ag-C/Internal Ag-C Projects/AgCDataEntry.xlsx")
+    # Download and define file path
+    agc_data_entry <- tempfile(fileext = ".xlsx")
+    file_item$download(
+      dest = agc_data_entry,
+      overwrite = TRUE
+      )
 
 # identify vector of projects i.e. proj_of_int <- c("ABCD.24.PG","WXYZ.24.CC")
 proj_of_int <- c("MAAN.26.SC", "MAAN.27.RP")

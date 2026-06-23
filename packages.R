@@ -21,5 +21,6 @@ suppressPackageStartupMessages({
   library(leafpop)
   library(gridExtra)
   library(grid)
+  library(Microsoft365R)
   library(shadowtext)
 })
