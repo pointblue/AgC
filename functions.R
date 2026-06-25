@@ -256,7 +256,7 @@ clean_tap_soils <- function(agc_data_entry_path,
     filter(!is.null(PointID))%>% #filter out empty rows
     filter(!is.na(PointID))%>% #filter out empty rows
     mutate(across(c(Volume1_mL:Depth4_cm, WetMass_g:DryMass_g,
-                    RocksRemovedMass_g:WHC_VolCollected_mL), as.numeric)) %>%
+                    RocksRemovedMass_g:DrySievedMass_g), as.numeric)) %>%
     as.data.frame
   
   #Determine bulk density method  
@@ -331,13 +331,14 @@ clean_tap_soils <- function(agc_data_entry_path,
            position = Position,
            texture_name = Texture_infield,
            ph = pH_infield,
-           rocks_g = RocksRemovedMass_g) %>%
+           rocks_g = RocksRemovedMass_g,
+           rocks_ml = RocksRemovedVolume_mL) %>%
     select(c(project_id,sample_id,plot_type,
              timepoint, sample_date, b_depth, e_depth, 
              b_depth_meas,e_depth_meas,b_depth_mic_c, e_depth_mic_c,
              b_depth_plfa, e_depth_plfa,
              bd_method,position, texture_name, ph, soil_moisture, dry_soil_g,
-             rocks_g, vol_cm3
+             rocks_g, rocks_ml, vol_cm3
               )) %>%
     mutate(year = str_sub(sample_date, 1,4)) %>%
     filter(!is.na(project_id))
