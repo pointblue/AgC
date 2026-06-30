@@ -9,26 +9,36 @@ library(pbkrtest)
 # ---- Data prep ----
 
 #For all stats, we need to look at either the only existing timepoint, or the first vs last timepoint
-#This is only relevant for when we have 3 or more timepoints (we don't), but future-proofing now
 if(length(unique(PointLevel$timepoint))>1){
 PointLevel_stats<-PointLevel%>%
   mutate(timepoint_digit = readr::parse_number(timepoint))%>%
   filter(timepoint_digit %in% c(min(timepoint_digit), max(timepoint_digit)))%>%
   arrange(timepoint)%>%
-  mutate(timepoint = factor(timepoint, levels = c(first(timepoint), last(timepoint))))
-tp_first <- first(PointLevel_stats$timepoint)
-tp_last  <- last(PointLevel_stats$timepoint)
-} else {PointLevel_stats<-PointLevel}
+  mutate(timepoint = factor(timepoint, levels = c(first(timepoint), last(timepoint))))%>%
+  arrange(plot_type)
+tp_first <- min(as.character(PointLevel_stats$timepoint))
+tp_last  <- max(as.character(PointLevel_stats$timepoint))
+
+#this section for handling a special case where there is a control at T1 but not at baseline
+PointLevel_stats <-  PointLevel_stats %>%
+  group_by(plot_type) %>%
+  filter(all(c(tp_first, tp_last) %in% as.character(timepoint))) %>%
+  ungroup()
+
+
+} else {PointLevel_stats<-PointLevel%>%arrange(plot_type)}
 
 # ---- SOC% ----
 
   ## ---- RACA Percentiles ----
   
   #Calculate and verbalize raca-mean percentiles for the most recent timepoint in any presnt plot
-    raca_ecdf_soc <- soc_df %>% 
-      filter(plot_type == "raca") %>% 
-      pull(org_c) %>% 
-      ecdf()    
+raca_ecdf_soc <- soc_df %>% 
+  filter(
+    plot_type == if (!is.null(ComparisonData)) "comparison" else "raca"
+  ) %>% 
+  pull(org_c) %>% 
+  ecdf()
     
     raca_compare_soc<-Project.Means%>%
       mutate(timepoint_digit = readr::parse_number(timepoint))%>%
@@ -70,7 +80,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
     ### ---- >1TP, T only ----
     
     #Time contrast
-    if(length(unique(PointLevel$timepoint))>1){
+    if(length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))==1){
     model <- lmer(org_c ~ timepoint + (1 | sample_id), data = PointLevel_stats)
     emm <- emmeans(model, ~ timepoint, ddf="Kenward-Roger")
     time_change_soc <- contrast(emm, method = setNames(list(c(-1, 1)),paste0(tp_last, " - ", tp_first))) %>%
@@ -89,7 +99,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
     ### ---- 1TP, T&C ----
     
     #Treatment contrast
-    if (length(unique(PointLevel$plot_type))>1){
+    if (length(unique(PointLevel_stats$plot_type))>1 & length(unique(PointLevel_stats$timepoint))==1){
     model <- lm(org_c ~ plot_type, data = PointLevel_stats)
     emm <- emmeans(model, ~ plot_type, ddf="Kenward-Roger")
     treatment_contrast_soc<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C")) %>%
@@ -109,7 +119,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
     ### ---- >1TP, T&C ----
   
     #Plot-wise change over time  
-    if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type))>1){
+    if(length(unique(PointLevel_stats$timepoint))>1 && length(unique(PointLevel_stats$plot_type))>1){
       
     model <- lmer(org_c ~ plot_type * timepoint + (1 | sample_id),data = PointLevel_stats)
     emm <- emmeans(model, ~ plot_type * timepoint, at=list(plot_type = c("C", "T"), timepoint = c(tp_first, tp_last)), ddf="Kenward-Roger")
@@ -132,8 +142,8 @@ tp_last  <- last(PointLevel_stats$timepoint)
       }
       
       #C steady T increase
-      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increase") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) { 
-        baci_soc<-"INSERT TEXT"
+      if (all(time_contrasts_soc[time_contrasts_soc$plot_type == "T", ]$condition == "increased") & all(time_contrasts_soc[time_contrasts_soc$plot_type == "C", ]$condition == "no change")) { 
+        baci_soc<-"While SOC% at your **control site stayed steady**, SOC% at the **treatment site increased**. This indicates the management intervention is effectively protecting and enhancing soil organic matter, as expected."
       }
       
       #C decrease T steady
@@ -166,7 +176,7 @@ tp_last  <- last(PointLevel_stats$timepoint)
       
       #Both plots decreasing
       if(all(unique(time_contrasts_soc$condition) == "decreased")){
-      baci_soc <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
+      baci_soc <- contrast(emm, method = setNames(list(c(1, -1, -1, 1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(

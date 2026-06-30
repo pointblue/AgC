@@ -19,7 +19,8 @@ palette_LU <- c(
   "crop"   = "gray60",
   "alley" = "#C9971A",
   "Row" = "#9FBF88",
-  "avg" = "#1F2E5A"
+  "avg" = "#1F2E5A",
+  "comparison" = "gray60"
 )
 
 palette_PLFA <- c(

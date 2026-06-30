@@ -8,7 +8,7 @@ library(soiltexture)
 
 # ---- Data prep ----
 
-texture <- PointLevel %>% 
+texture <- PointLevel_stats %>% 
   rename(SAND=sand, SILT=silt, CLAY=clay) %>%
   filter(!is.na(CLAY)) %>%
   filter(!is.na(SAND)) %>%
@@ -61,7 +61,7 @@ avg_tx_c<-get_texture_info(texture_avg_list$C$USDA_texture)$full_name
   )
 
     #Treatment contrast
-    if (length(unique(PointLevel$plot_type))>1){
+    if (length(unique(PointLevel_stats$plot_type))>1){
     model <- lm(siltclay ~ plot_type, data = texture)
     anova(model)
     emm <- emmeans(model, ~ plot_type)

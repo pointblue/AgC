@@ -78,6 +78,9 @@ if (!params$stocks){
   flat_colnames <- c("Indicator", rep(plot_types, times = length(timepoints)), "Unit")
   
   # Upper header (timepoints)
+  timepoints <- tp_lookup %>%
+    arrange(year_label) %>%   # ensures smaller year comes first
+    pull(timepoint)
   header_above <- c(" " = 1)  # blank for Indicator
   for (tp in timepoints) {
     tp_label<-filter(tp_lookup, timepoint==tp)$year_label
@@ -86,7 +89,27 @@ if (!params$stocks){
   header_above <- c(header_above, " " = 1)  # blank for Unit
   
   #CHECK! Catie asked me to remove total N as it will be confused with nitrates for producers:
-  Means.Pivot<-Means.Pivot%>%filter(Acronym!="N")
+  #Means.Pivot<-Means.Pivot%>%filter(Acronym!="N")
+  
+  #This step fills in missing columnns with NA. "missing" being special cases where a C plot wasn't monitored at every timepoint
+  timepoints <- sort(unique(as.character(Project.Means$timepoint)))
+  plot_types <- sort(Project.Means$plot_type, decreasing=TRUE) #ensure C comes first with reverse alphabetical sort
+  
+  expected <- expand.grid(
+    plot_type = plot_types,
+    timepoint = timepoints
+  )
+  
+  expected_cols <- paste(
+    expected$timepoint,
+    expected$plot_type,
+    sep = " | "
+  )
+  expected_cols <- c("Acronym", paste(expected$timepoint, expected$plot_type, sep = " | "), "Units")
+  missing_cols <- setdiff(expected_cols, names(Means.Pivot))
+  Means.Pivot[missing_cols] <- NA
+  Means.Pivot <- Means.Pivot %>%
+    select(Acronym, all_of(expected_cols), Units)
   
   # --- create table ---
   SummaryTable <- Means.Pivot %>%

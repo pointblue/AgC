@@ -132,7 +132,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     }
     
     #C steady T increase
-    if (all(time_contrasts_stocks[time_contrasts_stocks$plot_type == "T", ]$condition == "increase") & all(time_contrasts_stocks[time_contrasts_stocks$plot_type == "C", ]$condition == "no change")) { 
+    if (all(time_contrasts_stocks[time_contrasts_stocks$plot_type == "T", ]$condition == "increased") & all(time_contrasts_stocks[time_contrasts_stocks$plot_type == "C", ]$condition == "no change")) { 
       baci_stocks<-"INSERT TEXT"
     }
     
@@ -182,7 +182,6 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
         )%>%
         pull(text) %>%          # get vector of strings
         paste(collapse = " ")
-    }
     
     #Both plots increasing
     if (all(unique(time_contrasts_stocks$condition) == "increased")){

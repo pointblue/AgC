@@ -16,8 +16,15 @@ if(length(unique(PointLevel$timepoint))>1){
     filter(timepoint_digit %in% c(min(timepoint_digit), max(timepoint_digit)))%>%
     arrange(timepoint)%>%
     mutate(timepoint = factor(timepoint, levels = c(first(timepoint), last(timepoint))))
-  tp_first <- first(PointLevel_stats$timepoint)
-  tp_last  <- last(PointLevel_stats$timepoint)
+  tp_first <- min(as.character(PointLevel_stats$timepoint))
+  tp_last  <- max(as.character(PointLevel_stats$timepoint))
+  
+  #this section for handling a special case where there is a control at T1 but not at baseline
+  PointLevel_stats <-  PointLevel_stats %>%
+    group_by(plot_type) %>%
+    filter(all(c(tp_first, tp_last) %in% as.character(timepoint))) %>%
+    ungroup()
+  
 } else {PointLevel_stats<-PointLevel}
 
 # ---- Bulk Density ----
@@ -26,7 +33,9 @@ if(length(unique(PointLevel$timepoint))>1){
 
 #Calculate and verbalize raca-mean percentiles for the most recent timepoint in any presnt plot
 raca_ecdf_bd <- bd_df %>% 
-  filter(plot_type == "raca") %>% 
+  filter(
+    plot_type == if (!is.null(ComparisonData)) "comparison" else "raca"
+  ) %>% 
   pull(bulk_density) %>% 
   ecdf()    
 
@@ -70,7 +79,7 @@ percentile_scentence_bd<-raca_compare_bd%>%
 ### ---- >1TP, T only ----
 
 #Time contrast
-if(length(unique(PointLevel$timepoint))>1){
+if(length(unique(PointLevel_stats$timepoint))>1 & length(unique(PointLevel_stats$plot_type))==1){
   model <- lmer(bulk_density ~ timepoint + (1 | sample_id), data = PointLevel_stats)
   emm <- emmeans(model, ~ timepoint, ddf="Kenward-Roger")
   time_change_bd <- contrast(emm, method = setNames(list(c(-1, 1)),paste0(tp_last, " - ", tp_first))) %>%
@@ -89,7 +98,7 @@ if(length(unique(PointLevel$timepoint))>1){
 
 ### ---- 1TP, T&C ----
 #Treatment contrast
-if (length(unique(PointLevel$plot_type))>1){
+if (length(unique(PointLevel_stats$plot_type))>1 & length(unique(PointLevel_stats$timepoint))==1){
 model <- lm(bulk_density ~ plot_type, data = PointLevel_stats)
 emm <- emmeans(model, ~ plot_type, ddf="Kenward-Roger")
 treatment_contrast_bd<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C")) %>%
@@ -109,7 +118,7 @@ treatment_contrast_bd<-contrast(emm, method = setNames(list(c(-1, 1)), "T - C"))
 ### ---- >1TP, T&C ----
 
 #Plot-wise change over time 
-if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type))>1){
+if(length(unique(PointLevel_stats$timepoint))>1 && length(unique(PointLevel_stats$plot_type))>1){
   
   model <- lmer(bulk_density ~ plot_type * timepoint + (1 | sample_id),data = PointLevel_stats)
   emm <- emmeans(model, ~ plot_type * timepoint, at=list(plot_type = c("C", "T"), timepoint = c(tp_first, tp_last)), ddf="Kenward-Roger")
@@ -132,7 +141,7 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     }
     
     #C steady T increase
-    if (all(time_contrasts_bd[time_contrasts_bd$plot_type == "T", ]$condition == "increase") & all(time_contrasts_bd[time_contrasts_bd$plot_type == "C", ]$condition == "no change")) { 
+    if (all(time_contrasts_bd[time_contrasts_bd$plot_type == "T", ]$condition == "increased") & all(time_contrasts_bd[time_contrasts_bd$plot_type == "C", ]$condition == "no change")) { 
       baci_bd<-"INSERT TEXT"
     }
     
@@ -161,44 +170,45 @@ if(length(unique(PointLevel$timepoint))>1 && length(unique(PointLevel$plot_type)
     
     #Both plots steady (no further test needed, just text)  
     if (all(unique(time_contrasts_bd$condition) == "no change")){
-      baci_bd<-"Bulk density in both plots is steady over time. This tells us that general conditions have not altered structure and compaction over the monitoring timeline, and the impact of the conservation practice is not currently detectable. The adopted practice might still be beneficial, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+      baci_bd<-"Bulk density in both plots is **steady over time**. This tells us that general conditions have not altered structure and compaction over the monitoring timeline, and the impact of the conservation practice is not currently detectable. The adopted practice might still be beneficial, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
     }
     
     #Both plots decreasing
     if(all(unique(time_contrasts_bd$condition) == "decreased")){
-      baci_bd <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
+      baci_bd <- contrast(emm, method = setNames(list(c(1, -1, -1, 1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(
             p.value < 0.05 & estimate > 0 ~
-              "Bulk density at the treated site **declined less** relative to the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **declined more** relative to the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
             
             p.value < 0.05 & estimate < 0 ~
-              "Bulk density at the treated site **decreased at a greater rate** than the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **declined less** than the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
             
             TRUE ~
-              "Decreases in bulk density were observed in your field but were **not due to practice changes**, since these decreases were observed in both the treatment and control sites. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+              "Decreases in bulk density were observed in both treatment and control plots but were **not due to practice changes**, since these decreases occurred in both. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
           )
-        )%>%
+        ) %>%
         pull(text) %>%          # get vector of strings
         paste(collapse = " ")
     }
     
     #Both plots increasing
-    if (all(unique(time_contrasts_bd$condition) == "increased")){
+    if(all(unique(time_contrasts_bd$condition) == "increased")){
       baci_bd <- contrast(emm, method = setNames(list(c(-1, 1, 1, -1)), "BACI: (T1 - T0)_T - (T1 - T0)_C")) %>%
         as.data.frame() %>%
         mutate(
           text = case_when(
             p.value < 0.05 & estimate > 0 ~
-              "Bulk density at the treated site **increased more** relative to the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **increased less** relative to the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
             
             p.value < 0.05 & estimate < 0 ~
-              "Bulk density at the treated site **increased less** than the control site, indicating a positive impact of the conservation practice on soil structure and compaction.",
+              "Bulk density at the treated site **increased more** than the control site, indicating an unexpected negative impact of the conservation practice on soil structure and compaction.",
             
             TRUE ~
-              "Increases in bulk density were observed in your field but were **not due to practice changes**, since these increases were observed in both the treatment and control sites. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe.")
-        )%>%
+              "Increases in bulk density were observed in both treatment and control plots but were **not due to practice changes**, since these increases occurred in both. The adopted practice might still be beneficial to soil structure, but its impact cannot be detected yet due to high soil variability and/or a short timeframe."
+          )
+        ) %>%
         pull(text) %>%          # get vector of strings
         paste(collapse = " ")
     }

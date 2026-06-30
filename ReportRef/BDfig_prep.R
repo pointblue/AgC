@@ -72,14 +72,15 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
   scale_color_manual(
     name = "",
     values = c(palette_plot_type, palette_LU),
-    breaks = c("avg", "AgC", "range", "crop", "alley", "Row"),
+    breaks = c("avg", "AgC", "range", "crop", "alley", "Row", "comparison"),
     labels = c(
       str_wrap("Plot average", width = 21),
       "AgC sampling point",
       str_wrap("RaCA rangeland sampling point", width=21),
       str_wrap("RaCA cropland sampling point", width=21),
       "Alley sampling point",
-      "Row sampling point"
+      "Row sampling point",
+      "Ag-C comparison sampling point"
     )
   ) +
   
@@ -106,7 +107,7 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
   
   #Custom x-axis labels
   scale_x_discrete(labels = c(
-    setNames(tp_lookup$year_label, tp_lookup$timepoint), "2010"
+    setNames(c(tp_lookup$year_label, compyearrangelabel), c(tp_lookup$timepoint, "comparison"))
   )) +
   
   theme_minimal() +
@@ -123,6 +124,7 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
              labeller = as_labeller(c(
                `T` = "Treatment",
                C = "Control",
-               raca = str_wrap(paste0("Reference: ", ecoregion), width=21)
+               raca = str_wrap(paste0("Reference: ", ecoregion), width=21),
+               comparison = "Ag-C Comparison"
              ))
   ) 
