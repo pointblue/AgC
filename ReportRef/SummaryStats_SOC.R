@@ -35,15 +35,7 @@ PointLevel_stats <-  PointLevel_stats %>%
   #Calculate and verbalize raca-mean percentiles for the most recent timepoint in any presnt plot
 raca_ecdf_soc <- soc_df %>% 
   filter(
-    plot_type == if (
-      params$project_name %in% c(
-        "ENGL.24.SC",
-        "KELA.24.SC",
-        "HEPU.23.SC",
-        "NAPA.24.SC",
-        "SHRA.24.SC"
-      )
-    ) "comparison" else "raca"
+    plot_type == if (!is.null(ComparisonData)) "comparison" else "raca"
   ) %>% 
   pull(org_c) %>% 
   ecdf()

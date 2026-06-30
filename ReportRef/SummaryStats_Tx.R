@@ -25,7 +25,6 @@ texture_avg <- texture %>%
 
 
 #get average texture types for T and C plot
-if(length(unique(PointLevel_stats$plot_type))>1){
 texture_avg_list <- split(texture, texture$plot_type) %>%
   lapply(function(df){
     df_avg <- df %>%
@@ -42,7 +41,6 @@ texture_avg_list <- split(texture, texture$plot_type) %>%
     )
     df_avg
   })
-}
 
 avg_tx_t<-get_texture_info(texture_avg_list$T$USDA_texture)$full_name
 

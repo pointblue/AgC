@@ -107,7 +107,7 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
   
   #Custom x-axis labels
   scale_x_discrete(labels = c(
-    setNames(c(tp_lookup$year_label, "2022-2024"), c(tp_lookup$timepoint, "comparison"))
+    setNames(c(tp_lookup$year_label, compyearrangelabel), c(tp_lookup$timepoint, "comparison"))
   )) +
   
   theme_minimal() +
