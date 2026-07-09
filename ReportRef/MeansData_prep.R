@@ -68,7 +68,7 @@ if ("bulk_density" %in% proj.indicators.SSC && params$stocks){
 
 #Next, if stocks are not included
 if (!params$stocks){
-  Project.Means <- PointLevel %>%
+  Project.Means <- PointLevels_joined %>%
     dplyr::group_by(plot_type, timepoint) %>%
     dplyr::summarise(across(all_of(proj.indicators.SSC), \(x) mean(x, na.rm = TRUE))) #find the mean for each indicator grouped by plot
   

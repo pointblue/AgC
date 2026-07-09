@@ -21,7 +21,7 @@ params:
   project_name: JPQM.18.SC
   raca_filter:
     - crop
-  author: "Avalon Cook, Lisa Eash, Chloe Latt, and Erika Foster"
+  author: "Avalon Cook, Lisa Eash, and Erika Foster"
   stocks: FALSE
 ---
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
@@ -103,7 +103,7 @@ ProjectDesign<-list_dfs_design[which.max(as.Date(gsub("\\D","", list_dfs_design)
 #This script checks for auxilliary data that should be joined to PointLevel, or to a new data frame that does not have assocaited depths (PointLevel_nd), and adds their columns accordingly
 
 #currently checks for water holding capacity, slakes index, PLFA data, DRI data, and bareground data
-#source("ReportRef/Aux_DataPrep.R")
+source("ReportRef/Aux_DataPrep.R")
 
 ```
 
@@ -123,7 +123,7 @@ proj.title <- paste0(proj.propertyname, ": ", proj.implementationyear, " ", proj
 indicator.db<-read.csv("ReportRef/indicator_descriptions.csv", check.names=FALSE)#read in the indicator descriptions reference sheet
 proj.indicator.table<-indicator.db%>% 
   rowwise() %>%
-  filter(!all(is.na(PointLevel[[CheckCol]])))%>%
+  filter(!all(is.na(PointLevel[[CheckCol]])) | !all(is.na(PointLevel_nd[[CheckCol]])))%>%
   filter(!Acronym %in% c("Sand", "Silt", "Clay"))%>%
   filter(Acronym!="N") #CHECK! Catie asked me to remove total N as producers will confuse with nitrates
 proj.indicators<-proj.indicator.table$Acronym #Get a vector of indicator acronyms for this project to use for further logic
@@ -169,7 +169,7 @@ cat(paste0("- Soil samples were taken to a target maximum depth of ", max.depth.
 
 if (ProjectDesign$point_generation_method=="gis"){
   cat("- Sampling points were randomly selected within the monitoring boundary using mapping software and located in the field by GPS.")
-}else{cat("- Sampling points were randomly selected using the Range-C Point Selector tool and paced out in the field.")}
+}else{cat("- Sampling points were randomly selected using the Point Selector Tool and paced out in the field.")}
 ```
 
 
@@ -195,7 +195,10 @@ SpatialDesignMapFinal
 #this section states which, if any, indicators were measured at every sampling point and removes them from the following legend table
 
 #Start by coalescing across timepoints so that indicators that didnt need to be measured more than once don't get flagged
-timepoints_coalesced <- PointLevel %>%
+
+PointLevels_joined<-PointLevel %>% left_join(PointLevel_nd, by=c("timepoint", "sample_id"))
+
+timepoints_coalesced <- PointLevels_joined %>%
   mutate(
     time_num = as.numeric(gsub("^T", "", timepoint))
   ) %>%
@@ -232,18 +235,18 @@ if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){ #only proc
   
   #identifying indicators that were measured at a subset of points
   subset.inds <- proj.indicator.table$CheckCol[ 
-  proj.indicator.table$CheckCol %in% names(PointLevel) &    # must exist
-    sapply(proj.indicator.table$CheckCol, function(col) any(is.na(PointLevel[[col]])))] 
+  proj.indicator.table$CheckCol %in% names(PointLevels_joined) &    # must exist
+    sapply(proj.indicator.table$CheckCol, function(col) any(is.na(PointLevels_joined[[col]])))] 
   
   #checking if all those subset indicators were done at the same points -- if so we'll just list them instead of making a table
-  if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))){ #returns TRUE if all subset indicators were measured at the same sampling points
-    subset_points <- PointLevel$sample_id[complete.cases(PointLevel[subset.inds])]
+  if (all(apply(!is.na(PointLevels_joined[subset.inds]), 1, function(x) all(x) | all(!x)))){ #returns TRUE if all subset indicators were measured at the same sampling points
+    subset_points <- PointLevels_joined$sample_id[complete.cases(PointLevels_joined[subset.inds])]
     subset.inds.name<-proj.indicator.table$Indicator[proj.indicator.table$CheckCol %in% subset.inds]
     cat(paste0("The following indicators were measured at points ", format_list(substr(subset_points, 12, 15)), ": ", format_list(subset.inds.name),"<br><br>"))
   }
   
   #CHECK Here is where we go back to generating the table for when not all subset inds were measured at the same point. Not relevant for current report deadline. Model based on pilot reports code when ready
-  if (all(apply(!is.na(PointLevel[subset.inds]), 1, function(x) all(x) | all(!x)))==FALSE){ 
+  if (all(apply(!is.na(PointLevels_joined[subset.inds]), 1, function(x) all(x) | all(!x)))==FALSE){ 
     cat("Indicators that were only measured at some sampling points are listed in the table below.")
     
     #might have to generate the table in a different chunk, don't remember
@@ -362,7 +365,7 @@ cat("The following graph(s) compare data collected at your site to baseline data
   }else if (params$project_name %in% c("JPQM.18.SC", "JPPS.10.SC", "JPPN.18.SC", "JPFA.14.SC", "JPNV.14.SC", "JPNC.14.SC", "JPBO.14.SC")) {
  cat("The following graph(s) compare data collected at your site to baseline data from other Joseph Phelps Vineyards monitoring plots, including the home ranch and Freestone sites.")  
   }else {
-    "Insert RACA explainer here"
+    cat("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: Central California Foothills and Coastal Mountains. These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset]https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca, and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration.")
   }
 ```
 
@@ -483,47 +486,7 @@ position_wider%>%
 
 ```
 
-#### PLFA Results {.hidden}
-```{r results='asis', eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC))}
-#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-asis_output("### Phospholipid Fatty Acid Results\\n") #CONDITIONAL HEADER
 
-cat("PLFA (phospholipid fatty acid) analysis measures the microbial community in soil by analyzing signature molecules from bacterial, fungal, and other microbes. It provides insights into community composition and soil biological activity, which are key indicators of soil health. PLFA data can be analyzed in several ways, but looking at combined microbial biomass and fungal to bacterial ratios is common. Higher microbial biomass is associated with greater microbial activity and nutrient cycling, while a higher fungal to bacterial ratio is associated with greater organic matter stabilization and improved soil structure.")
-```
-
-```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), results = 'asis'}
-#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-
-#source("ReportRef/SummaryStats_PLFA.R")
-
-#UPDATE#
-#if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))==1 ){
-#  cat(percentile_scentence_soc)
-#}
-
-#if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))==1 ){
-#  cat(percentile_scentence_soc, "\n\n")
-#  cat(time_change_soc)
-#}
-
-#if ( length(unique(PointLevel$timepoint))==1 & length(unique(PointLevel$plot_type))>1 ){
-#  cat(percentile_scentence_soc, "\n\n")
-#  cat(treatment_contrast_soc)
-#}
-
-#if ( length(unique(PointLevel$timepoint))>1 & length(unique(PointLevel$plot_type))>1 ){
-#  cat(percentile_scentence_soc, "\n\n")
-#  cat(baci_soc)
-#}
-```
-```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), fig.cap="Average combined microbial biomass. The error bars around average values show the range of confidence based on data variability (95% confidence intervals)."}
-#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
-source("ReportRef/PLFAfig_prep.R")
-PLFAfig_biomass
-```
-```{r eval = (all(c("fung_bio", "bact_bio") %in% proj.indicators.SSC)), fig.cap="Average fungal to bacterial ratio. The error bars around average values show the range of confidence based on data variability (95% confidence intervals)."}
-PLFAfig_ratio
-```
 
 #### SOC Stocks Results {.hidden}
 ```{r results='asis', eval = "bulk_density" %in% proj.indicators.SSC && params$stocks}
@@ -712,25 +675,6 @@ position_wider%>%
   kable_styling(position = "center", full_width = TRUE)
 
 ```
-#### Other Stocks Results {.hidden}
-```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
-#CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
-#Only generates if there is a stocks indicators other than SOC and SIC 
-asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
-```
-``` {r, results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
-#CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
-#Only generates if there is a stocks indicators other than SOC and SIC 
-asis_output(
-#CHECK this sentence sucks
-"The following graph shows **all other pools of carbon** measured in this project compared to the sum of all measured carbon pools in the study area."
-)
-```
-```{r, eval = any(c("POC", "MAOC")%in%proj.indicators),fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
-#CHECK! for the eval statement, you'll have to add the acronyms for plant biomass for this to work properly
-source("ReportRef/OtherStocksfig_prep.R")
-OtherStocksfig
-```
 #### Texture Results {.hidden}
 ```{r Texture Explanation, results='asis', eval = "Tx" %in% proj.indicators}
 asis_output("### Soil texture\\n") #CONDITIONAL HEADER
@@ -865,6 +809,53 @@ grid.arrange(imgT, imgC, ncol = 2)
   
 }
 ```
+#### Other Stocks Results {.hidden}
+```{r results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
+#CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
+#Only generates if there is a stocks indicators other than SOC and SIC 
+asis_output("### Other carbon pools\\n") #CONDITIONAL HEADER
+```
+``` {r, results='asis', eval = any(c("POC", "MAOC")%in%proj.indicators)}
+#CHECK! Here's the eval statement if you want to reactive this chunk any(!stocks_df$Stocks_Indicator %in% c("org_c_stocks", "inorg_c_stocks", "all_stocks"))
+#Only generates if there is a stocks indicators other than SOC and SIC 
+asis_output(
+#CHECK this sentence sucks
+"The following graph shows **all other pools of carbon** measured in this project compared to the sum of all measured carbon pools in the study area."
+)
+```
+```{r, eval = any(c("POC", "MAOC")%in%proj.indicators),fig.cap="Average carbon stocks for all measured pools. Organic carbon stocks are repeated as above to show comparison to other carbon pools measured. The values shown for all measured carbon pools combined is also shown."}
+#CHECK! for the eval statement, you'll have to add the acronyms for plant biomass for this to work properly
+source("ReportRef/OtherStocksfig_prep.R")
+OtherStocksfig
+```
+#### Aggregate Stability Results {.hidden}
+```{r , results='asis', eval = "AS" %in% proj.indicators}
+asis_output("### Aggregate stability\\n") #CONDITIONAL HEADER
+```
+```{r , results='asis', eval = "AS" %in% proj.indicators, fig.cap="Average aggregate stability index. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program."}
+source("ReportRef/SlakesData_prep.R")
+source("ReportRef/Slakesfig_prep.R")
+Slakesfig
+```
+
+#### PLFA Results {.hidden}
+```{r results='asis', eval = any(!is.na(c(PointLevel$Functional.Group.Diversity.Index.ng.g, PointLevel$microbial_c)))}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+asis_output("### Microbial indicators\\n") #CONDITIONAL HEADER
+```
+```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), results = 'asis'}
+#placeholder for PLFA stats. Not worrying about this for now. 
+source("ReportRef/PLFAData_prep.R")
+```
+```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), fig.cap="Average combined microbial biomass. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program."}
+#This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
+source("ReportRef/PLFAfig_prep.R")
+PLFAfig_biomass
+```
+```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), fig.cap="Average fungal to bacterial ratio. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program."}
+PLFAfig_ratio
+```
+
 ### Other measured properties
 The following table summarizes average values across the study area for all metrics included in your project. 
 ```{r} 

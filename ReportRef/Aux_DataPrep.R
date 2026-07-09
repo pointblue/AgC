@@ -1,5 +1,16 @@
 #Ag-C Reports Auxilary Data Prep
-sharepoint_path<-"C:/Users/acook-SEA/OneDrive - Point Blue"
+# Connect to sharepoint for AgC Data entry spreadsheet
+# Authenticate sharepoint in web browser
+sharepoint_root <- get_sharepoint_site(site_url = "https://pointblue.sharepoint.com/sites/Programs")
+# Locate file
+sharepoint_drive <- sharepoint_root$get_drive("Informatics")
+AuxData_item <- sharepoint_drive$get_item("Shared Soils Program/Ag-C/Internal Ag-C Projects/AgC_Auxilliary_DataEntry.xlsx")
+# Download and define file path
+agc_auxilliary_data_entry <- tempfile(fileext = ".xlsx")
+AuxData_item$download(
+  dest = agc_auxilliary_data_entry,
+  overwrite = TRUE
+)
 
 
 # ---- Aux Data With Depth
@@ -53,7 +64,7 @@ sharepoint_path<-"C:/Users/acook-SEA/OneDrive - Point Blue"
         left_join(PLFA_raw%>%
                     select(sample_id, `Total.Living.Microbial.Biomass.ng.g`, `Fungi.Bacteria.ng.g`, `Gram....Gram....ng.g`, 
                            `Predator.Prey.ng.g`, `Actinomycetes.ng.g...Biomass`, `Protozoan.ng.g...Biomass`, `Arbuscular.Mycorrhizal.ng.g`, 
-                           `Saprophytes.ng.g`),
+                           `Saprophytes.ng.g`, Functional.Group.Diversity.Index.ng.g),
                     by="sample_id"
                   )
     }
@@ -63,14 +74,14 @@ sharepoint_path<-"C:/Users/acook-SEA/OneDrive - Point Blue"
   ## ---- WHC ----
     ### ---- Data check ----
     #Does WHC data exist for this project?
-    file<-file.path(sharepoint_path, "PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects", "AgC_Auxilliary_DataEntry.xlsx")
-    WHC_Slakes_df<-read_excel(file, sheet="WHC_Slakes", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    #file<-file.path(sharepoint_path, "PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects", "AgC_Auxilliary_DataEntry.xlsx")
+    WHC_Slakes_df<-read_excel(agc_auxilliary_data_entry, sheet="WHC_Slakes", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
       filter(ProjectID == params$project_name)%>%
       mutate(across(c(BdepthTarget_cm:Slakes_index), as.numeric))%>%mutate(target_depth=paste0(BdepthTarget_cm, "-", EdepthTarget_cm))
     
     ### ---- Read and clean ----
     #If so, pull it in, clean, and attach to PointLevel
-    if (nrow(WHC_df)>0) {
+    if (nrow(WHC_Slakes_df)>0) {
       WHC_df<-WHC_Slakes_df %>%
         mutate(
           WHC = (WHC_VolAdded_mL - WHC_VolCollected_mL) / WHC_mass_g * 100 #do i need to convert to volumetric?
@@ -116,8 +127,8 @@ PointLevel_nd<-data.frame(
     
   ## ---- Saturated hydraulic conductivity (Data from AgC_Auxilliary_Data) ----
     ### ---- Data check ----  
-    file<-file.path(sharepoint_path, "PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects", "AgC_Auxilliary_DataEntry.xlsx")
-    DRI_df<-read_excel(file, sheet="DRI", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    #file<-file.path(sharepoint_path, "PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects", "AgC_Auxilliary_DataEntry.xlsx")
+    DRI_df<-read_excel(agc_auxilliary_data_entry, sheet="DRI", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
       filter(ProjectID == params$project_name)
     
     ### ---- perform calcs ----
@@ -232,16 +243,16 @@ PointLevel_nd<-data.frame(
     
   ## ---- Bareground ----
     ### ---- Data check ----  
-    file<-file.path(sharepoint_path, "PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects", "AgCDataEntry.xlsx")
-    bareground_df<-read_excel(file, sheet="Soils", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
-      filter(ProjectID == params$project_name)%>%
-      select(PointID, Timepoint, Bareground_prop)%>%
-      mutate(as.numeric(Bareground_prop))
+    #file<-file.path(sharepoint_path, "PointBlue Programs - Shared Soils Program/Ag-C/Internal Ag-C Projects", "AgCDataEntry.xlsx")
+    #bareground_df<-read_excel(agc_auxilliary_data_entry, sheet="Groundcover", col_names=TRUE, na = c("NA", "na", "ND", "nd", "-", "--","", " "))%>%
+    #  filter(ProjectID == params$project_name)%>%
+    #  select(PointID, Timepoint, Bareground_prop)%>%
+    #  mutate(as.numeric(Bareground_prop))
 
     ### ---- Join ----
-    if(!any(is.na(bareground_df$Bareground_prop))){
-      PointLevel_nd<-PointLevel_nd%>%left_join(bareground_df, by=c("sample_id"="PointID", "timepoint"="Timepoint"))
-    }
+    #if(!any(is.na(bareground_df$Bareground_prop))){
+    #  PointLevel_nd<-PointLevel_nd%>%left_join(bareground_df, by=c("sample_id"="PointID", "timepoint"="Timepoint"))
+    #}
     
     
   ## ---- VegVigor ----

@@ -1,13 +1,22 @@
 #Prepping FirstT Dynamic Map for LandSteward Reports
 
 #Create a vector of indicators to include in the dynamic map
+#I will need to think about this harder once we start generating reports for projects with depth increments
+#But a simple approach is sufficient for now
+  #if (exists("proj.indicators.SSC.stocks") && "bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) {
+  #  stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
+  #  proj.indicators.depth<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB", "Ksat")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
+  #  dynamicmap.inds <- c(stockscolumns, proj.indicators.depth)
+  #} else {
+  #  proj.indicators.depth<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB", "Ksat")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
+  #  dynamicmap.inds <- proj.indicators.depth
+  #}
+
 if (exists("proj.indicators.SSC.stocks") && "bulk_density" %in% proj.indicators.SSC.stocks && params$stocks==TRUE) {
   stockscolumns<-grep("_stocks$", proj.indicators.SSC.stocks, value = TRUE) #gather the names of the stocks columns
-  proj.indicators.nonbiomass<-proj.indicators.SSC.stocks[!proj.indicators.SSC.stocks %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
-  dynamicmap.inds <- c(stockscolumns, proj.indicators.nonbiomass)
+  dynamicmap.inds <- c(stockscolumns, proj.indicators.SSC.stocks)
 } else {
-  proj.indicators.nonbiomass<-proj.indicators.SSC[!proj.indicators.SSC %in% c("AHB", "HRB", "AWB", "WRB")] #CHECK! irrelevant for now but will be important later...get the rest of the project indicators that can be reported not as stocks...this matters for depth increment stuff
-  dynamicmap.inds <- proj.indicators.nonbiomass
+  dynamicmap.inds <- proj.indicators.SSC
 }
 
 #Define a fixed order for the Ag-C indicators layers to appear and apply it to dynamicmap.inds
@@ -58,7 +67,7 @@ BaseMap <- leaflet() %>%
   )
 
 #Establish a master data frames for points
-DataMap.proj <- PointLevel %>%
+DataMap.proj <- PointLevels_joined %>%
   select(sample_id, plot_type, timepoint, all_of(dynamicmap.inds)) %>%
   left_join(
     points %>%
