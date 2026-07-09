@@ -832,7 +832,7 @@ OtherStocksfig
 ```{r , results='asis', eval = "AS" %in% proj.indicators}
 asis_output("### Aggregate stability\\n") #CONDITIONAL HEADER
 ```
-```{r , results='asis', eval = "AS" %in% proj.indicators, fig.cap="Average aggregate stability index. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program."}
+```{r , results='asis', eval = "AS" %in% proj.indicators, fig.cap="Average aggregate stability index. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program.", fig.width=6}
 source("ReportRef/SlakesData_prep.R")
 source("ReportRef/Slakesfig_prep.R")
 Slakesfig
@@ -847,12 +847,12 @@ asis_output("### Microbial indicators\\n") #CONDITIONAL HEADER
 #placeholder for PLFA stats. Not worrying about this for now. 
 source("ReportRef/PLFAData_prep.R")
 ```
-```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), fig.cap="Average combined microbial biomass. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program."}
+```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), fig.cap="Average combined microbial biomass. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program.", fig.width=6}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 source("ReportRef/PLFAfig_prep.R")
 PLFAfig_biomass
 ```
-```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), fig.cap="Average fungal to bacterial ratio. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program."}
+```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), fig.cap="Average fungal to bacterial ratio. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program.", fig.width=6}
 PLFAfig_ratio
 ```
 
