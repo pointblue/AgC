@@ -52,6 +52,12 @@ df_forpopup_change <- DataMap.proj_change %>%
   rename_with(~ legends_names_change[.x], .cols = any_of(names(legends_names_change)))
 
 popupcols_change <- setdiff(names(df_forpopup_change), c("sample_id", "geometry", "plot_type"))
+
+#safeguard for when a point is missing as in MERC
+common_ids <- intersect(df_forpopup_firstT$sample_id, df_forpopup_change$sample_id)
+df_forpopup_firstT  <- df_forpopup_firstT[df_forpopup_firstT$sample_id %in% common_ids, ]
+df_forpopup_change  <- df_forpopup_change[df_forpopup_change$sample_id %in% common_ids, ]
+
 df_forpopup_firstT$popup_html <- apply(df_forpopup_change, 1, function(r)
   build_popup_html(r, popupcols_change))
 

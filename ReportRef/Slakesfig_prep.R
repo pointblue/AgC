@@ -88,8 +88,8 @@ Slakesfig<-ggplot(Slakes_df, aes(x = timepoint, y = Slakes_index))+
       str_wrap("Treated site average", width = 21),
       str_wrap("Control site average", width = 21),
       "Ag-C sampling point",
-      "Convential cropland",
-      "Mature restored habitat"
+      "Conventional cropland average",
+      "Mature restored habitat average"
     )
   ) +
   

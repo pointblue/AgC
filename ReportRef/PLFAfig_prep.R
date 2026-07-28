@@ -8,7 +8,7 @@
 
 FB_benchmarks <- data.frame(
   LU = c("conv_crop", "high"),
-  Ratio = c(0.1, 1.5)
+  Ratio = c(0.05, 1.0) #low is from Ward benchmark, high is from Yurok data
 )
 
 
@@ -92,8 +92,8 @@ PLFAfig_ratio<-ggplot(PLFA_df, aes(x = timepoint, y = Fungi.Bacteria.ng.g))+
       str_wrap("Control site average", width = 21),
       str_wrap(paste0(ecoregion, " average"), width = 21),
       "Ag-C sampling point",
-      "Tilled annual cropland - low",
-      "North coast forest - high"
+      "Tilled annual cropland - min",
+      "North coast forest - max"
     )
   ) +
   
@@ -133,7 +133,7 @@ PLFAfig_ratio<-ggplot(PLFA_df, aes(x = timepoint, y = Fungi.Bacteria.ng.g))+
 # ---- Begin graph Total biomass ----
 BM_benchmarks<-data.frame(
   LU = c("conv_crop", "forest"),
-  Value = c(650, 15000)
+  Value = c(750, 21000) #Low is from Ward benchmarks, high is max from our dataset excluding one outlier
 )
 
 PLFAfig_biomass<-ggplot(PLFA_df, aes(x = timepoint, y = Total.Living.Microbial.Biomass.ng.g))+
@@ -215,8 +215,8 @@ PLFAfig_biomass<-ggplot(PLFA_df, aes(x = timepoint, y = Total.Living.Microbial.B
       str_wrap("Control site average", width = 21),
       str_wrap(paste0(ecoregion, " average"), width = 21),
       "Ag-C sampling point",
-      "Conventional cropland",
-      "North coast forest"
+      "Tilled annual cropland - min",
+      "North coast forest - max"
     )
   ) +
   

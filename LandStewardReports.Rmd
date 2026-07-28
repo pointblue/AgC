@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: JPQM.18.SC
+  project_name: KERN.25.LI
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -79,6 +79,7 @@ FieldLevel<-list_dfs_field[which.max(as.Date(gsub("\\D","", list_dfs_field), for
 list_dfs_point<-list.files(file.path(data_path, "PointLevel", ""), pattern = "\\.csv$", full.names = TRUE)
 PointLevel<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
   read.csv(na.strings="")%>%
+  mutate(date = format(lubridate::parse_date_time(.data$sample_date, orders = c("ymd HMS", "mdy HM")), "%m/%d/%Y %H:%M"))%>%
   filter(project_id == params$project_name)%>% 
   mutate(plot_type = substr(sample_id, 12, 12), #add the plot_type column
          org_c = case_when( # if inorg_c wasn't measured, use total_c as org_c
@@ -222,7 +223,7 @@ allpoints.table <- proj.indicator.table %>%
   filter(CheckCol %in% allpoints.list)
 
 ```
-```{r Dynamic text generation 2, indicator.legend, results='asis'}
+```{r results='asis'}
 if (identical(allpoints.list, proj.indicator.table$CheckCol)){ #all indicators measured at every point
   cat("All indicators listed in Table 1 were measured at each sampling point shown in the map.")
 }
@@ -248,11 +249,35 @@ if (identical(allpoints.list, proj.indicator.table$CheckCol)==FALSE){ #only proc
   #CHECK Here is where we go back to generating the table for when not all subset inds were measured at the same point. Not relevant for current report deadline. Model based on pilot reports code when ready
   if (all(apply(!is.na(PointLevels_joined[subset.inds]), 1, function(x) all(x) | all(!x)))==FALSE){ 
     cat("Indicators that were only measured at some sampling points are listed in the table below.")
+
     
-    #might have to generate the table in a different chunk, don't remember
+    subset.measured <- !is.na(PointLevels_joined[subset.inds])
+    label_map <- setNames(indicator.db$Indicator, indicator.db$CheckCol)
+    point_labels <- substring(PointLevels_joined$sample_id, 12, 15)
+    
+    #when multiple subset indicators line up perfectly, they should be grouped and listed in the same column
+    subset.groups <- split(colnames(subset.measured), apply(subset.measured, 2, paste, collapse = ""))
+    subset.groups <- subset.groups[order(sapply(subset.groups, function(g) match(g[1], subset.inds)))]
+    
+    inds_where <- sapply(subset.groups, function(g) {
+      paste(point_labels[subset.measured[, g[1]]], collapse = ", ")
+    })
+    
+    inds_where_df <- as.data.frame(as.list(inds_where))
+    
+    kbl(inds_where_df, 
+        col.names = sapply(subset.groups, function(g) paste(label_map[g], collapse = ", ")),
+        caption = "Locations where subset indicators were measured",
+        align = "c"
+        )%>%
+      kable_styling()%>%
+      column_spec(1:ncol(inds_where_df), border_left = TRUE, border_right=TRUE)%>%
+      row_spec(1:nrow(inds_where_df), extra_css = "border-bottom: 1px solid gray;")
+        
   }
   
 }
+
 
 ```
 ```{r, other spatial design elements, results='asis'}
@@ -288,7 +313,7 @@ timepoint_sentence <- timepoint_dates %>%
     text = paste0(
       timepoint,
       " was sampled on ",
-      format(as.Date(sample_date), "%B %d, %Y"),
+      format(lubridate::parse_date_time(sample_date, orders = c("ymd HMS", "mdy HM", "mdy")), "%B %d, %Y"),
       "."
     )
   ) %>%
@@ -298,7 +323,7 @@ timepoint_sentence <- timepoint_dates %>%
 #setting up a table for ggplot labels
 tp_lookup <- timepoint_dates %>%
   mutate(
-    sample_date = as.POSIXct(sample_date, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+    sample_date = as.POSIXct(sample_date, format = "%m/%d/%Y %H:%M", tz = "UTC"),
     year_label = format(sample_date, "%Y")
   )
 
@@ -363,7 +388,7 @@ source("ReportRef/RaCAData_prep.R")
 if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC")){
 cat("The following graph(s) compare data collected at your site to baseline data from **other participating ranches** in Northern California and Oregon that monitored a compost project between 2022 and 2024.")
   }else if (params$project_name %in% c("JPQM.18.SC", "JPPS.10.SC", "JPPN.18.SC", "JPFA.14.SC", "JPNV.14.SC", "JPNC.14.SC", "JPBO.14.SC")) {
- cat("The following graph(s) compare data collected at your site to baseline data from other Joseph Phelps Vineyards monitoring plots, including the home ranch and Freestone sites.")  
+ cat("The following carbon and bulk density graph(s) compare data collected at your site to baseline data from **other Joseph Phelps Vineyards monitoring plots**, including the home ranch and Freestone sites.")  
   }else {
     cat("The following graph(s) compare data collected at your site to other agricultural sites in your ecoregion: Central California Foothills and Coastal Mountains. These comparison values are from the [USDA’s Rapid Carbon (RaCA) Assessment dataset]https://www.nrcs.usda.gov/resources/data-and-reports/rapid-carbon-assessment-raca, and provide context for understanding how your site stacks up against other farms in comparable climates. As you continue implementing conservation practices, your soil health indicators have the potential to improve, moving closer to the more ideal values seen in your region. The data from the RaCA program was collected in 2010, so shifts in climate and other conditions since the comparison dataset was sampled should be taken into consideration.")
   }
@@ -832,6 +857,9 @@ OtherStocksfig
 ```{r , results='asis', eval = "AS" %in% proj.indicators}
 asis_output("### Aggregate stability\\n") #CONDITIONAL HEADER
 ```
+```{r , results='asis', eval = "AS" %in% proj.indicators}
+cat("Values for the aggregate stability index from your site are summarized below, compared to benchmark values from sites of varying mangement. This index is a unitless scale where higher numbers indicate greater soil structure stability in saturated conditions. These values were measured according to digital tools and protocols developed by the [Soil Health Insititute.](https://soilhealthinstitute.org/our-work/initiatives/slakes/#overview)")
+```
 ```{r , results='asis', eval = "AS" %in% proj.indicators, fig.cap="Average aggregate stability index. The error bars around average values show the range of confidence based on data variability (95% confidence intervals). Horizantal lines represent benchmark values from other sites participating in the Ag-C Program.", fig.width=6}
 source("ReportRef/SlakesData_prep.R")
 source("ReportRef/Slakesfig_prep.R")
@@ -842,6 +870,11 @@ Slakesfig
 ```{r results='asis', eval = any(!is.na(c(PointLevel$Functional.Group.Diversity.Index.ng.g, PointLevel$microbial_c)))}
 #This will only evaluate if there is no bulk density or if the user opted not to show stocks in the report
 asis_output("### Microbial indicators\\n") #CONDITIONAL HEADER
+```
+```{r results='asis', eval = any(!is.na(c(PointLevel$Functional.Group.Diversity.Index.ng.g, PointLevel$microbial_c)))}
+cat("For samples that were analyzed for PLFAs (phospholipid fatty acids), key microbial indicators are shown in the graphs below, compared to benchmark values from sites of varying mangement.")
+
+
 ```
 ```{r eval = any(!is.na(PointLevel$Functional.Group.Diversity.Index.ng.g)), results = 'asis'}
 #placeholder for PLFA stats. Not worrying about this for now. 

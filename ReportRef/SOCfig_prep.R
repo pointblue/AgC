@@ -1,5 +1,9 @@
 #Prep SOC% figure for LandStewardReports
 
+if ("raca" %in% soc_df$plot_type){
+  compyearrangelabel<-"2010"
+}
+
 #Begin graph
 SOCfig<-ggplot(soc_df, aes(x = timepoint, y = org_c))+
   
@@ -50,7 +54,7 @@ SOCfig<-ggplot(soc_df, aes(x = timepoint, y = org_c))+
     breaks = c("avg", "AgC", "range", "crop", "alley", "Row", "comparison"),
     labels = c(
       str_wrap("Plot average", width = 21),
-      "Ag-C sampling point",
+      "Project sampling point",
       str_wrap("RaCA rangeland sampling point", width=21),
       str_wrap("RaCA cropland sampling point", width=21),
       "Alley sampling point",

@@ -54,15 +54,15 @@ raca_ecdf_soc <- soc_df %>%
                            plot_full, 
                            " plot is in the **", 
                            english::ordinal(raca_percentile), 
-                           " percentile** of the comparison dataset for your ecoregion."
+                           " percentile** of the comparison dataset."
                            ),
              raca_percentile<=0 ~ paste0("The most recent mean value in the ", 
                                          plot_full, 
-                                         " plot is **less than any value** in the comparison dataset for your ecoregion."
+                                         " plot is **less than any value** in the comparison dataset."
                                          ),
              raca_percentile>=100 ~ paste0("The most recent mean value in the ", 
                                          plot_full, 
-                                         " plot is **more than any value** in the comparison dataset for your ecoregion."
+                                         " plot is **more than any value** in the comparison dataset."
              )
               ) )
              

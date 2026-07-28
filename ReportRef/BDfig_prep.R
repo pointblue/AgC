@@ -75,7 +75,7 @@ BDfig<-ggplot(bd_df, aes(x = timepoint, y = bulk_density))+
     breaks = c("avg", "AgC", "range", "crop", "alley", "Row", "comparison"),
     labels = c(
       str_wrap("Plot average", width = 21),
-      "AgC sampling point",
+      "Project sampling point",
       str_wrap("RaCA rangeland sampling point", width=21),
       str_wrap("RaCA cropland sampling point", width=21),
       "Alley sampling point",

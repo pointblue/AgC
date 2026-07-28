@@ -29,20 +29,26 @@ texture_avg_list <- split(texture, texture$plot_type) %>%
   lapply(function(df){
     df_avg <- df %>%
       summarise(
-        SAND = mean(SAND, na.rm = TRUE),
+        CLAY = mean(CLAY, na.rm = TRUE),
         SILT = mean(SILT, na.rm = TRUE),
-        CLAY = mean(CLAY, na.rm = TRUE)
+        SAND = mean(SAND, na.rm = TRUE)
+      ) %>%
+      as.data.frame()
+    
+    df_avg$USDA_texture <- as.character(
+      TT.points.in.classes(
+        tri.data = df_avg[, c("CLAY", "SILT", "SAND")],
+        class.sys = "USDA.TT",
+        PiC.type = "t"
       )
-    # Assign USDA texture
-    df_avg$USDA_texture <- TT.points.in.classes(
-      tri.data = df_avg,
-      class.sys = "USDA.TT",
-      PiC.type = "t"
     )
     df_avg
-  })
+  }) %>%
+  bind_rows(.id = "plot_type")
 
-avg_tx_t<-get_texture_info(texture_avg_list$T$USDA_texture)$full_name
+avg_tx_t <- get_texture_info(
+  texture_avg_list$USDA_texture[texture_avg_list$plot_type == "T"]
+)$full_name
 
 #Write summary sentences
 if("C" %in% names(texture_avg_list)){
