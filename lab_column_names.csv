@@ -48,7 +48,7 @@ mn_ppm,ppm,NA,NA,ppm.Mn,ppm,NA,NA,NA,NA
 mn_ppm,ppm,NA,NA,"Mn,ppm",ppm,NA,NA,NA,NA
 cu_ppm,ppm,NA,NA,ppm.Cu,ppm,NA,NA,NA,NA
 cu_ppm,ppm,NA,NA,Cu.ppm,ppm,NA,NA,NA,NA
-soil_moisture,percent,NA,NA,Soil.Moisture..,percent,Moisture,percent,NA,NA
+soil_moisture,percent,NA,NA,Soil.Moisture..,percent,NA,NA,NA,NA
 sol_salts,mmho/cm,NA,NA,Salts,mmho/cm,NA,NA,NA,NA
 cec,meq/100g,NA,NA,Sum.of.Cations.me.100g,meq/100g,NA,NA,NA,NA
 cec_h_perc,percent,NA,NA,H.Sat,percent,NA,NA,NA,NA

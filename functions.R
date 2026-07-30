@@ -204,7 +204,7 @@ clean_lab_df <- function(data_path, #main data directory (Z:/Soils Team/AgC Data
       slice(-1) %>%                                # Remove the first row
       rename_with(~ as.character(lab_raw[2, ])) %>%  # Set column names from second row
       slice(-1) %>%
-      select(-c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated")) %>%
+      select(-any_of(c("Lab ID", "Dissolved C Fumigated","Dissolved C Non-Fumigated", "Moisture"))) %>%
       as.data.frame
     rename_vec <- setNames(as.character(col_map$OSU), col_map$Column.Name)
     rename_vec <- gsub("\\.", "", rename_vec)
