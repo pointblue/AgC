@@ -14,7 +14,7 @@ raca_data$LU[raca_data$LU == "R"] <- "range"
 
 
 
-if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC")){
+if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC", "STOR.24.SC")){
 ComparisonData<-list_dfs_point[which.max(as.Date(gsub("\\D","", list_dfs_point), format = "%Y%m%d"))]%>%
   read.csv(na.strings=c("", "na", "NA", "nd", "ND", "-"))%>%
   mutate(plot_type = substr(sample_id, 12, 12))%>%

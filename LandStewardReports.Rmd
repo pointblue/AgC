@@ -18,7 +18,7 @@ output:
     fig_height: 6
 dev: png
 params:
-  project_name: KERN.25.LI
+  project_name: STOR.24.SC
   raca_filter:
     - crop
   author: "Avalon Cook, Lisa Eash, and Erika Foster"
@@ -323,7 +323,11 @@ timepoint_sentence <- timepoint_dates %>%
 #setting up a table for ggplot labels
 tp_lookup <- timepoint_dates %>%
   mutate(
-    sample_date = as.POSIXct(sample_date, format = "%m/%d/%Y %H:%M", tz = "UTC"),
+    sample_date = lubridate::parse_date_time(
+      sample_date,
+      orders = c("Ymd HMS", "mdY HM"),
+      tz = "UTC"
+    ),
     year_label = format(sample_date, "%Y")
   )
 
@@ -385,7 +389,7 @@ cat("\\n We expect to see increased soil organic carbon from your conservation p
 source("ReportRef/RaCAData_prep.R")
 ```
 ```{r, results='asis'}
-if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC")){
+if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC", "STOR.24.SC")){
 cat("The following graph(s) compare data collected at your site to baseline data from **other participating ranches** in Northern California and Oregon that monitored a compost project between 2022 and 2024.")
   }else if (params$project_name %in% c("JPQM.18.SC", "JPPS.10.SC", "JPPN.18.SC", "JPFA.14.SC", "JPNV.14.SC", "JPNC.14.SC", "JPBO.14.SC")) {
  cat("The following carbon and bulk density graph(s) compare data collected at your site to baseline data from **other Joseph Phelps Vineyards monitoring plots**, including the home ranch and Freestone sites.")  

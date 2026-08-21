@@ -12,7 +12,7 @@ soc_df <- PointLevel %>% #reformats so the dataframe is long with respect to the
   }%>%
   select(sample_id, timepoint, plot_type, org_c, LU) %>%
   {
-    if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC", 
+    if (params$project_name %in% c("ENGL.24.SC", "KELA.24.SC", "HEPU.23.SC", "NAPA.24.SC", "SHRA.24.SC", "STOR.24.SC",
                                    "JPQM.18.SC", "JPPS.10.SC", "JPPN.18.SC", "JPFA.14.SC", "JPNV.14.SC", "JPNC.14.SC", "JPBO.14.SC")) {
       bind_rows(
         .,

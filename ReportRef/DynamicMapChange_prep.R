@@ -54,11 +54,11 @@ df_forpopup_change <- DataMap.proj_change %>%
 popupcols_change <- setdiff(names(df_forpopup_change), c("sample_id", "geometry", "plot_type"))
 
 #safeguard for when a point is missing as in MERC
-common_ids <- intersect(df_forpopup_firstT$sample_id, df_forpopup_change$sample_id)
-df_forpopup_firstT  <- df_forpopup_firstT[df_forpopup_firstT$sample_id %in% common_ids, ]
-df_forpopup_change  <- df_forpopup_change[df_forpopup_change$sample_id %in% common_ids, ]
+#common_ids <- intersect(df_forpopup_firstT$sample_id, df_forpopup_change$sample_id)
+#df_forpopup_firstT  <- df_forpopup_firstT[df_forpopup_firstT$sample_id %in% common_ids, ]
+#df_forpopup_change  <- df_forpopup_change[df_forpopup_change$sample_id %in% common_ids, ]
 
-df_forpopup_firstT$popup_html <- apply(df_forpopup_change, 1, function(r)
+df_forpopup_change$popup_html <- apply(df_forpopup_change, 1, function(r)
   build_popup_html(r, popupcols_change))
 
 #Create map for first timepoint
@@ -71,15 +71,21 @@ for (i in seq_along(valid_inds)) {
                         legends_names_change[indicator],
                         indicator)
   
-  #symmetric domain for showing change
-  rng <- range(DataMap.proj_change[[indicator]], na.rm = TRUE)
-  max_abs <- max(abs(rng))
-  domainz <- c(-max_abs, max_abs)
+  # symmetric domain for showing change, for most indicators
+  if (indicator != "org_c") {
+    rng <- range(DataMap.proj_change[[indicator]], na.rm = TRUE)
+    max_abs <- max(abs(rng))
+    domainz <- c(-max_abs, max_abs)
+  } else {
+    domainz <- c(-1.5, 1.5)   # fixed domain for org_c
+  }
+  
   pal_ind <- colorNumeric(
-    palette = pal_change(100),
-    domain  = domainz,
+    palette  = pal_change(100),
+    domain   = domainz,
     na.color = "gray"
   )
+    
   
   DynamicMap2 <- DynamicMap2 %>%
     addCircleMarkers(
@@ -89,7 +95,7 @@ for (i in seq_along(valid_inds)) {
       radius = 3,
       group = legend_name,
       label = DataMap.proj_change$sample_id,
-      popup = df_forpopup_firstT$popup_html
+      popup = df_forpopup_change$popup_html
     ) %>%
     addLegend(
       pal = pal_ind,
