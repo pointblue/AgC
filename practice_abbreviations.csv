@@ -15,3 +15,5 @@ Riparian restoration,RR,5,NA,4,9,Range
 Range planting,RP,5,NA,5,13,Range
 Upland tree planting,UP,10,NA,7,16,Range
 Prescribed grazing,PG,10,NA,6,15,Range
+Floodplain restoration,FR,,,,,"Crop, Range"
+No practice,NP,,,,,"Crop, Range"
